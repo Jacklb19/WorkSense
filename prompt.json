@@ -1,0 +1,929 @@
+{
+  "meta": {
+    "nombre": "WorkSense MVP — Prompt de Construcción Flutter",
+    "version": "1.0",
+    "equipo": "Sumak — Arévalo · Jose · Steven",
+    "objetivo": "Construir el MVP completo de WorkSense en Flutter con cámara real del celular conectado vía Android Studio",
+    "plataforma_target": "Android (API 21+) — Xiaomi Redmi con depuración USB",
+    "ide": "Android Studio Hedgehog o superior",
+    "flutter_version": ">=3.22.0",
+    "dart_version": ">=3.0.0"
+  },
+
+  "instrucciones_uso": {
+    "descripcion": "Este JSON es el prompt completo para construir el MVP de WorkSense. Úsalo sección por sección en el orden indicado. Cada sección es independiente y puede asignarse a un desarrollador distinto.",
+    "orden_ejecucion": [
+      "1. setup_proyecto",
+      "2. dependencias",
+      "3. estructura_carpetas",
+      "4. configuracion_android",
+      "5. dominio",
+      "6. base_datos_local",
+      "7. autenticacion",
+      "8. ai_pipeline",
+      "9. pantallas",
+      "10. navegacion",
+      "11. sincronizacion",
+      "12. datos_demo"
+    ]
+  },
+
+  "setup_proyecto": {
+    "descripcion": "Crear el proyecto Flutter base con la configuración correcta",
+    "comando_creacion": "flutter create --org com.sumak.worksense --project-name worksense_app worksense_app",
+    "prompt": "Crea un proyecto Flutter llamado 'worksense_app' con organización 'com.sumak.worksense'. Después de crearlo, verifica que compila con 'flutter run' antes de modificar nada. El proyecto debe funcionar en un dispositivo Android físico Xiaomi Redmi conectado por USB con depuración USB habilitada.",
+    "verificacion": "flutter devices debe mostrar el Redmi como dispositivo disponible. flutter run debe abrir la app en el celular."
+  },
+
+  "dependencias": {
+    "descripcion": "Todas las dependencias necesarias para el MVP en pubspec.yaml",
+    "prompt": "Reemplaza el contenido de pubspec.yaml con la siguiente configuración exacta. NO agregues dependencias adicionales. El MVP usa solo estas.",
+    "pubspec_yaml": {
+      "name": "worksense_app",
+      "description": "WorkSense MVP - Monitoreo de Productividad con IA",
+      "version": "1.0.0+1",
+      "environment": {
+        "sdk": ">=3.0.0 <4.0.0",
+        "flutter": ">=3.22.0"
+      },
+      "dependencies": {
+        "flutter": { "sdk": "flutter" },
+        "flutter_riverpod": "^2.5.1",
+        "riverpod_annotation": "^2.3.5",
+        "go_router": "^14.2.0",
+        "supabase_flutter": "^2.5.6",
+        "drift": "^2.18.0",
+        "sqlite3_flutter_libs": "^0.5.22",
+        "path_provider": "^2.1.3",
+        "path": "^1.9.0",
+        "camera": "^0.11.0+1",
+        "google_mlkit_pose_detection": "^0.11.0",
+        "google_mlkit_face_detection": "^0.11.0",
+        "connectivity_plus": "^6.0.3",
+        "flutter_secure_storage": "^9.2.2",
+        "intl": "^0.19.0",
+        "uuid": "^4.4.0",
+        "equatable": "^2.0.5"
+      },
+      "dev_dependencies": {
+        "flutter_test": { "sdk": "flutter" },
+        "flutter_lints": "^3.0.0",
+        "drift_dev": "^2.18.0",
+        "build_runner": "^2.4.11",
+        "riverpod_generator": "^2.4.3"
+      },
+      "flutter": {
+        "uses-material-design": true
+      }
+    },
+    "comando_instalar": "flutter pub get",
+    "nota_importante": "Después de instalar, ejecutar: flutter pub run build_runner build --delete-conflicting-outputs para generar el código de Drift y Riverpod."
+  },
+
+  "configuracion_android": {
+    "descripcion": "Configuración necesaria en AndroidManifest.xml y build.gradle para que la cámara y ML Kit funcionen en el Redmi",
+    "prompt": "Modifica los archivos de Android para habilitar los permisos de cámara, internet, y la configuración correcta para ML Kit. SIN estos cambios la cámara NO funcionará.",
+
+    "android_manifest": {
+      "archivo": "android/app/src/main/AndroidManifest.xml",
+      "permisos_agregar": [
+        "<uses-permission android:name=\"android.permission.CAMERA\" />",
+        "<uses-permission android:name=\"android.permission.INTERNET\" />",
+        "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />",
+        "<uses-feature android:name=\"android.hardware.camera\" android:required=\"true\" />",
+        "<uses-feature android:name=\"android.hardware.camera.autofocus\" android:required=\"false\" />"
+      ],
+      "dentro_de_application": [
+        "<meta-data android:name=\"com.google.mlkit.vision.DEPENDENCIES\" android:value=\"face,pose\" />"
+      ],
+      "activity_android_exported": "true"
+    },
+
+    "build_gradle_app": {
+      "archivo": "android/app/build.gradle",
+      "cambios": {
+        "minSdkVersion": 21,
+        "targetSdkVersion": 34,
+        "compileSdkVersion": 34,
+        "multiDexEnabled": true,
+        "aaptOptions": "noCompress 'tflite'",
+        "packagingOptions": {
+          "pickFirst": [
+            "**/*.so"
+          ]
+        }
+      }
+    },
+
+    "gradle_properties": {
+      "archivo": "android/gradle.properties",
+      "agregar": [
+        "android.useAndroidX=true",
+        "android.enableJetifier=true"
+      ]
+    },
+
+    "nota_redmi": "En Xiaomi Redmi: ir a Ajustes → Información del teléfono → tocar 7 veces 'Versión de MIUI' → Ajustes adicionales → Opciones de desarrollador → activar 'Depuración USB'. Conectar con cable USB y aceptar el aviso en el celular."
+  },
+
+  "estructura_carpetas": {
+    "descripcion": "Estructura completa de carpetas del proyecto MVP",
+    "prompt": "Crea esta estructura de carpetas dentro de lib/. Pon un archivo .gitkeep vacío en cada carpeta vacía para que Git las rastree.",
+    "estructura": {
+      "lib/": {
+        "main.dart": "Punto de entrada de la app",
+        "core/": {
+          "constants/": {
+            "ai_thresholds.dart": "Umbrales configurables del clasificador de IA",
+            "app_constants.dart": "Constantes generales de la app"
+          },
+          "theme/": {
+            "app_colors.dart": "Paleta de colores",
+            "app_text_styles.dart": "Estilos de texto",
+            "app_theme.dart": "ThemeData de la aplicación"
+          },
+          "routing/": {
+            "app_router.dart": "Configuración de go_router con guards"
+          },
+          "di/": {
+            "service_locator.dart": "Inyección de dependencias con Riverpod"
+          }
+        },
+        "domain/": {
+          "entities/": {
+            "activity_event.dart": "Entidad: evento de actividad detectado",
+            "activity_state.dart": "Enum: TRABAJANDO, INACTIVO, DISTRAIDO, FATIGA, AUSENTE",
+            "employee.dart": "Entidad: empleado",
+            "workstation.dart": "Entidad: puesto de trabajo",
+            "company.dart": "Entidad: empresa"
+          },
+          "repositories/": {
+            "activity_repository.dart": "Interfaz del repositorio de eventos",
+            "employee_repository.dart": "Interfaz del repositorio de empleados",
+            "auth_repository.dart": "Interfaz del repositorio de autenticación"
+          },
+          "use_cases/": {
+            "save_activity_event_use_case.dart": "Guarda un evento en Drift",
+            "get_recent_events_use_case.dart": "Obtiene los últimos N eventos",
+            "sync_events_use_case.dart": "Sincroniza eventos pendientes con Supabase",
+            "sign_in_use_case.dart": "Autenticación con Supabase",
+            "sign_out_use_case.dart": "Cierre de sesión"
+          }
+        },
+        "data/": {
+          "local/": {
+            "database.dart": "AppDatabase de Drift — tablas y DAOs",
+            "database.g.dart": "GENERADO — no editar manualmente",
+            "tables/": {
+              "employees_table.dart": "Definición de tabla Drift para empleados",
+              "workstations_table.dart": "Definición de tabla Drift para puestos",
+              "activity_events_table.dart": "Definición de tabla Drift para eventos",
+              "sync_queue_table.dart": "Definición de tabla Drift para cola de sync",
+              "companies_table.dart": "Definición de tabla Drift para empresas"
+            },
+            "daos/": {
+              "activity_events_dao.dart": "Data Access Object para eventos",
+              "employees_dao.dart": "Data Access Object para empleados"
+            }
+          },
+          "remote/": {
+            "supabase_datasource.dart": "Cliente de Supabase para operaciones remotas"
+          },
+          "repositories/": {
+            "activity_repository_impl.dart": "Implementación real del ActivityRepository",
+            "employee_repository_impl.dart": "Implementación real del EmployeeRepository",
+            "auth_repository_impl.dart": "Implementación real del AuthRepository"
+          },
+          "models/": {
+            "activity_event_model.dart": "DTO de ActivityEvent para Supabase",
+            "employee_model.dart": "DTO de Employee para Supabase"
+          }
+        },
+        "features/": {
+          "auth/": {
+            "presentation/": {
+              "screens/": {
+                "login_screen.dart": "Pantalla de login con email y contraseña"
+              },
+              "providers/": {
+                "auth_provider.dart": "Estado de autenticación"
+              }
+            }
+          },
+          "camera_monitor/": {
+            "ai/": {
+              "pose_analyzer.dart": "Analiza los 33 landmarks de pose de ML Kit",
+              "face_analyzer.dart": "Analiza ángulos yaw/pitch/roll de ML Kit",
+              "activity_classifier.dart": "Clasifica el estado con los datos de pose y cara",
+              "ai_result.dart": "Clase que agrupa el resultado del pipeline de IA"
+            },
+            "presentation/": {
+              "screens/": {
+                "kiosk_screen.dart": "Pantalla principal del Kiosk Mode con cámara"
+              },
+              "widgets/": {
+                "camera_preview_widget.dart": "Widget del preview de cámara",
+                "activity_overlay_painter.dart": "CustomPainter que dibuja el overlay de IA",
+                "state_badge_widget.dart": "Badge de estado (TRABAJANDO, AUSENTE, etc.)"
+              },
+              "providers/": {
+                "kiosk_provider.dart": "Estado del Kiosk Mode y pipeline de IA"
+              }
+            }
+          },
+          "dashboard/": {
+            "presentation/": {
+              "screens/": {
+                "dashboard_screen.dart": "Pantalla del dashboard del administrador",
+                "activity_history_screen.dart": "Historial de eventos de actividad"
+              },
+              "widgets/": {
+                "workstation_card.dart": "Tarjeta de estado de un puesto",
+                "activity_event_tile.dart": "Ítem del historial de eventos"
+              },
+              "providers/": {
+                "dashboard_provider.dart": "Estado del dashboard"
+              }
+            }
+          },
+          "employees/": {
+            "presentation/": {
+              "screens/": {
+                "employees_list_screen.dart": "Lista de empleados",
+                "employee_form_screen.dart": "Formulario de registro de empleado"
+              },
+              "providers/": {
+                "employees_provider.dart": "Estado de la lista de empleados"
+              }
+            }
+          },
+          "settings/": {
+            "presentation/": {
+              "screens/": {
+                "settings_screen.dart": "Pantalla de configuración del intervalo de análisis"
+              }
+            }
+          }
+        },
+        "shared/": {
+          "widgets/": {
+            "async_value_widget.dart": "Widget que maneja los 3 estados de AsyncValue",
+            "loading_widget.dart": "Indicador de carga",
+            "error_widget.dart": "Widget de error con botón de reintento",
+            "sync_indicator_widget.dart": "Indicador de estado de sincronización"
+          },
+          "providers/": {
+            "connectivity_provider.dart": "Estado de conectividad de red",
+            "sync_state_provider.dart": "Estado del motor de sincronización"
+          }
+        }
+      }
+    }
+  },
+
+  "dominio": {
+    "descripcion": "Todas las entidades y contratos del dominio — el CONTRATO compartido del equipo",
+    "prompt": "Implementa todas las entidades y las interfaces de repositorio del dominio. Estas clases son Dart puro: SIN imports de Flutter, SIN Supabase, SIN Drift. Solo Dart y el paquete equatable.",
+
+    "activity_state_enum": {
+      "archivo": "lib/domain/entities/activity_state.dart",
+      "codigo": "enum ActivityState {\n  trabajando,\n  inactivo,\n  distraido,\n  fatiga,\n  ausente;\n\n  String get label {\n    switch (this) {\n      case ActivityState.trabajando: return 'TRABAJANDO';\n      case ActivityState.inactivo: return 'INACTIVO';\n      case ActivityState.distraido: return 'DISTRAÍDO';\n      case ActivityState.fatiga: return 'FATIGA';\n      case ActivityState.ausente: return 'AUSENTE';\n    }\n  }\n\n  String get emoji {\n    switch (this) {\n      case ActivityState.trabajando: return '🟢';\n      case ActivityState.inactivo: return '🟡';\n      case ActivityState.distraido: return '🟠';\n      case ActivityState.fatiga: return '🔴';\n      case ActivityState.ausente: return '⚫';\n    }\n  }\n}"
+    },
+
+    "activity_event_entity": {
+      "archivo": "lib/domain/entities/activity_event.dart",
+      "campos": {
+        "id": "String — UUID único del evento",
+        "employeeId": "String? — ID del empleado detectado (null si no identificado)",
+        "workstationId": "String — ID del puesto de trabajo",
+        "state": "ActivityState — estado clasificado",
+        "confidence": "double — nivel de confianza entre 0.0 y 1.0",
+        "timestamp": "DateTime — cuándo ocurrió el evento",
+        "synced": "bool — si ya fue sincronizado con Supabase"
+      },
+      "nota": "Implementar con Equatable para comparación por valor."
+    },
+
+    "employee_entity": {
+      "archivo": "lib/domain/entities/employee.dart",
+      "campos": {
+        "id": "String",
+        "name": "String",
+        "companyId": "String",
+        "createdAt": "DateTime"
+      }
+    },
+
+    "workstation_entity": {
+      "archivo": "lib/domain/entities/workstation.dart",
+      "campos": {
+        "id": "String",
+        "name": "String",
+        "companyId": "String",
+        "deviceId": "String? — ID del dispositivo asignado a este puesto"
+      }
+    },
+
+    "activity_repository_interface": {
+      "archivo": "lib/domain/repositories/activity_repository.dart",
+      "metodos": {
+        "saveEvent": "Future<void> saveEvent(ActivityEvent event)",
+        "getRecentEvents": "Future<List<ActivityEvent>> getRecentEvents({int limit = 50})",
+        "watchEvents": "Stream<List<ActivityEvent>> watchEvents()",
+        "getPendingSync": "Future<List<ActivityEvent>> getPendingSync()",
+        "markAsSynced": "Future<void> markAsSynced(String eventId)",
+        "getLastEventForWorkstation": "Future<ActivityEvent?> getLastEventForWorkstation(String workstationId)"
+      }
+    },
+
+    "auth_repository_interface": {
+      "archivo": "lib/domain/repositories/auth_repository.dart",
+      "metodos": {
+        "signIn": "Future<void> signIn({required String email, required String password})",
+        "signOut": "Future<void> signOut()",
+        "getCurrentUser": "Stream<bool> get isAuthenticated",
+        "getUserEmail": "String? get currentUserEmail"
+      }
+    }
+  },
+
+  "base_datos_local": {
+    "descripcion": "Esquema de Drift para las 5 tablas del MVP",
+    "prompt": "Implementa la base de datos local usando Drift. Esta es la fuente de verdad del dispositivo. El sistema funciona aunque no haya internet porque primero guarda en Drift.",
+
+    "database_dart": {
+      "archivo": "lib/data/local/database.dart",
+      "instrucciones": "Crear la clase AppDatabase extendiendo GeneratedDatabase con las 5 tablas del MVP. Incluir la anotación @DriftDatabase con todas las tablas y DAOs.",
+      "tablas": [
+        "CompaniesTable",
+        "EmployeesTable",
+        "WorkstationsTable",
+        "ActivityEventsTable",
+        "SyncQueueTable"
+      ],
+      "version_schema": 1
+    },
+
+    "tablas": {
+      "activity_events": {
+        "descripcion": "Tabla más importante del MVP — cada clasificación de IA genera una fila",
+        "columnas": {
+          "id": "TextColumn — UUID, primaryKey",
+          "employee_id": "TextColumn? — nullable, puede ser null si no se identificó al empleado",
+          "workstation_id": "TextColumn — ID del puesto",
+          "state": "TextColumn — valor del enum ActivityState como string",
+          "confidence": "RealColumn — entre 0.0 y 1.0",
+          "timestamp": "DateTimeColumn — withDefault(currentDateAndTime)",
+          "synced": "BoolColumn — withDefault(Constant(false))"
+        },
+        "indices": ["workstation_id", "timestamp", "synced"]
+      },
+
+      "employees": {
+        "columnas": {
+          "id": "TextColumn — UUID, primaryKey",
+          "name": "TextColumn",
+          "company_id": "TextColumn",
+          "created_at": "DateTimeColumn — withDefault(currentDateAndTime)"
+        }
+      },
+
+      "workstations": {
+        "columnas": {
+          "id": "TextColumn — UUID, primaryKey",
+          "name": "TextColumn",
+          "company_id": "TextColumn",
+          "device_id": "TextColumn? — nullable"
+        }
+      },
+
+      "companies": {
+        "columnas": {
+          "id": "TextColumn — UUID, primaryKey",
+          "name": "TextColumn",
+          "created_at": "DateTimeColumn"
+        }
+      },
+
+      "sync_queue": {
+        "descripcion": "Cola de operaciones pendientes de sincronizar con Supabase",
+        "columnas": {
+          "id": "TextColumn — UUID, primaryKey",
+          "table_name": "TextColumn — nombre de la tabla destino en Supabase",
+          "record_id": "TextColumn — ID del registro a sincronizar",
+          "operation": "TextColumn — INSERT, UPDATE o DELETE",
+          "payload": "TextColumn — JSON string con los datos del registro",
+          "retries": "IntColumn — withDefault(Constant(0))",
+          "created_at": "DateTimeColumn — withDefault(currentDateAndTime)"
+        }
+      }
+    },
+
+    "activity_events_dao": {
+      "archivo": "lib/data/local/daos/activity_events_dao.dart",
+      "metodos_requeridos": [
+        "Future<void> insertEvent(ActivityEventsTableCompanion event)",
+        "Future<List<ActivityEventsTableData>> getRecentEvents(int limit)",
+        "Stream<List<ActivityEventsTableData>> watchRecentEvents()",
+        "Future<List<ActivityEventsTableData>> getPendingSync()",
+        "Future<void> markAsSynced(String eventId)",
+        "Future<ActivityEventsTableData?> getLastEventForWorkstation(String workstationId)"
+      ]
+    },
+
+    "comando_generar_codigo": "flutter pub run build_runner build --delete-conflicting-outputs",
+    "nota": "Ejecutar el build_runner SIEMPRE que se modifique una tabla o DAO de Drift."
+  },
+
+  "autenticacion": {
+    "descripcion": "Login con Supabase Auth — solo email y contraseña para el MVP",
+    "prompt": "Implementa la autenticación con Supabase. Para el MVP solo necesitamos email/contraseña. El usuario ADMIN se crea manualmente en el panel de Supabase.",
+
+    "supabase_config": {
+      "archivo": "lib/main.dart",
+      "instrucciones": "Inicializar Supabase en el main() antes de runApp(). Las credenciales deben venir de una clase AppConfig que las lee del código (para MVP hardcodeadas, en producción de .env).",
+      "codigo_init": "await Supabase.initialize(url: AppConfig.supabaseUrl, anonKey: AppConfig.supabaseAnonKey);"
+    },
+
+    "credenciales_demo": {
+      "nota": "CREAR MANUALMENTE en el panel de Supabase antes de la demo",
+      "usuario_admin": {
+        "email": "admin@worksense.demo",
+        "password": "WorkSense2025!",
+        "rol": "ADMIN"
+      }
+    },
+
+    "auth_provider": {
+      "archivo": "lib/features/auth/presentation/providers/auth_provider.dart",
+      "tipo": "StreamProvider<AsyncValue<User?>>",
+      "descripcion": "Escucha el stream de cambios de autenticación de Supabase. go_router lo usa para redirigir al login o al dashboard."
+    },
+
+    "login_screen": {
+      "archivo": "lib/features/auth/presentation/screens/login_screen.dart",
+      "elementos_ui": [
+        "Logo de WorkSense (texto grande, sin imagen por ahora)",
+        "Campo de email con validación",
+        "Campo de contraseña con toggle de visibilidad",
+        "Botón 'Iniciar Sesión' que llama al AuthRepository",
+        "Indicador de carga mientras se autentica",
+        "Mensaje de error si las credenciales son incorrectas"
+      ],
+      "validaciones": [
+        "Email no puede estar vacío",
+        "Email debe tener formato válido",
+        "Contraseña mínimo 6 caracteres"
+      ]
+    }
+  },
+
+  "ai_pipeline": {
+    "descripcion": "El corazón del MVP — detección y clasificación de actividad usando la cámara del Redmi",
+    "prompt": "Implementa el pipeline de IA completo. Este es el componente más crítico del MVP. Debe funcionar en un dispositivo físico Redmi. NO funcionará en emulador.",
+
+    "importante": "TODO el procesamiento de ML Kit debe ejecutarse en un Isolate separado usando compute() o en un background thread. NUNCA en el hilo principal de Flutter. Si se bloquea el hilo principal, la cámara se congela.",
+
+    "ai_thresholds": {
+      "archivo": "lib/core/constants/ai_thresholds.dart",
+      "valores_calibrados": {
+        "kYawThreshold": 30.0,
+        "kPitchThreshold": -20.0,
+        "kRollThreshold": 25.0,
+        "kMinPoseConfidence": 0.5,
+        "kMinFaceConfidence": 0.5,
+        "kInactivitySeconds": 60,
+        "kHandMovementThreshold": 0.05,
+        "kHandFaceDistanceThreshold": 0.15,
+        "kMinClassificationConfidence": 0.4,
+        "kAnalysisIntervalSeconds": 30
+      },
+      "nota": "Estos valores son el punto de partida. Arévalo debe calibrarlos con pruebas reales en el Redmi bajo diferentes condiciones de iluminación."
+    },
+
+    "camera_setup": {
+      "descripcion": "Configuración del plugin de cámara de Flutter",
+      "instrucciones": [
+        "Solicitar permiso de cámara ANTES de inicializar el CameraController. En Redmi/MIUI puede aparecer el diálogo de permisos personalizados de Xiaomi.",
+        "Usar ResolutionPreset.medium para el MVP — es el balance óptimo entre calidad y rendimiento en ML Kit.",
+        "Iniciar el imageStream del CameraController para capturar frames en tiempo real.",
+        "El CameraController DEBE liberarse en el dispose() de la pantalla para evitar memory leaks.",
+        "En Redmi con MIUI, el permiso de cámara puede estar 'Solo mientras se usa' — la app debe manejar este caso."
+      ],
+      "codigo_permiso": "final status = await Permission.camera.request();\nif (status != PermissionStatus.granted) {\n  // Mostrar pantalla de error pidiendo activar el permiso manualmente\n}",
+      "resolution_preset": "ResolutionPreset.medium",
+      "descripcion_imageStream": "Usar camera.startImageStream() para recibir cada frame como CameraImage y procesarlo con ML Kit."
+    },
+
+    "pose_analyzer": {
+      "archivo": "lib/features/camera_monitor/ai/pose_analyzer.dart",
+      "descripcion": "Analiza los 33 landmarks de pose de ML Kit y extrae métricas de movimiento",
+      "input": "List<Pose> — resultado de ML Kit PoseDetector",
+      "output": "PoseAnalysisResult — clase con las métricas calculadas",
+
+      "clase_resultado": {
+        "nombre": "PoseAnalysisResult",
+        "campos": {
+          "personDetected": "bool — si hay al menos una persona en el frame",
+          "handsMoving": "bool — si las manos se están moviendo",
+          "handNearFace": "bool — si una mano está cerca del rostro",
+          "shoulderAngle": "double — ángulo de inclinación de los hombros",
+          "poseConfidence": "double — confianza promedio de los landmarks principales"
+        }
+      },
+
+      "calculo_movimiento_manos": {
+        "descripcion": "Comparar posición de muñecas (landmark 15 y 16) entre frames consecutivos",
+        "implementacion": "Guardar la posición del frame anterior. Si la diferencia euclidiana entre posición actual y anterior supera kHandMovementThreshold, las manos están activas.",
+        "nota": "Para el primer frame siempre retornar handsMoving = true para evitar falsos negativos de INACTIVO al inicio."
+      },
+
+      "calculo_mano_cerca_cara": {
+        "descripcion": "Distancia euclidiana entre muñecas (15, 16) y nariz (landmark 0)",
+        "umbral": "kHandFaceDistanceThreshold — si la distancia es menor, la mano está cerca de la cara"
+      },
+
+      "landmarks_clave": {
+        "0": "NOSE — nariz",
+        "11": "LEFT_SHOULDER — hombro izquierdo",
+        "12": "RIGHT_SHOULDER — hombro derecho",
+        "15": "LEFT_WRIST — muñeca izquierda",
+        "16": "RIGHT_WRIST — muñeca derecha"
+      }
+    },
+
+    "face_analyzer": {
+      "archivo": "lib/features/camera_monitor/ai/face_analyzer.dart",
+      "descripcion": "Extrae los ángulos de orientación de la cabeza desde ML Kit Face Detection",
+      "input": "List<Face> — resultado de ML Kit FaceDetector",
+      "output": "FaceAnalysisResult — clase con ángulos y estado de detección",
+
+      "clase_resultado": {
+        "nombre": "FaceAnalysisResult",
+        "campos": {
+          "faceDetected": "bool — si se detectó un rostro",
+          "yaw": "double — rotación horizontal (izquierda/derecha)",
+          "pitch": "double — rotación vertical (arriba/abajo)",
+          "roll": "double — inclinación lateral",
+          "faceConfidence": "double — confianza de la detección"
+        }
+      },
+
+      "configuracion_mlkit": {
+        "enableTracking": true,
+        "minFaceSize": 0.15,
+        "performanceMode": "FaceDetectorMode.fast",
+        "enableClassification": false,
+        "enableLandmarks": false,
+        "nota": "Usar modo fast para no bloquear el hilo. Los landmarks faciales no son necesarios para el MVP."
+      }
+    },
+
+    "activity_classifier": {
+      "archivo": "lib/features/camera_monitor/ai/activity_classifier.dart",
+      "descripcion": "Combina PoseAnalysisResult y FaceAnalysisResult para clasificar el estado. Es la lógica de negocio central del MVP.",
+      "input": {
+        "poseResult": "PoseAnalysisResult",
+        "faceResult": "FaceAnalysisResult",
+        "previousState": "ActivityState? — estado anterior para suavizar transiciones"
+      },
+      "output": "AIResult — estado + confianza",
+
+      "tabla_de_decision": {
+        "descripcion": "Evaluar en este orden exacto — el primer criterio que se cumpla gana",
+        "reglas": [
+          {
+            "prioridad": 1,
+            "condicion": "poseResult.personDetected == false",
+            "estado": "ActivityState.ausente",
+            "confianza_tipica": 0.8
+          },
+          {
+            "prioridad": 2,
+            "condicion": "poseResult.personDetected == true && faceResult.faceDetected == false",
+            "estado": "ActivityState.trabajando",
+            "confianza_tipica": 0.5,
+            "nota": "Puede estar de espaldas — no podemos confirmarlo, clasificamos como trabajando con baja confianza"
+          },
+          {
+            "prioridad": 3,
+            "condicion": "faceResult.yaw.abs() > kYawThreshold || poseResult.handNearFace",
+            "estado": "ActivityState.distraido",
+            "confianza_tipica": 0.75
+          },
+          {
+            "prioridad": 4,
+            "condicion": "faceResult.pitch < kPitchThreshold || faceResult.roll.abs() > kRollThreshold",
+            "estado": "ActivityState.fatiga",
+            "confianza_tipica": 0.75
+          },
+          {
+            "prioridad": 5,
+            "condicion": "poseResult.handsMoving == false — por más de kInactivitySeconds",
+            "estado": "ActivityState.inactivo",
+            "confianza_tipica": 0.8,
+            "nota": "Necesita un timer interno en el Kiosk Provider para contar el tiempo sin movimiento"
+          },
+          {
+            "prioridad": 6,
+            "condicion": "defecto — persona presente, cara al frente, manos activas",
+            "estado": "ActivityState.trabajando",
+            "confianza_tipica": 0.9
+          }
+        ]
+      },
+
+      "suavizado_de_transiciones": {
+        "descripcion": "Para evitar que el estado parpadee entre frames, aplicar suavizado",
+        "implementacion": "Mantener un buffer de los últimos 3 resultados. El estado final es el que aparece más veces en el buffer (moda). Esto elimina clasificaciones incorrectas de un solo frame."
+      }
+    },
+
+    "kiosk_provider": {
+      "archivo": "lib/features/camera_monitor/presentation/providers/kiosk_provider.dart",
+      "tipo": "AsyncNotifierProvider<KioskNotifier, KioskState>",
+      "estado_kiosk": {
+        "currentState": "ActivityState — estado actual clasificado",
+        "confidence": "double — confianza del estado actual",
+        "isProcessing": "bool — si el pipeline está procesando un frame",
+        "frameCount": "int — cuántos frames se han procesado",
+        "lastEventTime": "DateTime? — cuándo se guardó el último evento"
+      },
+
+      "logica_de_guardado": {
+        "descripcion": "No guardar un evento por cada frame procesado — eso llenaría la base de datos. Guardar un evento solo cuando:",
+        "condiciones": [
+          "Han pasado al menos kAnalysisIntervalSeconds segundos desde el último evento guardado",
+          "O el estado cambió respecto al evento anterior"
+        ]
+      },
+
+      "procesamiento_frames": {
+        "descripcion": "El flujo correcto para procesar frames sin bloquear la UI",
+        "pasos": [
+          "1. camera.startImageStream((CameraImage image) => _processFrame(image))",
+          "2. _processFrame usa compute() para correr el pipeline en un Isolate separado",
+          "3. El Isolate llama a PoseAnalyzer y FaceAnalyzer con la imagen",
+          "4. El resultado regresa al hilo principal via compute()",
+          "5. ActivityClassifier clasifica el resultado",
+          "6. Si se cumplen las condiciones de guardado, crear ActivityEvent y llamar a SaveActivityEventUseCase",
+          "7. Actualizar el estado del provider para que la UI se re-renderice"
+        ],
+        "nota_importante": "Implementar un flag _isProcessing para no encolar frames mientras se procesa uno. Si llega un frame mientras _isProcessing == true, descartarlo."
+      }
+    },
+
+    "overlay_painter": {
+      "archivo": "lib/features/camera_monitor/presentation/widgets/activity_overlay_painter.dart",
+      "descripcion": "CustomPainter que dibuja el overlay de IA sobre el preview de cámara",
+      "que_dibuja": [
+        "Rectángulo del rostro detectado (si hay face detection activa) — color según el estado",
+        "Badge circular en la esquina superior derecha con el emoji y nombre del estado",
+        "Barra de confianza debajo del badge (0% a 100%)"
+      ],
+      "colores_por_estado": {
+        "trabajando": "0xFF4CAF50 — verde",
+        "inactivo": "0xFFFFC107 — amarillo",
+        "distraido": "0xFFFF9800 — naranja",
+        "fatiga": "0xFFF44336 — rojo",
+        "ausente": "0xFF9E9E9E — gris"
+      },
+      "nota_coordenadas": "Las coordenadas de ML Kit son relativas al frame (0.0 a 1.0). Multiplicar por el tamaño del widget de preview para obtener coordenadas de pantalla. Considerar que el preview puede tener padding/letterbox."
+    }
+  },
+
+  "pantallas": {
+    "descripcion": "Las 6 pantallas mínimas del MVP con su implementación",
+
+    "login_screen": {
+      "ruta": "/login",
+      "archivo": "lib/features/auth/presentation/screens/login_screen.dart",
+      "descripcion": "Pantalla inicial de autenticación"
+    },
+
+    "kiosk_screen": {
+      "ruta": "/kiosk",
+      "archivo": "lib/features/camera_monitor/presentation/screens/kiosk_screen.dart",
+      "descripcion": "Pantalla principal del Kiosk Mode — cámara + overlay de IA",
+      "layout": [
+        "Stack como widget raíz",
+        "CameraPreview como capa base (ocupar toda la pantalla)",
+        "CustomPaint con ActivityOverlayPainter sobre el preview",
+        "AppBar transparente en la parte superior con botón de settings",
+        "Panel inferior con: estado actual, confianza, tiempo desde el último evento, botón para ver historial"
+      ],
+      "ciclo_de_vida": {
+        "initState": "Solicitar permiso de cámara → inicializar CameraController → iniciar el pipeline de IA",
+        "dispose": "Cancelar imageStream → disponer CameraController → liberar recursos del pipeline",
+        "onPause": "Pausar el imageStream y el pipeline",
+        "onResume": "Reanudar el imageStream y el pipeline"
+      }
+    },
+
+    "dashboard_screen": {
+      "ruta": "/dashboard",
+      "archivo": "lib/features/dashboard/presentation/screens/dashboard_screen.dart",
+      "descripcion": "Vista general del administrador — estado actual de todos los puestos",
+      "layout": [
+        "AppBar con nombre de la empresa + indicador de sync (SyncIndicatorWidget)",
+        "GridView.builder con WorkstationCard por cada puesto registrado",
+        "FloatingActionButton para ir al Kiosk Mode"
+      ],
+      "workstation_card": {
+        "muestra": [
+          "Nombre del puesto",
+          "Emoji + nombre del último estado",
+          "Timestamp del último evento (ej: 'Hace 2 minutos')",
+          "Color de fondo según el estado (verde/amarillo/naranja/rojo/gris)"
+        ]
+      }
+    },
+
+    "activity_history_screen": {
+      "ruta": "/history",
+      "archivo": "lib/features/dashboard/presentation/screens/activity_history_screen.dart",
+      "descripcion": "Lista de los últimos 50 eventos de actividad",
+      "layout": [
+        "AppBar con 'Historial de Actividad'",
+        "ListView.builder con ActivityEventTile por evento",
+        "Pull to refresh para recargar"
+      ],
+      "activity_event_tile": {
+        "muestra": [
+          "Emoji del estado a la izquierda",
+          "Nombre del estado + nombre del empleado (o 'No identificado')",
+          "Nombre del puesto",
+          "Timestamp formateado (dd/MM/yyyy HH:mm)",
+          "Barra de confianza pequeña"
+        ]
+      }
+    },
+
+    "employees_list_screen": {
+      "ruta": "/employees",
+      "archivo": "lib/features/employees/presentation/screens/employees_list_screen.dart",
+      "descripcion": "Lista simple de empleados registrados con botón para agregar",
+      "layout": [
+        "AppBar + FloatingActionButton para nuevo empleado",
+        "ListView.builder con ListTile por empleado",
+        "Cada ListTile muestra: avatar con iniciales, nombre completo, fecha de registro"
+      ]
+    },
+
+    "employee_form_screen": {
+      "ruta": "/employees/new",
+      "archivo": "lib/features/employees/presentation/screens/employee_form_screen.dart",
+      "descripcion": "Formulario básico para registrar un empleado — solo nombre para el MVP",
+      "campos": [
+        "Nombre completo (requerido)",
+        "Botón Guardar"
+      ],
+      "nota": "Para el MVP NO implementar captura de embeddings faciales. El empleado se crea sin foto. La identificación por cara es post-MVP."
+    },
+
+    "settings_screen": {
+      "ruta": "/settings",
+      "archivo": "lib/features/settings/presentation/screens/settings_screen.dart",
+      "descripcion": "Configuración mínima del sistema",
+      "opciones": [
+        "Intervalo de análisis: slider de 15 a 120 segundos (default: 30s)",
+        "Versión de la app",
+        "Botón de cerrar sesión"
+      ]
+    }
+  },
+
+  "navegacion": {
+    "descripcion": "Configuración de go_router con guards de autenticación",
+    "archivo": "lib/core/routing/app_router.dart",
+
+    "rutas": [
+      { "path": "/", "redirect": "Redirigir a /login si no autenticado, a /dashboard si autenticado" },
+      { "path": "/login", "screen": "LoginScreen", "protegida": false },
+      { "path": "/dashboard", "screen": "DashboardScreen", "protegida": true },
+      { "path": "/kiosk", "screen": "KioskScreen", "protegida": true },
+      { "path": "/history", "screen": "ActivityHistoryScreen", "protegida": true },
+      { "path": "/employees", "screen": "EmployeesListScreen", "protegida": true },
+      { "path": "/employees/new", "screen": "EmployeeFormScreen", "protegida": true },
+      { "path": "/settings", "screen": "SettingsScreen", "protegida": true }
+    ],
+
+    "auth_guard": {
+      "descripcion": "Redirect callback en GoRouter que verifica el estado de autenticación",
+      "logica": "Si el usuario no está autenticado y la ruta no es /login → redirigir a /login. Si está autenticado y va a /login → redirigir a /dashboard.",
+      "provider_usado": "authStateProvider — el StreamProvider que escucha Supabase Auth"
+    }
+  },
+
+  "sincronizacion": {
+    "descripcion": "Sync básico de eventos pendientes con Supabase cuando hay conexión",
+    "prompt": "Implementar el motor de sincronización básico. Es simple: cuando hay conexión, enviar los eventos pendientes. No necesita ser sofisticado para el MVP.",
+
+    "connectivity_provider": {
+      "archivo": "lib/shared/providers/connectivity_provider.dart",
+      "tipo": "StreamProvider<ConnectivityResult>",
+      "descripcion": "Escucha cambios de conectividad usando connectivity_plus. Emite ConnectivityResult.none cuando no hay conexión."
+    },
+
+    "sync_logic": {
+      "descripcion": "Cuando el connectivityProvider emite que hay conexión, disparar la sincronización",
+      "implementacion": [
+        "1. connectivityProvider detecta que hay WiFi o datos móviles",
+        "2. Llamar a SyncEventsUseCase",
+        "3. El use case obtiene todos los ActivityEvents con synced = false de Drift",
+        "4. Por cada evento, hacer INSERT en la tabla activity_events de Supabase",
+        "5. Si el INSERT es exitoso, marcar el evento como synced = true en Drift",
+        "6. Actualizar syncStateProvider con el número de eventos pendientes"
+      ],
+      "manejo_de_errores": "Si un INSERT falla, continuar con el siguiente evento. No bloquear la sincronización por un solo fallo.",
+      "nota_mvp": "Para el MVP NO implementar el SyncQueue complejo. Simplemente marcar los ActivityEvents con synced=false y sincronizarlos directamente."
+    },
+
+    "supabase_tablas": {
+      "descripcion": "SQL para crear las tablas mínimas en Supabase",
+      "sql": [
+        "CREATE TABLE companies (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());",
+        "CREATE TABLE employees (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL, company_id UUID REFERENCES companies(id), created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());",
+        "CREATE TABLE workstations (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL, company_id UUID REFERENCES companies(id), device_id TEXT);",
+        "CREATE TABLE activity_events (id UUID PRIMARY KEY, employee_id UUID REFERENCES employees(id), workstation_id UUID REFERENCES workstations(id), state TEXT NOT NULL, confidence FLOAT NOT NULL, timestamp TIMESTAMP WITH TIME ZONE NOT NULL, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());",
+        "ALTER TABLE companies ENABLE ROW LEVEL SECURITY;",
+        "ALTER TABLE employees ENABLE ROW LEVEL SECURITY;",
+        "ALTER TABLE workstations ENABLE ROW LEVEL SECURITY;",
+        "ALTER TABLE activity_events ENABLE ROW LEVEL SECURITY;",
+        "CREATE POLICY 'Enable all for authenticated' ON activity_events FOR ALL USING (auth.role() = 'authenticated');",
+        "CREATE POLICY 'Enable all for authenticated' ON employees FOR ALL USING (auth.role() = 'authenticated');",
+        "CREATE POLICY 'Enable all for authenticated' ON workstations FOR ALL USING (auth.role() = 'authenticated');",
+        "CREATE POLICY 'Enable all for authenticated' ON companies FOR ALL USING (auth.role() = 'authenticated');"
+      ],
+      "datos_demo": [
+        "INSERT INTO companies (id, name) VALUES ('11111111-1111-1111-1111-111111111111', 'Empresa Demo WorkSense');",
+        "INSERT INTO workstations (id, name, company_id) VALUES ('22222222-2222-2222-2222-222222222222', 'Puesto 1 - Caja', '11111111-1111-1111-1111-111111111111');",
+        "INSERT INTO workstations (id, name, company_id) VALUES ('33333333-3333-3333-3333-333333333333', 'Puesto 2 - Oficina', '11111111-1111-1111-1111-111111111111');",
+        "INSERT INTO employees (id, name, company_id) VALUES ('44444444-4444-4444-4444-444444444444', 'Empleado Demo 1', '11111111-1111-1111-1111-111111111111');",
+        "INSERT INTO employees (id, name, company_id) VALUES ('55555555-5555-5555-5555-555555555555', 'Empleado Demo 2', '11111111-1111-1111-1111-111111111111');"
+      ]
+    }
+  },
+
+  "datos_demo": {
+    "descripcion": "Datos precargados para la demo — crear manualmente antes de la presentación",
+    "pasos": [
+      "1. Crear el proyecto en Supabase y copiar la URL y anon key al AppConfig de Flutter",
+      "2. Ejecutar el SQL de creación de tablas en el SQL Editor de Supabase",
+      "3. Ejecutar el SQL de datos demo",
+      "4. Crear el usuario admin@worksense.demo en Authentication > Users de Supabase",
+      "5. Conectar el celular Redmi al PC con Android Studio",
+      "6. Ejecutar: flutter run --release (para mejor rendimiento en la demo)",
+      "7. Hacer Login con admin@worksense.demo / WorkSense2025!",
+      "8. Ir al Kiosk Mode y probar que la cámara detecta los estados"
+    ]
+  },
+
+  "checklist_antes_de_demo": {
+    "descripcion": "Verificar estos puntos el día anterior a la presentación",
+    "items": [
+      "[ ] El Redmi tiene al menos 80% de batería",
+      "[ ] El permiso de cámara está concedido a la app en Configuración > Apps > WorkSense",
+      "[ ] La depuración USB está desactivada para la demo (evita el aviso de 'Depuración USB activa')",
+      "[ ] flutter run --release produce una APK sin crashes",
+      "[ ] El Login funciona con las credenciales de demo",
+      "[ ] El Kiosk Mode abre la cámara en menos de 3 segundos",
+      "[ ] Los 5 estados se detectan correctamente (probar uno por uno)",
+      "[ ] El Dashboard muestra los puestos con el último estado",
+      "[ ] El historial muestra los eventos acumulados durante las pruebas",
+      "[ ] Hay al menos 100 eventos en el historial para que la demo se vea robusta",
+      "[ ] El WiFi del Redmi está conectado a internet para la sincronización en vivo",
+      "[ ] El panel de Supabase Studio está abierto en el PC para mostrar los datos en tiempo real"
+    ]
+  },
+
+  "errores_comunes_redmi": {
+    "descripcion": "Problemas específicos de Xiaomi MIUI y cómo resolverlos",
+    "errores": [
+      {
+        "error": "La cámara no abre — 'Camera access denied'",
+        "solucion": "Ir a Ajustes > Apps > WorkSense > Permisos > Cámara > Permitir siempre. En MIUI a veces el permiso se resetea."
+      },
+      {
+        "error": "ML Kit no detecta nada",
+        "solucion": "Verificar que hay buena iluminación. ML Kit necesita al menos 200 lux para funcionar bien. También verificar que el modelo está descargado: las primeras veces ML Kit descarga el modelo de pose/cara en background."
+      },
+      {
+        "error": "La app se cierra sola después de unos minutos",
+        "solucion": "MIUI tiene gestión agresiva de batería. Ir a Ajustes > Batería > Seleccionar app > Sin restricciones. También activar 'Inicio automático' para la app."
+      },
+      {
+        "error": "'INSTALL_FAILED_UPDATE_INCOMPATIBLE' al instalar desde Android Studio",
+        "solucion": "Desinstalar la versión anterior de la app desde el celular manualmente antes de instalar de nuevo."
+      },
+      {
+        "error": "La detección de pose es muy lenta (>5 segundos por frame)",
+        "solucion": "Verificar que se está usando compute() o Isolate para el procesamiento. Si no, el pipeline está bloqueando el hilo principal."
+      },
+      {
+        "error": "Los ángulos de rotación (yaw/pitch/roll) siempre son 0",
+        "solucion": "ML Kit Face Detection en modo 'fast' puede no devolver ángulos de rotación. Cambiar a FaceDetectorMode.accurate para el MVP si hay este problema."
+      }
+    ]
+  }
+}

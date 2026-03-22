@@ -78,11 +78,11 @@ dev_dependencies:
   # ── Generacion de codigo ─────────────────────────────────────
   build_runner: ^2.4.11
   drift_dev: ^2.19.1
-  riverpod_generator: ^2.4.3
+  # riverpod_generator: ^2.4.3  # Removed: pulls in custom_lint_core which conflicts with analyzer 7.x
   freezed: ^2.5.7
   json_serializable: ^6.8.0
-  custom_lint: ^0.7.3
-  riverpod_lint: ^2.6.3
+  # custom_lint: ^0.7.3  # Removed: version conflict with analyzer
+  # riverpod_lint: ^2.6.3  # Removed: version conflict with analyzer
 
   # ── Testing ──────────────────────────────────────────────────
   mocktail: ^1.0.4
