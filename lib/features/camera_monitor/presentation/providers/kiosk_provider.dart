@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:ui' show Size;
 
 import 'package:camera/camera.dart';
+import 'package:flutter/services.dart' show DeviceOrientation;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
@@ -95,10 +97,23 @@ class KioskNotifier extends StateNotifier<KioskState> {
   bool _isAnalyzing = false;
   DateTime _lastAnalysisTime = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _lastMovementTime = DateTime.now();
+  DateTime _lastSaveTime = DateTime.fromMillisecondsSinceEpoch(0);
 
-  static const Duration _analysisInterval = Duration(
+  // Analizar cada 800ms — rápido para que la UI se actualice en tiempo real
+  static const Duration _analysisInterval = Duration(milliseconds: 800);
+
+  // Guardar evento a BD/Supabase cada 30 segundos (o si cambia el estado)
+  static const Duration _saveInterval = Duration(
     seconds: AiThresholds.defaultAnalysisIntervalSeconds,
   );
+
+  // Mapeo de orientación de dispositivo a compensación en grados
+  static const Map<DeviceOrientation, int> _orientationMap = {
+    DeviceOrientation.portraitUp: 0,
+    DeviceOrientation.landscapeLeft: 90,
+    DeviceOrientation.portraitDown: 180,
+    DeviceOrientation.landscapeRight: 270,
+  };
 
   KioskNotifier(this._saveEventUseCase) : super(const KioskState()) {
     _poseDetector = PoseDetector(
@@ -219,13 +234,14 @@ class KioskNotifier extends StateNotifier<KioskState> {
         isProcessing: false,
       );
 
-      // Save event if state changed or enough time elapsed since last event
-      final shouldSave = state.lastEventTime == null ||
-          now.difference(state.lastEventTime!).inSeconds >= 60;
+      // Guardar evento si: cambió el estado O pasaron 30 segundos
+      final stateChanged = aiResult.state != state.currentState;
+      final saveIntervalElapsed =
+          now.difference(_lastSaveTime) >= _saveInterval;
 
-      if (shouldSave ||
-          aiResult.state != state.currentState) {
+      if (stateChanged || saveIntervalElapsed) {
         await _saveEvent(aiResult, now);
+        _lastSaveTime = now;
       }
     } catch (_) {
       state = state.copyWith(isProcessing: false);
@@ -238,22 +254,30 @@ class KioskNotifier extends StateNotifier<KioskState> {
     final camera = _cameraController!.description;
     final sensorOrientation = camera.sensorOrientation;
 
-    InputImageRotation? rotation;
-    switch (sensorOrientation) {
-      case 0:
-        rotation = InputImageRotation.rotation0deg;
-        break;
-      case 90:
-        rotation = InputImageRotation.rotation90deg;
-        break;
-      case 180:
-        rotation = InputImageRotation.rotation180deg;
-        break;
-      case 270:
-        rotation = InputImageRotation.rotation270deg;
-        break;
-      default:
-        rotation = InputImageRotation.rotation90deg;
+    InputImageRotation rotation;
+
+    if (Platform.isAndroid) {
+      // Cálculo correcto de rotación para Android según docs de ML Kit
+      final deviceOrientation = _cameraController!.value.deviceOrientation;
+      int rotationCompensation =
+          _orientationMap[deviceOrientation] ?? 0;
+
+      if (camera.lensDirection == CameraLensDirection.front) {
+        // Cámara frontal: suma y aplica módulo
+        rotationCompensation =
+            (sensorOrientation + rotationCompensation) % 360;
+      } else {
+        // Cámara trasera: resta
+        rotationCompensation =
+            (sensorOrientation - rotationCompensation + 360) % 360;
+      }
+
+      rotation = InputImageRotationValue.fromRawValue(rotationCompensation) ??
+          InputImageRotation.rotation0deg;
+    } else {
+      // iOS: usar directamente el sensorOrientation
+      rotation = InputImageRotationValue.fromRawValue(sensorOrientation) ??
+          InputImageRotation.rotation0deg;
     }
 
     final rawFormat = image.format.raw;

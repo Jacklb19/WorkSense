@@ -27,10 +27,9 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    // Force landscape orientation for kiosk mode
+    // Kiosk en portrait — la cámara apunta a la persona frente al dispositivo
     SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
+      DeviceOrientation.portraitUp,
     ]);
 
     // Set workstation if provided
@@ -64,7 +63,9 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
     if (appState == AppLifecycleState.inactive) {
       controller.stopImageStream().catchError((_) {});
     } else if (appState == AppLifecycleState.resumed) {
-      controller.startImageStream((_) {});
+      if (!controller.value.isStreamingImages) {
+        _initCamera();
+      }
     }
   }
 
@@ -76,7 +77,7 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
       DeviceOrientation.portraitDown,
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
-    ]);
+    ]); // Restaurar todas las orientaciones al salir
     super.dispose();
   }
 

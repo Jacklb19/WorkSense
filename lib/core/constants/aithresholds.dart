@@ -10,11 +10,11 @@ abstract final class AiThresholds {
 
   /// Confianza mínima promedio de landmarks para considerar
   /// que hay una persona detectada. Por debajo → AUSENTE.
-  static const double minPoseConfidence = 0.70;
+  static const double minPoseConfidence = 0.45;
 
   /// Confianza mínima del resultado final del clasificador
   /// para generar un evento. Por debajo → se descarta.
-  static const double minClassificationConfidence = 0.65;
+  static const double minClassificationConfidence = 0.40;
 
   // ─────────────────────────────────────────────────────────
   // FACE ANALYZER — ángulos de cabeza (grados)

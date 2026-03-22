@@ -16,13 +16,21 @@ class CameraPreviewWidget extends StatelessWidget {
       return const _CameraPlaceholder();
     }
 
+    // previewSize en Flutter camera es landscape (width > height)
+    // Para portrait, el preview real es width=height y height=width del sensor
+    final previewSize = controller.value.previewSize!;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+
+    final displayW = isPortrait ? previewSize.height : previewSize.width;
+    final displayH = isPortrait ? previewSize.width : previewSize.height;
+
     return ClipRect(
       child: SizedBox.expand(
         child: FittedBox(
           fit: BoxFit.cover,
           child: SizedBox(
-            width: controller.value.previewSize!.height,
-            height: controller.value.previewSize!.width,
+            width: displayW,
+            height: displayH,
             child: CameraPreview(controller),
           ),
         ),
