@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/shared/providers/connectivity_provider.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 
@@ -9,111 +8,71 @@ class SyncIndicatorWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Escuchar conectividad
     final isOnline = ref.watch(isOnlineProvider);
-    final syncState = ref.watch(syncNotifierProvider);
+    
+    // Escuchar conteo de eventos (usamos el provider individual por simplicidad)
+    final pendingCount = ref.watch(pendingEventCountProvider); 
 
-    return GestureDetector(
-      onTap: isOnline
-          ? () => ref.read(syncNotifierProvider.notifier).syncNow()
-          : null,
-      child: Tooltip(
-        message: _tooltip(isOnline, syncState),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: _buildIcon(isOnline, syncState),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildIcon(bool isOnline, SyncState syncState) {
     if (!isOnline) {
-      return const Icon(
-        Icons.cloud_off_outlined,
-        color: AppColors.syncOffline,
-        size: 22,
+      // 3. Ícono de nube roja si está offline
+      return const Tooltip(
+        message: 'Modo Offline',
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0),
+          child: Icon(Icons.cloud_off, color: Color(0xFFEA4335)),
+        ),
       );
     }
 
-    switch (syncState.status) {
-      case SyncStatus.syncing:
-        return const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: AppColors.primary,
-          ),
-        );
-      case SyncStatus.success:
-        return const Icon(
-          Icons.cloud_done_outlined,
-          color: AppColors.syncOk,
-          size: 22,
-        );
-      case SyncStatus.error:
-        return const Icon(
-          Icons.cloud_off_outlined,
-          color: AppColors.syncError,
-          size: 22,
-        );
-      case SyncStatus.idle:
-        if (syncState.pendingCount > 0) {
-          return Stack(
-            clipBehavior: Clip.none,
+    if (pendingCount > 0) {
+      // 2. Ícono de nube naranja con badge si hay pendientes
+      // 4. El badge muestra cuántos eventos hay
+      return Tooltip(
+        message: '$pendingCount eventos pendientes de sincronización',
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Stack(
+            alignment: Alignment.center,
             children: [
-              const Icon(
-                Icons.cloud_upload_outlined,
-                color: AppColors.syncPending,
-                size: 22,
-              ),
+              const Icon(Icons.cloud_upload, color: Color(0xFFFF6D00)),
               Positioned(
-                top: -4,
-                right: -4,
+                right: 0,
+                top: 8,
                 child: Container(
-                  width: 14,
-                  height: 14,
-                  decoration: const BoxDecoration(
-                    color: AppColors.syncPending,
-                    shape: BoxShape.circle,
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Center(
-                    child: Text(
-                      '${syncState.pendingCount > 9 ? '9+' : syncState.pendingCount}',
-                      style: const TextStyle(
-                        fontSize: 8,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  constraints: const BoxConstraints(
+                    minWidth: 14,
+                    minHeight: 14,
+                  ),
+                  child: Text(
+                    pendingCount > 99 ? '99+' : '$pendingCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
                     ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ),
             ],
-          );
-        }
-        return const Icon(
-          Icons.cloud_outlined,
-          color: AppColors.grey400,
-          size: 22,
-        );
+          ),
+        ),
+      );
     }
-  }
 
-  String _tooltip(bool isOnline, SyncState syncState) {
-    if (!isOnline) return 'Sin conexión';
-    switch (syncState.status) {
-      case SyncStatus.syncing:
-        return 'Sincronizando...';
-      case SyncStatus.success:
-        return 'Sincronizado — ${syncState.lastSyncedCount} eventos';
-      case SyncStatus.error:
-        return 'Error de sincronización';
-      case SyncStatus.idle:
-        if (syncState.pendingCount > 0) {
-          return '${syncState.pendingCount} eventos pendientes — Toca para sincronizar';
-        }
-        return 'Sincronizado';
-    }
+    // 1. Ícono de nube verde si está online y sin pendientes
+    return const Tooltip(
+      message: 'Online y Sincronizado',
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.0),
+        child: Icon(Icons.cloud_done, color: Color(0xFF34A853)),
+      ),
+    );
   }
 }
