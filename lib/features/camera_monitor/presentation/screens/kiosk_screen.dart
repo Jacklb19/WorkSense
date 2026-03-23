@@ -8,7 +8,7 @@ import 'package:worksense_app/features/camera_monitor/presentation/widgets/activ
 import 'package:worksense_app/features/camera_monitor/presentation/widgets/camera_preview_widget.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/widgets/state_badge_widget.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
-
+import 'package:worksense_app/features/alerts/presentation/providers/alerts_provider.dart';
 class KioskScreen extends ConsumerStatefulWidget {
   final String? workstationId;
 
@@ -83,6 +83,40 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Escuchar alertas MVP en pantalla
+    ref.listen<AlertMessage?>(alertsProvider, (previous, current) {
+      if (current != null) {
+        if (!context.mounted) return;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: current.backgroundColor,
+            content: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    current.text,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        
+        // Limpiamos la alerta inmediatamente para permitir futuras notificaciones
+        ref.read(alertsProvider.notifier).clearAlert();
+      }
+    });
+
     final kioskState = ref.watch(kioskProvider);
     final controller =
         ref.read(kioskProvider.notifier).cameraController;
