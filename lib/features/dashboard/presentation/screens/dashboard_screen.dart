@@ -7,6 +7,7 @@ import 'package:worksense_app/features/dashboard/presentation/widgets/workstatio
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
 import 'package:worksense_app/shared/widgets/sync_indicator_widget.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -15,6 +16,10 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final workstationsAsync = ref.watch(workstationsStreamProvider);
     final theme = Theme.of(context);
+    
+    final currentUserState = ref.watch(currentUserProvider);
+    final userRole = currentUserState.valueOrNull?.role ?? AppRole.employee;
+    final canManage = userRole == AppRole.admin || userRole == AppRole.superAdmin;
 
     return Scaffold(
       appBar: AppBar(
@@ -32,12 +37,20 @@ class DashboardScreen extends ConsumerWidget {
             onPressed: () => context.push('/history'),
           ),
 
-          // Employees
-          IconButton(
-            icon: const Icon(Icons.people_outline),
-            tooltip: 'Empleados',
-            onPressed: () => context.push('/employees'),
-          ),
+          if (canManage) ...[
+            // Employees
+            IconButton(
+              icon: const Icon(Icons.people_outline),
+              tooltip: 'Empleados',
+              onPressed: () => context.push('/employees'),
+            ),
+            // Workstations
+            IconButton(
+              icon: const Icon(Icons.computer_outlined),
+              tooltip: 'Puestos de Trabajo',
+              onPressed: () => context.push('/workstations'),
+            ),
+          ],
 
           // Settings
           IconButton(
@@ -99,13 +112,13 @@ class DashboardScreen extends ConsumerWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: canManage ? FloatingActionButton.extended(
         onPressed: () => context.push('/kiosk/default'),
         icon: const Icon(Icons.camera_alt_outlined),
         label: const Text('Iniciar Kiosco'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-      ),
+      ) : null,
     );
   }
 }

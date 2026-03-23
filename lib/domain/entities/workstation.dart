@@ -3,12 +3,18 @@ class Workstation {
   final String name;
   final String companyId;
   final String? deviceId;
+  final double? latitude;
+  final double? longitude;
+  final double? geofenceRadius;
 
   const Workstation({
     required this.id,
     required this.name,
     required this.companyId,
     this.deviceId,
+    this.latitude,
+    this.longitude,
+    this.geofenceRadius,
   });
 
   Workstation copyWith({
@@ -16,22 +22,19 @@ class Workstation {
     String? name,
     String? companyId,
     String? deviceId,
+    double? latitude,
+    double? longitude,
+    double? geofenceRadius,
   }) {
     return Workstation(
       id: id ?? this.id,
       name: name ?? this.name,
       companyId: companyId ?? this.companyId,
       deviceId: deviceId ?? this.deviceId,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      geofenceRadius: geofenceRadius ?? this.geofenceRadius,
     );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'company_id': companyId,
-      'device_id': deviceId,
-    };
   }
 
   @override
@@ -42,8 +45,11 @@ class Workstation {
           id == other.id &&
           name == other.name &&
           companyId == other.companyId &&
-          deviceId == other.deviceId;
+          deviceId == other.deviceId &&
+          latitude == other.latitude &&
+          longitude == other.longitude &&
+          geofenceRadius == other.geofenceRadius;
 
   @override
-  int get hashCode => Object.hash(id, name, companyId, deviceId);
+  int get hashCode => Object.hash(id, name, companyId, deviceId, latitude, longitude, geofenceRadius);
 }

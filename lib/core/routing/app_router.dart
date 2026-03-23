@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/kiosk_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/activity_history_screen.dart';
@@ -9,6 +8,9 @@ import 'package:worksense_app/features/dashboard/presentation/screens/dashboard_
 import 'package:worksense_app/features/employees/presentation/screens/employee_form_screen.dart';
 import 'package:worksense_app/features/employees/presentation/screens/employees_list_screen.dart';
 import 'package:worksense_app/features/settings/presentation/screens/settings_screen.dart';
+import 'package:worksense_app/features/workstations/presentation/screens/workstation_form_screen.dart';
+import 'package:worksense_app/features/workstations/presentation/screens/workstations_list_screen.dart';
+import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
 // Route name constants
 abstract final class AppRoutes {
@@ -19,6 +21,11 @@ abstract final class AppRoutes {
   static const employees = '/employees';
   static const employeeNew = '/employees/new';
   static const settings = '/settings';
+  static const workstations = '/workstations';
+  static const workstationNew = '/workstations/new';
+  static const kioskWaiting = '/kiosk_waiting';
+  static const myActivity = '/my-activity';
+  static const myHours = '/my-hours';
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -27,11 +34,12 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/dashboard',
     refreshListenable: authNotifier,
     redirect: (context, state) {
-      final isAuthenticated = ref
-          .read(isAuthenticatedProvider)
-          .asData
-          ?.value ?? false;
+      final currentUserState = ref.read(currentUserProvider);
+      
+      if (currentUserState.isLoading) return null; // Wait for resolution
 
+      final currentUser = currentUserState.valueOrNull;
+      final isAuthenticated = currentUser?.user != null;
       final isOnLoginPage = state.matchedLocation == AppRoutes.login;
 
       if (!isAuthenticated && !isOnLoginPage) {
@@ -40,6 +48,32 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (isAuthenticated && isOnLoginPage) {
         return AppRoutes.dashboard;
+      }
+
+      if (isAuthenticated && currentUser != null) {
+        final role = currentUser.role;
+        final loc = state.matchedLocation;
+
+        switch (role) {
+          case AppRole.cameraMonitor:
+            if (!loc.startsWith('/kiosk') && loc != AppRoutes.login) {
+              return AppRoutes.kioskWaiting;
+            }
+            break;
+          case AppRole.employee:
+            final allowedEmployeeRoutes = [AppRoutes.myActivity, AppRoutes.myHours, AppRoutes.settings];
+            if (!allowedEmployeeRoutes.contains(loc) && loc != AppRoutes.login) {
+              return AppRoutes.myActivity;
+            }
+            break;
+          case AppRole.admin:
+            if (loc.startsWith('/kiosk')) {
+              return AppRoutes.dashboard;
+            }
+            break;
+          case AppRole.superAdmin:
+            break;
+        }
       }
 
       return null;
@@ -102,6 +136,45 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
+      // Workstations
+      GoRoute(
+        path: AppRoutes.workstations,
+        name: 'workstations',
+        pageBuilder: (context, state) => const MaterialPage(
+          child: WorkstationsListScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.workstationNew,
+        name: 'workstation-new',
+        pageBuilder: (context, state) => const MaterialPage(
+          child: WorkstationFormScreen(),
+        ),
+      ),
+
+      // Placeholder Routes
+      GoRoute(
+        path: AppRoutes.kioskWaiting,
+        name: 'kiosk-waiting',
+        pageBuilder: (context, state) => const MaterialPage(
+          child: Scaffold(body: Center(child: Text('Dispositivo no configurado'))),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.myActivity,
+        name: 'my-activity',
+        pageBuilder: (context, state) => const MaterialPage(
+          child: Scaffold(body: Center(child: Text('Panel de empleado — Próximamente'))),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.myHours,
+        name: 'my-hours',
+        pageBuilder: (context, state) => const MaterialPage(
+          child: Scaffold(body: Center(child: Text('Mis horas — Próximamente'))),
+        ),
+      ),
+
       // Settings
       GoRoute(
         path: AppRoutes.settings,
@@ -122,7 +195,7 @@ class _AuthNotifier extends ChangeNotifier {
   final Ref _ref;
 
   _AuthNotifier(this._ref) {
-    _ref.listen<AsyncValue<bool>>(isAuthenticatedProvider, (_, __) {
+    _ref.listen<AsyncValue<CurrentUser>>(currentUserProvider, (_, __) {
       notifyListeners();
     });
   }

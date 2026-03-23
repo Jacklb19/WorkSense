@@ -31,6 +31,9 @@ class WorkstationRecords extends Table {
   TextColumn get name => text()();
   TextColumn get companyId => text()();
   TextColumn get deviceId => text().nullable()();
+  RealColumn get latitude => real().nullable()();
+  RealColumn get longitude => real().nullable()();
+  RealColumn get geofenceRadius => real().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
