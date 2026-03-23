@@ -1,12 +1,12 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/data/repositories/activity_repository_impl.dart';
 import 'package:worksense_app/domain/entities/activity_event.dart';
 import 'package:worksense_app/domain/entities/workstation.dart';
-import 'package:worksense_app/domain/usecases/get_recent_events_use_case.dart';
+import 'package:worksense_app/features/dashboard/domain/usecases/get_recent_events_use_case.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
 
-// ── Workstations ──────────────────────────────────────────────────────────────
+// â”€â”€ Workstations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 final workstationsStreamProvider =
     StreamProvider<List<WorkstationRecord>>((ref) {
@@ -30,7 +30,7 @@ Workstation workstationRecordToEntity(WorkstationRecord record) {
   );
 }
 
-// ── Activity Events ───────────────────────────────────────────────────────────
+// â”€â”€ Activity Events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 final getRecentEventsUseCaseProvider =
     Provider<GetRecentEventsUseCase>((ref) {
@@ -51,7 +51,7 @@ final recentEventsProvider =
   return useCase(limit: 100);
 });
 
-// ── Last Event Per Workstation ────────────────────────────────────────────────
+// â”€â”€ Last Event Per Workstation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 final lastEventByWorkstationProvider =
     Provider.family<ActivityEvent?, String>((ref, workstationId) {
@@ -69,7 +69,7 @@ final lastEventByWorkstationProvider =
   );
 });
 
-// ── Pending Sync Count ────────────────────────────────────────────────────────
+// â”€â”€ Pending Sync Count â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 final pendingSyncCountProvider = FutureProvider<int>((ref) async {
   final db = ref.watch(appDatabaseProvider);
@@ -77,3 +77,4 @@ final pendingSyncCountProvider = FutureProvider<int>((ref) async {
   final pending = await repo.getPendingSync();
   return pending.length;
 });
+

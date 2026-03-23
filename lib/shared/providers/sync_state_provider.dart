@@ -1,12 +1,12 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/data/datasources/remote/supabase_datasource.dart';
 import 'package:worksense_app/data/repositories/activity_repository_impl.dart';
-import 'package:worksense_app/domain/usecases/sync_events_use_case.dart';
+import 'package:worksense_app/shared/domain/usecases/sync_events_use_case.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
 import 'package:worksense_app/shared/providers/connectivity_provider.dart';
 
-// ── Sync Use Case Provider ────────────────────────────────────────────────────
+// â”€â”€ Sync Use Case Provider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 final syncEventsUseCaseProvider = Provider<SyncEventsUseCase>((ref) {
   final db = ref.watch(appDatabaseProvider);
@@ -15,11 +15,11 @@ final syncEventsUseCaseProvider = Provider<SyncEventsUseCase>((ref) {
   return SyncEventsUseCase(repo, remoteDs);
 });
 
-// ── Pending Sync Count ────────────────────────────────────────────────────────
+// â”€â”€ Pending Sync Count â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 final pendingEventCountProvider = StateProvider<int>((ref) => 0);
 
-// ── Sync Status ───────────────────────────────────────────────────────────────
+// â”€â”€ Sync Status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 enum SyncStatus { idle, syncing, success, error }
 
@@ -99,3 +99,4 @@ final syncNotifierProvider =
 
   return notifier;
 });
+

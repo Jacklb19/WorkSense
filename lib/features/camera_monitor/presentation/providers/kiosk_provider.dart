@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:io' show Platform;
 import 'dart:ui' show Size;
 
@@ -13,13 +13,13 @@ import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/data/repositories/activity_repository_impl.dart';
 import 'package:worksense_app/domain/entities/activity_event.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
-import 'package:worksense_app/domain/usecases/save_activity_event_use_case.dart';
+import 'package:worksense_app/features/camera_monitor/domain/usecases/save_activity_event_use_case.dart';
 import 'package:worksense_app/features/camera_monitor/ai/activity_classifier.dart';
 import 'package:worksense_app/features/camera_monitor/ai/ai_result.dart';
 import 'package:worksense_app/features/camera_monitor/ai/face_analyzer.dart';
 import 'package:worksense_app/features/camera_monitor/ai/pose_analyzer.dart';
 
-// ── Database Provider ─────────────────────────────────────────────────────────
+// â”€â”€ Database Provider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
@@ -27,7 +27,7 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
   return db;
 });
 
-// ── Save Use Case Provider ────────────────────────────────────────────────────
+// â”€â”€ Save Use Case Provider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 final saveActivityEventUseCaseProvider =
     Provider<SaveActivityEventUseCase>((ref) {
@@ -36,7 +36,7 @@ final saveActivityEventUseCaseProvider =
   return SaveActivityEventUseCase(repo);
 });
 
-// ── Kiosk State ───────────────────────────────────────────────────────────────
+// â”€â”€ Kiosk State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class KioskState {
   final ActivityState currentState;
@@ -82,7 +82,7 @@ class KioskState {
   }
 }
 
-// ── Kiosk Notifier ────────────────────────────────────────────────────────────
+// â”€â”€ Kiosk Notifier â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class KioskNotifier extends StateNotifier<KioskState> {
   final SaveActivityEventUseCase _saveEventUseCase;
@@ -99,7 +99,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
   DateTime _lastMovementTime = DateTime.now();
   DateTime _lastSaveTime = DateTime.fromMillisecondsSinceEpoch(0);
 
-  // Analizar cada 800ms — rápido para que la UI se actualice en tiempo real
+  // Analizar cada 800ms â€” rÃ¡pido para que la UI se actualice en tiempo real
   static const Duration _analysisInterval = Duration(milliseconds: 800);
 
   // Guardar evento a BD/Supabase cada 30 segundos (o si cambia el estado)
@@ -107,7 +107,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
     seconds: AiThresholds.defaultAnalysisIntervalSeconds,
   );
 
-  // Mapeo de orientación de dispositivo a compensación en grados
+  // Mapeo de orientaciÃ³n de dispositivo a compensaciÃ³n en grados
   static const Map<DeviceOrientation, int> _orientationMap = {
     DeviceOrientation.portraitUp: 0,
     DeviceOrientation.landscapeLeft: 90,
@@ -136,7 +136,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
   Future<void> initializeCamera(List<CameraDescription> cameras) async {
     if (cameras.isEmpty) {
-      state = state.copyWith(error: 'No se encontraron cámaras.');
+      state = state.copyWith(error: 'No se encontraron cÃ¡maras.');
       return;
     }
 
@@ -159,7 +159,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
       await _startImageStream();
     } catch (e) {
       state = state.copyWith(
-        error: 'Error al inicializar cámara: $e',
+        error: 'Error al inicializar cÃ¡mara: $e',
         cameraInitialized: false,
       );
     }
@@ -234,7 +234,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
         isProcessing: false,
       );
 
-      // Guardar evento si: cambió el estado O pasaron 30 segundos
+      // Guardar evento si: cambiÃ³ el estado O pasaron 30 segundos
       final stateChanged = aiResult.state != state.currentState;
       final saveIntervalElapsed =
           now.difference(_lastSaveTime) >= _saveInterval;
@@ -257,17 +257,17 @@ class KioskNotifier extends StateNotifier<KioskState> {
     InputImageRotation rotation;
 
     if (Platform.isAndroid) {
-      // Cálculo correcto de rotación para Android según docs de ML Kit
+      // CÃ¡lculo correcto de rotaciÃ³n para Android segÃºn docs de ML Kit
       final deviceOrientation = _cameraController!.value.deviceOrientation;
       int rotationCompensation =
           _orientationMap[deviceOrientation] ?? 0;
 
       if (camera.lensDirection == CameraLensDirection.front) {
-        // Cámara frontal: suma y aplica módulo
+        // CÃ¡mara frontal: suma y aplica mÃ³dulo
         rotationCompensation =
             (sensorOrientation + rotationCompensation) % 360;
       } else {
-        // Cámara trasera: resta
+        // CÃ¡mara trasera: resta
         rotationCompensation =
             (sensorOrientation - rotationCompensation + 360) % 360;
       }
@@ -314,7 +314,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
       await _saveEventUseCase(event);
       state = state.copyWith(lastEventTime: timestamp);
     } catch (_) {
-      // Silent failure — event will be retried on next sync
+      // Silent failure â€” event will be retried on next sync
     }
   }
 
@@ -334,7 +334,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
   }
 }
 
-// ── Provider ──────────────────────────────────────────────────────────────────
+// â”€â”€ Provider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 final kioskProvider =
     StateNotifierProvider<KioskNotifier, KioskState>((ref) {
@@ -345,3 +345,4 @@ final kioskProvider =
 final availableCamerasProvider = FutureProvider<List<CameraDescription>>((ref) {
   return availableCameras();
 });
+

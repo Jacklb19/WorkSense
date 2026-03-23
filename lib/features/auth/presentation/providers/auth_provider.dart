@@ -1,24 +1,24 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/data/datasources/remote/supabase_datasource.dart';
 import 'package:worksense_app/data/repositories/auth_repository_impl.dart';
 import 'package:worksense_app/domain/repositories/auth_repository.dart';
-import 'package:worksense_app/domain/usecases/sign_in_use_case.dart';
-import 'package:worksense_app/domain/usecases/sign_out_use_case.dart';
+import 'package:worksense_app/features/auth/domain/usecases/sign_in_use_case.dart';
+import 'package:worksense_app/features/auth/domain/usecases/sign_out_use_case.dart';
 
-// ── Data Sources ──────────────────────────────────────────────────────────────
+// â”€â”€ Data Sources â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 final supabaseDataSourceProvider = Provider<SupabaseDataSource>((ref) {
   return SupabaseDataSource();
 });
 
-// ── Repositories ──────────────────────────────────────────────────────────────
+// â”€â”€ Repositories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final dataSource = ref.watch(supabaseDataSourceProvider);
   return AuthRepositoryImpl(dataSource);
 });
 
-// ── Use Cases ─────────────────────────────────────────────────────────────────
+// â”€â”€ Use Cases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 final signInUseCaseProvider = Provider<SignInUseCase>((ref) {
   final repo = ref.watch(authRepositoryProvider);
@@ -30,7 +30,7 @@ final signOutUseCaseProvider = Provider<SignOutUseCase>((ref) {
   return SignOutUseCase(repo);
 });
 
-// ── Auth State ────────────────────────────────────────────────────────────────
+// â”€â”€ Auth State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 final isAuthenticatedProvider = StreamProvider<bool>((ref) {
   final repo = ref.watch(authRepositoryProvider);
@@ -42,7 +42,7 @@ final currentUserEmailProvider = Provider<String?>((ref) {
   return repo.currentUserEmail;
 });
 
-// ── Login State Notifier ──────────────────────────────────────────────────────
+// â”€â”€ Login State Notifier â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class LoginState {
   final bool isLoading;
@@ -104,10 +104,10 @@ class LoginNotifier extends StateNotifier<LoginState> {
   String _parseError(Object e) {
     final message = e.toString();
     if (message.contains('Invalid login credentials')) {
-      return 'Correo o contraseña incorrectos.';
+      return 'Correo o contraseÃ±a incorrectos.';
     }
     if (message.contains('network') || message.contains('SocketException')) {
-      return 'Sin conexión a internet. Verifica tu red.';
+      return 'Sin conexiÃ³n a internet. Verifica tu red.';
     }
     return 'Error inesperado. Intenta de nuevo.';
   }
@@ -119,3 +119,4 @@ final loginNotifierProvider =
   final signOut = ref.watch(signOutUseCaseProvider);
   return LoginNotifier(signIn, signOut);
 });
+
