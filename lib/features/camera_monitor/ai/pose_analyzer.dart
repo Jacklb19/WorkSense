@@ -11,6 +11,15 @@ class PoseAnalyzer {
   double? _prevRightWristX;
   double? _prevRightWristY;
 
+  /// Analiza una sola pose (para usar con el empleado identificado).
+  PoseAnalysisResult analyzeSingle(Pose? pose) {
+    if (pose == null) {
+      _clearPreviousPositions();
+      return PoseAnalysisResult.empty;
+    }
+    return _analyzeOnePose(pose);
+  }
+
   PoseAnalysisResult analyze(List<Pose> poses) {
     if (poses.isEmpty) {
       _clearPreviousPositions();
@@ -18,6 +27,10 @@ class PoseAnalyzer {
     }
 
     final pose = poses.first;
+    return _analyzeOnePose(pose);
+  }
+
+  PoseAnalysisResult _analyzeOnePose(Pose pose) {
     final landmarks = pose.landmarks;
 
     // Check pose confidence via landmark presence scores

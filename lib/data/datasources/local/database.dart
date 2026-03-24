@@ -33,6 +33,14 @@ class WorkstationRecords extends Table {
   RealColumn get longitude => real().nullable()();
   RealColumn get geofenceRadius => real().nullable()();
 
+  // Perfil biométrico del empleado asignado
+  TextColumn get assignedEmployeeId => text().nullable()();
+  TextColumn get faceEmbedding => text().nullable()();
+  TextColumn get bodySignature => text().nullable()();
+  DateTimeColumn get profileCapturedAt => dateTime().nullable()();
+  IntColumn get profileVersion =>
+      integer().withDefault(const Constant(0))();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -45,6 +53,10 @@ class ActivityEntries extends Table {
   RealColumn get confidence => real()();
   DateTimeColumn get timestamp => dateTime().withDefault(currentDateAndTime)();
   BoolColumn get synced => boolean().withDefault(const Constant(false))();
+
+  // Re-identificación
+  RealColumn get identityConfidence => real().nullable()();
+  TextColumn get identificationMethod => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -78,17 +90,35 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onUpgrade: (m, from, to) async {
           if (from < 2) {
-            // Add geofencing columns to workstation_records
             await m.addColumn(workstationRecords, workstationRecords.latitude);
             await m.addColumn(workstationRecords, workstationRecords.longitude);
             await m.addColumn(
                 workstationRecords, workstationRecords.geofenceRadius);
+          }
+          if (from < 3) {
+            // Raw SQL para evitar dependencia circular con código generado.
+            // SQLite no soporta ADD COLUMN IF NOT EXISTS, pero esta migración
+            // solo corre una vez al pasar de v2 → v3.
+            await customStatement(
+                'ALTER TABLE workstation_records ADD COLUMN assigned_employee_id TEXT');
+            await customStatement(
+                'ALTER TABLE workstation_records ADD COLUMN face_embedding TEXT');
+            await customStatement(
+                'ALTER TABLE workstation_records ADD COLUMN body_signature TEXT');
+            await customStatement(
+                'ALTER TABLE workstation_records ADD COLUMN profile_captured_at INTEGER');
+            await customStatement(
+                'ALTER TABLE workstation_records ADD COLUMN profile_version INTEGER NOT NULL DEFAULT 0');
+            await customStatement(
+                'ALTER TABLE activity_entries ADD COLUMN identity_confidence REAL');
+            await customStatement(
+                'ALTER TABLE activity_entries ADD COLUMN identification_method TEXT');
           }
         },
       );
@@ -156,6 +186,35 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> insertWorkstationRecord(WorkstationRecordsCompanion record) =>
       into(workstationRecords).insert(record, mode: InsertMode.insertOrReplace);
+
+  Future<WorkstationRecord?> getWorkstationById(String id) =>
+      (select(workstationRecords)..where((t) => t.id.equals(id)))
+          .getSingleOrNull();
+
+  Future<void> saveEmployeeProfile({
+    required String workstationId,
+    required String employeeId,
+    required String faceEmbeddingJson,
+    required String bodySignatureJson,
+  }) =>
+      (update(workstationRecords)..where((t) => t.id.equals(workstationId)))
+          .write(WorkstationRecordsCompanion(
+        assignedEmployeeId: Value(employeeId),
+        faceEmbedding: Value(faceEmbeddingJson),
+        bodySignature: Value(bodySignatureJson),
+        profileCapturedAt: Value(DateTime.now()),
+        profileVersion: const Value(1),
+      ));
+
+  Future<void> clearEmployeeProfile(String workstationId) =>
+      (update(workstationRecords)..where((t) => t.id.equals(workstationId)))
+          .write(const WorkstationRecordsCompanion(
+        assignedEmployeeId: Value(null),
+        faceEmbedding: Value(null),
+        bodySignature: Value(null),
+        profileCapturedAt: Value(null),
+        profileVersion: Value(0),
+      ));
 
   // ── SyncQueueEntries methods ──────────────────────────────────────────────
 

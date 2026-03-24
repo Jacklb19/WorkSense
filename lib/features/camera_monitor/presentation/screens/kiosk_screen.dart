@@ -11,6 +11,7 @@ import 'package:worksense_app/features/camera_monitor/presentation/widgets/camer
 import 'package:worksense_app/features/camera_monitor/presentation/widgets/state_badge_widget.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/features/alerts/presentation/providers/alerts_provider.dart';
+import 'package:worksense_app/features/camera_monitor/presentation/screens/employee_scan_screen.dart';
 class KioskScreen extends ConsumerStatefulWidget {
   final String? workstationId;
 
@@ -47,7 +48,6 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
   }
 
   Future<void> _initCamera() async {
-    // Solicitar permisos antes de iniciar
     final status = await [
       Permission.camera,
       Permission.locationWhenInUse,
@@ -63,11 +63,23 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
     }
 
     final cameras = await ref.read(availableCamerasProvider.future);
-    if (mounted) {
-      await ref.read(kioskProvider.notifier).initializeCamera(cameras);
-      setState(() {
-        _cameraStarted = true;
-      });
+    if (!mounted) return;
+
+    final workstationId =
+        ref.read(kioskProvider).workstationId;
+    final hasProfile = await ref
+        .read(kioskProvider.notifier)
+        .loadProfileAndInit(cameras, workstationId);
+
+    if (!mounted) return;
+
+    if (!hasProfile) {
+      // Sin perfil → mostrar pantalla de escaneo
+      // El equipo de routing se encarga de la navegación desde aquí.
+      // Por ahora marcamos la cámara como no iniciada y dejamos el estado noIdentificado.
+      setState(() => _cameraStarted = false);
+    } else {
+      setState(() => _cameraStarted = true);
     }
   }
 
@@ -152,6 +164,12 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
             )
           else if (controller != null && kioskState.cameraInitialized)
             CameraPreviewWidget(controller: controller)
+          else if (!kioskState.isEmployeeScanned)
+            _NoProfileView(
+              workstationId: kioskState.workstationId,
+              assignedEmployeeId: kioskState.assignedEmployeeId,
+              onScanComplete: _initCamera,
+            )
           else
             const _LoadingView(),
 
@@ -161,6 +179,11 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
               painter: ActivityOverlayPainter(
                 state: kioskState.currentState,
                 confidence: kioskState.confidence,
+                poses: kioskState.poses,
+                faces: kioskState.faces,
+                imageSize: kioskState.imageSize,
+                identificationMethod: kioskState.identificationMethod,
+                identityConfidence: kioskState.identityConfidence,
               ),
               child: const SizedBox.expand(),
             ),
@@ -254,24 +277,27 @@ class _KioskAppBar extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: AppColors.primary, width: 1),
-              ),
-              child: Text(
-                workstationId,
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
+            Flexible(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: AppColors.primary, width: 1),
+                ),
+                child: Text(
+                  workstationId,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ),
-            const Spacer(),
+            const SizedBox(width: 8),
             if (isProcessing)
               const SizedBox(
                 width: 16,
@@ -281,7 +307,7 @@ class _KioskAppBar extends ConsumerWidget {
                   color: Colors.white54,
                 ),
               ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 4),
             IconButton(
               icon: const Icon(Icons.exit_to_app, color: Colors.white70),
               onPressed: () async {
@@ -321,6 +347,94 @@ class _KioskAppBar extends ConsumerWidget {
   }
 }
 
+// ── Vista cuando no hay perfil biométrico registrado ──────────────────────────
+
+class _NoProfileView extends StatelessWidget {
+  final String workstationId;
+  final String? assignedEmployeeId;
+  final VoidCallback onScanComplete;
+
+  const _NoProfileView({
+    required this.workstationId,
+    required this.assignedEmployeeId,
+    required this.onScanComplete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasEmployee = assignedEmployeeId != null;
+
+    return Container(
+      color: Colors.black,
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: SafeArea(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              hasEmployee ? Icons.face_retouching_natural : Icons.person_off,
+              size: 72,
+              color: hasEmployee ? AppColors.primary : Colors.grey,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              hasEmployee
+                  ? 'Empleado sin perfil biométrico'
+                  : 'Estación sin empleado asignado',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              hasEmployee
+                  ? 'Escanea al empleado para que la cámara pueda reconocerlo y seguirlo.'
+                  : 'Asigna un empleado a esta estación desde el panel de administración.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white60, fontSize: 14),
+            ),
+            const SizedBox(height: 40),
+            if (hasEmployee)
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.camera_alt, size: 22),
+                  label: const Text(
+                    'Escanear empleado',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EmployeeScanScreen(
+                        workstationId: workstationId,
+                        employeeId: assignedEmployeeId!,
+                        onComplete: () {
+                          Navigator.pop(context);
+                          onScanComplete();
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _BottomInfoPanel extends StatelessWidget {
   final ActivityState state;
   final double confidence;
@@ -351,12 +465,15 @@ class _BottomInfoPanel extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            KioskStateBadge(
-              state: state,
-              confidence: confidence,
+            Flexible(
+              child: KioskStateBadge(
+                state: state,
+                confidence: confidence,
+              ),
             ),
-            const Spacer(),
+            const SizedBox(width: 8),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisSize: MainAxisSize.min,

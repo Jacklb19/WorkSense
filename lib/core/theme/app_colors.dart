@@ -18,6 +18,8 @@ abstract final class AppColors {
   static const Color stateAbsent = Color(0xFFEA4335);     // Rojo
   static const Color stateDistracted = Color(0xFFFBBC04); // Amarillo
   static const Color stateFatigue = Color(0xFFFF6D00);    // Naranja
+  static const Color stateOutsideArea = Color(0xFF2196F3);  // Azul
+  static const Color stateNotIdentified = Color(0xFF607D8B); // Gris azulado
 
   // ── Sincronizacion ────────────────────────────────────────
   static const Color syncOk = Color(0xFF34A853);

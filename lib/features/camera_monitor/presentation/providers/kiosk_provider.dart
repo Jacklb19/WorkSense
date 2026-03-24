@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' show Platform;
 import 'dart:ui' show Size;
 
@@ -13,13 +14,16 @@ import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/data/repositories/activity_repository_impl.dart';
 import 'package:worksense_app/domain/entities/activity_event.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
-import 'package:worksense_app/features/camera_monitor/domain/usecases/save_activity_event_use_case.dart';
 import 'package:worksense_app/features/camera_monitor/ai/activity_classifier.dart';
 import 'package:worksense_app/features/camera_monitor/ai/ai_result.dart';
+import 'package:worksense_app/features/camera_monitor/ai/body_signature.dart';
+import 'package:worksense_app/features/camera_monitor/ai/employee_finder.dart';
+import 'package:worksense_app/features/camera_monitor/ai/employee_profile.dart';
 import 'package:worksense_app/features/camera_monitor/ai/face_analyzer.dart';
 import 'package:worksense_app/features/camera_monitor/ai/pose_analyzer.dart';
+import 'package:worksense_app/features/camera_monitor/domain/usecases/save_activity_event_use_case.dart';
 
-// â”€â”€ Database Provider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Database Provider ──────────────────────────────────────────────────────────
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
@@ -27,7 +31,7 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
   return db;
 });
 
-// â”€â”€ Save Use Case Provider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Save Use Case Provider ─────────────────────────────────────────────────────
 
 final saveActivityEventUseCaseProvider =
     Provider<SaveActivityEventUseCase>((ref) {
@@ -36,7 +40,7 @@ final saveActivityEventUseCaseProvider =
   return SaveActivityEventUseCase(repo);
 });
 
-// â”€â”€ Kiosk State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Kiosk State ────────────────────────────────────────────────────────────────
 
 class KioskState {
   final ActivityState currentState;
@@ -47,9 +51,19 @@ class KioskState {
   final bool cameraInitialized;
   final String? error;
   final String workstationId;
+  final List<Pose> poses;
+  final List<Face> faces;
+  final Size imageSize;
+
+  // Re-identificación
+  final bool isEmployeeScanned;
+  final EmployeeProfile? employeeProfile;
+  final String? identificationMethod;
+  final double identityConfidence;
+  final String? assignedEmployeeId;
 
   const KioskState({
-    this.currentState = ActivityState.ausente,
+    this.currentState = ActivityState.noIdentificado,
     this.confidence = 0.0,
     this.isProcessing = false,
     this.frameCount = 0,
@@ -57,6 +71,14 @@ class KioskState {
     this.cameraInitialized = false,
     this.error,
     this.workstationId = 'default',
+    this.poses = const [],
+    this.faces = const [],
+    this.imageSize = Size.zero,
+    this.isEmployeeScanned = false,
+    this.employeeProfile,
+    this.identificationMethod,
+    this.identityConfidence = 0.0,
+    this.assignedEmployeeId,
   });
 
   KioskState copyWith({
@@ -68,6 +90,14 @@ class KioskState {
     bool? cameraInitialized,
     String? error,
     String? workstationId,
+    List<Pose>? poses,
+    List<Face>? faces,
+    Size? imageSize,
+    bool? isEmployeeScanned,
+    EmployeeProfile? employeeProfile,
+    String? identificationMethod,
+    double? identityConfidence,
+    String? assignedEmployeeId,
   }) {
     return KioskState(
       currentState: currentState ?? this.currentState,
@@ -78,14 +108,23 @@ class KioskState {
       cameraInitialized: cameraInitialized ?? this.cameraInitialized,
       error: error,
       workstationId: workstationId ?? this.workstationId,
+      poses: poses ?? this.poses,
+      faces: faces ?? this.faces,
+      imageSize: imageSize ?? this.imageSize,
+      isEmployeeScanned: isEmployeeScanned ?? this.isEmployeeScanned,
+      employeeProfile: employeeProfile ?? this.employeeProfile,
+      identificationMethod: identificationMethod ?? this.identificationMethod,
+      identityConfidence: identityConfidence ?? this.identityConfidence,
+      assignedEmployeeId: assignedEmployeeId ?? this.assignedEmployeeId,
     );
   }
 }
 
-// â”€â”€ Kiosk Notifier â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Kiosk Notifier ─────────────────────────────────────────────────────────────
 
 class KioskNotifier extends StateNotifier<KioskState> {
   final SaveActivityEventUseCase _saveEventUseCase;
+  final AppDatabase _db;
 
   CameraController? _cameraController;
   late final PoseDetector _poseDetector;
@@ -94,20 +133,22 @@ class KioskNotifier extends StateNotifier<KioskState> {
   late final FaceAnalyzer _faceAnalyzer;
   late final ActivityClassifier _classifier;
 
+  EmployeeFinder? _finder;
+
   bool _isAnalyzing = false;
   DateTime _lastAnalysisTime = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _lastMovementTime = DateTime.now();
   DateTime _lastSaveTime = DateTime.fromMillisecondsSinceEpoch(0);
+  int _adaptationsCount = 0;
 
-  // Analizar cada 800ms â€” rÃ¡pido para que la UI se actualice en tiempo real
+  static const int _adaptationsToPersist = 30;
+  static const double _learningConfidenceThreshold = 0.85;
+
   static const Duration _analysisInterval = Duration(milliseconds: 800);
-
-  // Guardar evento a BD/Supabase cada 30 segundos (o si cambia el estado)
   static const Duration _saveInterval = Duration(
     seconds: AiThresholds.defaultAnalysisIntervalSeconds,
   );
 
-  // Mapeo de orientaciÃ³n de dispositivo a compensaciÃ³n en grados
   static const Map<DeviceOrientation, int> _orientationMap = {
     DeviceOrientation.portraitUp: 0,
     DeviceOrientation.landscapeLeft: 90,
@@ -115,16 +156,15 @@ class KioskNotifier extends StateNotifier<KioskState> {
     DeviceOrientation.landscapeRight: 270,
   };
 
-  KioskNotifier(this._saveEventUseCase) : super(const KioskState()) {
+  KioskNotifier(this._saveEventUseCase, this._db) : super(const KioskState()) {
     _poseDetector = PoseDetector(
-      options: PoseDetectorOptions(
-        mode: PoseDetectionMode.stream,
-      ),
+      options: PoseDetectorOptions(mode: PoseDetectionMode.stream),
     );
     _faceDetector = FaceDetector(
       options: FaceDetectorOptions(
         performanceMode: FaceDetectorMode.fast,
         enableTracking: true,
+        enableLandmarks: true,
       ),
     );
     _poseAnalyzer = PoseAnalyzer();
@@ -134,13 +174,67 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
   CameraController? get cameraController => _cameraController;
 
+  /// Carga el perfil del empleado desde Drift y arranca la cámara si existe.
+  /// Retorna true si hay perfil registrado, false si hay que escanear.
+  Future<bool> loadProfileAndInit(
+      List<CameraDescription> cameras, String workstationId) async {
+    state = state.copyWith(workstationId: workstationId);
+
+    final record = await _db.getWorkstationById(workstationId);
+
+    // Guardar siempre el employeeId asignado (aunque no haya perfil biométrico)
+    final assignedId = record?.assignedEmployeeId;
+
+    if (record != null &&
+        record.faceEmbedding != null &&
+        record.bodySignature != null &&
+        assignedId != null) {
+      // Reconstruir el perfil desde la BD
+      final embeddingRaw =
+          (jsonDecode(record.faceEmbedding!) as List<dynamic>)
+              .map((e) => (e as num).toDouble())
+              .toList();
+      final bodyJson =
+          (jsonDecode(record.bodySignature!) as Map<String, dynamic>)
+              .map((k, v) => MapEntry(k, (v as num).toDouble()));
+
+      final profile = EmployeeProfile(
+        employeeId: assignedId,
+        workstationId: workstationId,
+        faceEmbedding: embeddingRaw,
+        bodySignature: BodySignature.fromJson(bodyJson),
+        capturedAt: record.profileCapturedAt ?? DateTime.now(),
+        sampleCount: 5,
+        version: record.profileVersion,
+      );
+
+      _finder = EmployeeFinder(profile);
+      state = state.copyWith(
+        isEmployeeScanned: true,
+        employeeProfile: profile,
+        assignedEmployeeId: assignedId,
+        currentState: ActivityState.ausente,
+      );
+
+      await initializeCamera(cameras);
+      return true;
+    }
+
+    // Sin perfil biométrico — hay que escanear
+    state = state.copyWith(
+      isEmployeeScanned: false,
+      assignedEmployeeId: assignedId,
+      currentState: ActivityState.noIdentificado,
+    );
+    return false;
+  }
+
   Future<void> initializeCamera(List<CameraDescription> cameras) async {
     if (cameras.isEmpty) {
-      state = state.copyWith(error: 'No se encontraron cÃ¡maras.');
+      state = state.copyWith(error: 'No se encontraron cámaras.');
       return;
     }
 
-    // Prefer front camera for monitoring
     final camera = cameras.firstWhere(
       (c) => c.lensDirection == CameraLensDirection.front,
       orElse: () => cameras.first,
@@ -173,7 +267,6 @@ class KioskNotifier extends StateNotifier<KioskState> {
   }
 
   void _processFrame(CameraImage image) {
-    // Skip if currently analyzing or interval not elapsed
     if (_isAnalyzing) return;
 
     final now = DateTime.now();
@@ -202,46 +295,130 @@ class KioskNotifier extends StateNotifier<KioskState> {
         return;
       }
 
-      // Run pose and face detection concurrently
+      // Detectar todas las caras y poses del frame
       final results = await Future.wait([
         _poseDetector.processImage(inputImage),
         _faceDetector.processImage(inputImage),
       ]);
 
-      final poses = results[0] as List<Pose>;
-      final faces = results[1] as List<Face>;
+      final allPoses = results[0] as List<Pose>;
+      final allFaces = results[1] as List<Face>;
 
-      final poseResult = _poseAnalyzer.analyze(poses);
-      final faceResult = _faceAnalyzer.analyze(faces);
-
-      // Determine inactivity
-      if (poseResult.handsMoving) {
-        _lastMovementTime = now;
+      // Si no hay perfil registrado, solo actualizar overlay de detección
+      if (_finder == null) {
+        state = state.copyWith(
+          currentState: ActivityState.noIdentificado,
+          confidence: 1.0,
+          isProcessing: false,
+          poses: allPoses,
+          faces: allFaces,
+          imageSize: Size(image.width.toDouble(), image.height.toDouble()),
+        );
+        return;
       }
-      final inactivityDuration = now.difference(_lastMovementTime);
-      final isInactive = inactivityDuration.inSeconds >=
-          AiThresholds.inactivityThresholdSeconds;
 
-      final aiResult = _classifier.classify(
-        pose: poseResult,
-        face: faceResult,
-        isInactive: isInactive,
+      // Buscar al empleado en el frame
+      final findResult = await _finder!.findInFrame(
+        detectedFaces: allFaces,
+        detectedPoses: allPoses,
       );
 
-      state = state.copyWith(
-        currentState: aiResult.state,
-        confidence: aiResult.confidence,
-        isProcessing: false,
-      );
+      final imgSize = Size(image.width.toDouble(), image.height.toDouble());
 
-      // Guardar evento si: cambiÃ³ el estado O pasaron 30 segundos
-      final stateChanged = aiResult.state != state.currentState;
-      final saveIntervalElapsed =
-          now.difference(_lastSaveTime) >= _saveInterval;
+      switch (findResult.status) {
+        case FindStatus.absent:
+          state = state.copyWith(
+            currentState: ActivityState.ausente,
+            confidence: 0.9,
+            identityConfidence: 0.0,
+            identificationMethod: null,
+            isProcessing: false,
+            poses: allPoses,
+            faces: allFaces,
+            imageSize: imgSize,
+          );
 
-      if (stateChanged || saveIntervalElapsed) {
-        await _saveEvent(aiResult, now);
-        _lastSaveTime = now;
+        case FindStatus.outsideArea:
+          state = state.copyWith(
+            currentState: ActivityState.fueraDelArea,
+            confidence: 0.85,
+            identityConfidence: 0.0,
+            identificationMethod: null,
+            isProcessing: false,
+            poses: allPoses,
+            faces: allFaces,
+            imageSize: imgSize,
+          );
+
+        case FindStatus.found:
+          final employeeFace = findResult.employeeFace!;
+          final employeePose = findResult.employeePose;
+
+          // Analizar SOLO la cara y pose del empleado
+          final faceResult = _faceAnalyzer.analyzeSingle(employeeFace);
+          final poseResult = _poseAnalyzer.analyzeSingle(employeePose);
+
+          if (poseResult.handsMoving) {
+            _lastMovementTime = now;
+          }
+          final isInactive = now.difference(_lastMovementTime).inSeconds >=
+              AiThresholds.inactivityThresholdSeconds;
+
+          final aiResult = _classifier.classify(
+            pose: poseResult,
+            face: faceResult,
+            isInactive: isInactive,
+          );
+
+          final methodLabel =
+              findResult.identifiedBy?.name.toUpperCase() ?? 'FACE';
+
+          // Capturar estado ANTES del copyWith para detectar cambio real
+          final previousActivityState = state.currentState;
+
+          state = state.copyWith(
+            currentState: aiResult.state,
+            confidence: aiResult.confidence,
+            identityConfidence: findResult.confidence,
+            identificationMethod: methodLabel,
+            isProcessing: false,
+            poses: allPoses,
+            faces: allFaces,
+            imageSize: imgSize,
+          );
+
+          // Guardar evento si cambió el estado o pasó el intervalo
+          final stateChanged = aiResult.state != previousActivityState;
+          final saveIntervalElapsed =
+              now.difference(_lastSaveTime) >= _saveInterval;
+          if (stateChanged || saveIntervalElapsed) {
+            await _saveEvent(aiResult, now,
+                identityConfidence: findResult.confidence,
+                identificationMethod: methodLabel);
+            _lastSaveTime = now;
+          }
+
+          // ── Aprendizaje incremental ───────────────────────────────────────
+          // Solo aprender cuando la confianza es alta (≥ 0.85)
+          if (_finder != null &&
+              findResult.confidence >= _learningConfidenceThreshold) {
+            final liveEmb = EmployeeFinder.extractFaceEmbedding(employeeFace);
+            final liveBody = employeePose != null
+                ? BodySignature.fromPose(employeePose)
+                : null;
+
+            final adapted = _finder!.profile.adaptedWith(
+              liveFaceEmbedding: liveEmb,
+              liveBodySignature: liveBody,
+            );
+            _finder = EmployeeFinder(adapted);
+            _adaptationsCount++;
+
+            if (_adaptationsCount >= _adaptationsToPersist) {
+              _adaptationsCount = 0;
+              await _persistProfile(adapted);
+            }
+          }
       }
     } catch (_) {
       state = state.copyWith(isProcessing: false);
@@ -257,17 +434,13 @@ class KioskNotifier extends StateNotifier<KioskState> {
     InputImageRotation rotation;
 
     if (Platform.isAndroid) {
-      // CÃ¡lculo correcto de rotaciÃ³n para Android segÃºn docs de ML Kit
       final deviceOrientation = _cameraController!.value.deviceOrientation;
-      int rotationCompensation =
-          _orientationMap[deviceOrientation] ?? 0;
+      int rotationCompensation = _orientationMap[deviceOrientation] ?? 0;
 
       if (camera.lensDirection == CameraLensDirection.front) {
-        // CÃ¡mara frontal: suma y aplica mÃ³dulo
         rotationCompensation =
             (sensorOrientation + rotationCompensation) % 360;
       } else {
-        // CÃ¡mara trasera: resta
         rotationCompensation =
             (sensorOrientation - rotationCompensation + 360) % 360;
       }
@@ -275,7 +448,6 @@ class KioskNotifier extends StateNotifier<KioskState> {
       rotation = InputImageRotationValue.fromRawValue(rotationCompensation) ??
           InputImageRotation.rotation0deg;
     } else {
-      // iOS: usar directamente el sensorOrientation
       rotation = InputImageRotationValue.fromRawValue(sensorOrientation) ??
           InputImageRotation.rotation0deg;
     }
@@ -300,7 +472,23 @@ class KioskNotifier extends StateNotifier<KioskState> {
     );
   }
 
-  Future<void> _saveEvent(AiResult aiResult, DateTime timestamp) async {
+  Future<void> _persistProfile(EmployeeProfile profile) async {
+    try {
+      await _db.saveEmployeeProfile(
+        workstationId: state.workstationId,
+        employeeId: profile.employeeId,
+        faceEmbeddingJson: jsonEncode(profile.faceEmbedding),
+        bodySignatureJson: jsonEncode(profile.bodySignature.toJson()),
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _saveEvent(
+    AiResult aiResult,
+    DateTime timestamp, {
+    double identityConfidence = 0.0,
+    String? identificationMethod,
+  }) async {
     final event = ActivityEvent(
       id: const Uuid().v4(),
       workstationId: state.workstationId,
@@ -314,7 +502,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
       await _saveEventUseCase(event);
       state = state.copyWith(lastEventTime: timestamp);
     } catch (_) {
-      // Silent failure â€” event will be retried on next sync
+      // Silent failure — event will be retried on next sync
     }
   }
 
@@ -338,15 +526,15 @@ class KioskNotifier extends StateNotifier<KioskState> {
   }
 }
 
-// â”€â”€ Provider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Provider ───────────────────────────────────────────────────────────────────
 
 final kioskProvider =
     StateNotifierProvider<KioskNotifier, KioskState>((ref) {
   final saveUseCase = ref.watch(saveActivityEventUseCaseProvider);
-  return KioskNotifier(saveUseCase);
+  final db = ref.watch(appDatabaseProvider);
+  return KioskNotifier(saveUseCase, db);
 });
 
 final availableCamerasProvider = FutureProvider<List<CameraDescription>>((ref) {
   return availableCameras();
 });
-

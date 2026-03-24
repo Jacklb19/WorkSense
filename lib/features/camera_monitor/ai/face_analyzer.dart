@@ -2,6 +2,11 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:worksense_app/features/camera_monitor/ai/ai_result.dart';
 
 class FaceAnalyzer {
+  /// Analiza una sola cara (para usar con el empleado identificado).
+  FaceAnalysisResult analyzeSingle(Face face) {
+    return _analyzeOneFace(face);
+  }
+
   FaceAnalysisResult analyze(List<Face> faces) {
     if (faces.isEmpty) {
       return FaceAnalysisResult.empty;
@@ -18,6 +23,10 @@ class FaceAnalyzer {
     // headEulerAngleY = yaw  (left/right rotation)
     // headEulerAngleX = pitch (up/down tilt)
     // headEulerAngleZ = roll  (sideways tilt)
+    return _analyzeOneFace(face);
+  }
+
+  FaceAnalysisResult _analyzeOneFace(Face face) {
     final yaw = face.headEulerAngleY ?? 0.0;
     final pitch = face.headEulerAngleX ?? 0.0;
     final roll = face.headEulerAngleZ ?? 0.0;

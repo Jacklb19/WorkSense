@@ -6,7 +6,9 @@ enum ActivityState {
   inactivo,
   distraido,
   fatiga,
-  ausente;
+  ausente,
+  fueraDelArea,
+  noIdentificado;
 
   String get label {
     switch (this) {
@@ -20,6 +22,10 @@ enum ActivityState {
         return 'FATIGA';
       case ActivityState.ausente:
         return 'AUSENTE';
+      case ActivityState.fueraDelArea:
+        return 'FUERA DEL ÁREA';
+      case ActivityState.noIdentificado:
+        return 'NO IDENTIFICADO';
     }
   }
 
@@ -35,6 +41,10 @@ enum ActivityState {
         return '🔴';
       case ActivityState.ausente:
         return '⚫';
+      case ActivityState.fueraDelArea:
+        return '🔵';
+      case ActivityState.noIdentificado:
+        return '⬜';
     }
   }
 
@@ -50,6 +60,10 @@ enum ActivityState {
         return AppColors.stateFatigue;
       case ActivityState.ausente:
         return AppColors.stateAbsent;
+      case ActivityState.fueraDelArea:
+        return AppColors.stateOutsideArea;
+      case ActivityState.noIdentificado:
+        return AppColors.stateNotIdentified;
     }
   }
 }
