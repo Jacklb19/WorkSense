@@ -8,8 +8,7 @@ part 'database.g.dart';
 class CompanyRecords extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
-  DateTimeColumn get createdAt =>
-      dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -19,8 +18,7 @@ class EmployeeRecords extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get companyId => text()();
-  DateTimeColumn get createdAt =>
-      dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -45,10 +43,8 @@ class ActivityEntries extends Table {
   TextColumn get workstationId => text()();
   TextColumn get state => text()();
   RealColumn get confidence => real()();
-  DateTimeColumn get timestamp =>
-      dateTime().withDefault(currentDateAndTime)();
-  BoolColumn get synced =>
-      boolean().withDefault(const Constant(false))();
+  DateTimeColumn get timestamp => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get synced => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -60,10 +56,8 @@ class SyncQueueEntries extends Table {
   TextColumn get recordId => text()();
   TextColumn get operation => text()();
   TextColumn get payload => text()();
-  IntColumn get retries =>
-      integer().withDefault(const Constant(0))();
-  DateTimeColumn get createdAt =>
-      dateTime().withDefault(currentDateAndTime)();
+  IntColumn get retries => integer().withDefault(const Constant(0))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -84,7 +78,20 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            // Add geofencing columns to workstation_records
+            await m.addColumn(workstationRecords, workstationRecords.latitude);
+            await m.addColumn(workstationRecords, workstationRecords.longitude);
+            await m.addColumn(
+                workstationRecords, workstationRecords.geofenceRadius);
+          }
+        },
+      );
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'worksense_db');
@@ -108,16 +115,13 @@ class AppDatabase extends _$AppDatabase {
           .watch();
 
   Future<List<ActivityEntry>> getPendingSyncEntries() =>
-      (select(activityEntries)
-            ..where((t) => t.synced.equals(false)))
-          .get();
+      (select(activityEntries)..where((t) => t.synced.equals(false))).get();
 
   Future<void> markActivityEntryAsSynced(String entryId) =>
       (update(activityEntries)..where((t) => t.id.equals(entryId)))
           .write(const ActivityEntriesCompanion(synced: Value(true)));
 
-  Future<ActivityEntry?> getLastEntryForWorkstation(
-      String workstationId) =>
+  Future<ActivityEntry?> getLastEntryForWorkstation(String workstationId) =>
       (select(activityEntries)
             ..where((t) => t.workstationId.equals(workstationId))
             ..orderBy([(t) => OrderingTerm.desc(t.timestamp)])
@@ -127,8 +131,7 @@ class AppDatabase extends _$AppDatabase {
   // ── EmployeeRecords DAO methods ───────────────────────────────────────────
 
   Future<void> insertEmployeeRecord(EmployeeRecordsCompanion record) =>
-      into(employeeRecords).insert(record,
-          mode: InsertMode.insertOrReplace);
+      into(employeeRecords).insert(record, mode: InsertMode.insertOrReplace);
 
   Future<List<EmployeeRecord>> getAllEmployeeRecords() =>
       select(employeeRecords).get();
@@ -151,10 +154,8 @@ class AppDatabase extends _$AppDatabase {
   Stream<List<WorkstationRecord>> watchAllWorkstationRecords() =>
       select(workstationRecords).watch();
 
-  Future<void> insertWorkstationRecord(
-          WorkstationRecordsCompanion record) =>
-      into(workstationRecords).insert(record,
-          mode: InsertMode.insertOrReplace);
+  Future<void> insertWorkstationRecord(WorkstationRecordsCompanion record) =>
+      into(workstationRecords).insert(record, mode: InsertMode.insertOrReplace);
 
   // ── SyncQueueEntries methods ──────────────────────────────────────────────
 

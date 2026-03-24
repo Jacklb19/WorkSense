@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/features/auth/presentation/screens/login_screen.dart';
+import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/kiosk_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/activity_history_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/dashboard_screen.dart';
@@ -11,6 +12,7 @@ import 'package:worksense_app/features/settings/presentation/screens/settings_sc
 import 'package:worksense_app/features/workstations/presentation/screens/workstation_form_screen.dart';
 import 'package:worksense_app/features/workstations/presentation/screens/workstations_list_screen.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+
 
 // Route name constants
 abstract final class AppRoutes {
@@ -152,28 +154,73 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      // Placeholder Routes
       GoRoute(
         path: AppRoutes.kioskWaiting,
         name: 'kiosk-waiting',
-        pageBuilder: (context, state) => const MaterialPage(
-          child: Scaffold(body: Center(child: Text('Dispositivo no configurado'))),
+        pageBuilder: (context, state) => NoTransitionPage(
+          child: Consumer(
+            builder: (context, ref, child) {
+              return Scaffold(
+                appBar: AppBar(
+                  title: const Text('Configuración'),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.logout),
+                      onPressed: () => ref.read(loginNotifierProvider.notifier).signOut(),
+                    ),
+                  ],
+                ),
+                body: const Center(child: Text('Dispositivo no configurado')),
+              );
+            },
+          ),
         ),
       ),
       GoRoute(
         path: AppRoutes.myActivity,
         name: 'my-activity',
-        pageBuilder: (context, state) => const MaterialPage(
-          child: Scaffold(body: Center(child: Text('Panel de empleado — Próximamente'))),
+        pageBuilder: (context, state) => NoTransitionPage(
+          child: Consumer(
+            builder: (context, ref, child) {
+              return Scaffold(
+                appBar: AppBar(
+                  title: const Text('Mi Actividad'),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.logout),
+                      onPressed: () => ref.read(loginNotifierProvider.notifier).signOut(),
+                    ),
+                  ],
+                ),
+                body: const Center(child: Text('Panel de empleado — Próximamente')),
+              );
+            },
+          ),
         ),
       ),
       GoRoute(
         path: AppRoutes.myHours,
         name: 'my-hours',
-        pageBuilder: (context, state) => const MaterialPage(
-          child: Scaffold(body: Center(child: Text('Mis horas — Próximamente'))),
+        pageBuilder: (context, state) => NoTransitionPage(
+          child: Consumer(
+            builder: (context, ref, child) {
+              return Scaffold(
+                appBar: AppBar(
+                  title: const Text('Mis Horas'),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.logout),
+                      onPressed: () => ref.read(loginNotifierProvider.notifier).signOut(),
+                    ),
+                  ],
+                ),
+                body: const Center(child: Text('Mis horas — Próximamente')),
+              );
+            },
+          ),
         ),
       ),
+
 
       // Settings
       GoRoute(
