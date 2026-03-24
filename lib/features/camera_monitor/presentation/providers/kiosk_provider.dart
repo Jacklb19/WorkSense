@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io' show Platform;
 import 'dart:ui' show Size;
 
@@ -159,7 +159,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
       await _startImageStream();
     } catch (e) {
       state = state.copyWith(
-        error: 'Error al inicializar cÃ¡mara: $e',
+        error: 'No se pudo iniciar la cámara. Verifica los permisos.',
         cameraInitialized: false,
       );
     }
@@ -320,6 +320,10 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
   void setWorkstationId(String id) {
     state = state.copyWith(workstationId: id);
+  }
+
+  void setError(String message) {
+    state = state.copyWith(error: message, cameraInitialized: false);
   }
 
   @override

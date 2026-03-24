@@ -113,7 +113,11 @@ class DashboardScreen extends ConsumerWidget {
         },
       ),
       floatingActionButton: canManage ? FloatingActionButton.extended(
-        onPressed: () => context.push('/kiosk/default'),
+        onPressed: () {
+          final items = workstationsAsync.valueOrNull ?? [];
+          final firstId = items.isNotEmpty ? items.first.id : 'default';
+          context.push('/kiosk/$firstId');
+        },
         icon: const Icon(Icons.camera_alt_outlined),
         label: const Text('Iniciar Kiosco'),
         backgroundColor: AppColors.primary,
@@ -203,6 +207,7 @@ class _EmptyWorkstationsView extends ConsumerWidget {
     );
   }
 }
+
 
 class _ErrorView extends StatelessWidget {
   final String error;

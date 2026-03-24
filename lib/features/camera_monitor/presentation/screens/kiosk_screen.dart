@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
@@ -45,6 +47,21 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
   }
 
   Future<void> _initCamera() async {
+    // Solicitar permisos antes de iniciar
+    final status = await [
+      Permission.camera,
+      Permission.locationWhenInUse,
+    ].request();
+
+    if (status[Permission.camera] != PermissionStatus.granted) {
+      if (mounted) {
+        ref.read(kioskProvider.notifier).setError(
+              'Permiso de cámara denegado. Actívalo en configuración.',
+            );
+      }
+      return;
+    }
+
     final cameras = await ref.read(availableCamerasProvider.future);
     if (mounted) {
       await ref.read(kioskProvider.notifier).initializeCamera(cameras);
@@ -53,6 +70,7 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
       });
     }
   }
+
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState appState) {

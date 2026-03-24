@@ -69,14 +69,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             }
             break;
           case AppRole.admin:
-            if (loc.startsWith('/kiosk')) {
-              return AppRoutes.dashboard;
-            }
-            break;
           case AppRole.superAdmin:
             break;
         }
       }
+
 
       return null;
     },
