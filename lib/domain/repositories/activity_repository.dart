@@ -12,4 +12,17 @@ abstract class ActivityRepository {
   Future<void> markAsSynced(String eventId);
 
   Future<ActivityEvent?> getLastEventForWorkstation(String workstationId);
+
+  Future<List<ActivityEvent>> getEventsForEmployee(
+    String employeeId, {
+    DateTime? from,
+    DateTime? to,
+    int limit,
+  });
+
+  Future<List<ActivityEvent>> getEventsByDateRange({
+    required DateTime from,
+    required DateTime to,
+    int limit,
+  });
 }

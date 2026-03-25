@@ -38,6 +38,12 @@ class DashboardScreen extends ConsumerWidget {
           ),
 
           if (canManage) ...[
+            // Analytics
+            IconButton(
+              icon: const Icon(Icons.bar_chart_outlined),
+              tooltip: 'Analíticas',
+              onPressed: () => context.push('/analytics'),
+            ),
             // Employees
             IconButton(
               icon: const Icon(Icons.people_outline),

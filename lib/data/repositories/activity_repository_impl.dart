@@ -63,6 +63,36 @@ class ActivityRepositoryImpl implements ActivityRepository {
     return row != null ? _mapToEntity(row) : null;
   }
 
+  @override
+  Future<List<ActivityEvent>> getEventsForEmployee(
+    String employeeId, {
+    DateTime? from,
+    DateTime? to,
+    int limit = 500,
+  }) async {
+    final rows = await _db.getActivityEntriesForEmployee(
+      employeeId,
+      from: from,
+      to: to,
+      limit: limit,
+    );
+    return rows.map(_mapToEntity).toList();
+  }
+
+  @override
+  Future<List<ActivityEvent>> getEventsByDateRange({
+    required DateTime from,
+    required DateTime to,
+    int limit = 2000,
+  }) async {
+    final rows = await _db.getAllActivityEntriesByDateRange(
+      from: from,
+      to: to,
+      limit: limit,
+    );
+    return rows.map(_mapToEntity).toList();
+  }
+
   ActivityEvent _mapToEntity(ActivityEntry row) {
     return ActivityEvent(
       id: row.id,

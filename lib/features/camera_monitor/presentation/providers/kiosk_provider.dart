@@ -304,6 +304,14 @@ class KioskNotifier extends StateNotifier<KioskState> {
         return;
       }
 
+      final rot = inputImage.metadata?.rotation ?? InputImageRotation.rotation0deg;
+      final bool isRotated = rot == InputImageRotation.rotation90deg ||
+          rot == InputImageRotation.rotation270deg;
+      final imgSize = Size(
+        isRotated ? image.height.toDouble() : image.width.toDouble(),
+        isRotated ? image.width.toDouble() : image.height.toDouble(),
+      );
+
       // Detectar todas las caras y poses del frame
       final results = await Future.wait([
         _poseDetector.processImage(inputImage),
@@ -325,7 +333,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
           isProcessing: false,
           poses: allPoses,
           faces: allFaces,
-          imageSize: Size(image.width.toDouble(), image.height.toDouble()),
+          imageSize: imgSize,
         );
         return;
       }
@@ -339,8 +347,6 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
       debugPrint(
           '[MONITOR] findInFrame result: ${findResult.status}, confidence: ${findResult.confidence.toStringAsFixed(2)}');
-
-      final imgSize = Size(image.width.toDouble(), image.height.toDouble());
 
       switch (findResult.status) {
         case FindStatus.absent:
@@ -511,6 +517,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
     final event = ActivityEvent(
       id: const Uuid().v4(),
+      employeeId: state.assignedEmployeeId,
       workstationId: state.workstationId,
       state: aiResult.state,
       confidence: aiResult.confidence,

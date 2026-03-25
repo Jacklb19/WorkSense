@@ -5,7 +5,9 @@ import 'package:worksense_app/features/auth/presentation/screens/login_screen.da
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/kiosk_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/activity_history_screen.dart';
+import 'package:worksense_app/features/dashboard/presentation/screens/admin_analytics_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:worksense_app/features/dashboard/presentation/screens/employee_detail_analytics_screen.dart';
 import 'package:worksense_app/features/employees/presentation/screens/employee_form_screen.dart';
 import 'package:worksense_app/features/employees/presentation/screens/employees_list_screen.dart';
 import 'package:worksense_app/features/settings/presentation/screens/settings_screen.dart';
@@ -30,6 +32,8 @@ abstract final class AppRoutes {
   static const homeEmployee = '/home-employee';
   static const myActivity = '/my-activity';
   static const myHours = '/my-hours';
+  static const analytics = '/analytics';
+  static const analyticsDetail = '/analytics/:employeeId';
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -240,6 +244,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
+
+      // Analytics
+      GoRoute(
+        path: AppRoutes.analytics,
+        name: 'analytics',
+        pageBuilder: (context, state) => const MaterialPage(
+          child: AdminAnalyticsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.analyticsDetail,
+        name: 'analytics-detail',
+        pageBuilder: (context, state) {
+          final employeeId = state.pathParameters['employeeId']!;
+          return MaterialPage(
+            child: EmployeeDetailAnalyticsScreen(employeeId: employeeId),
+          );
+        },
+      ),
 
       // Settings
       GoRoute(

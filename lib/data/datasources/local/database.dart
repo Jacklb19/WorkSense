@@ -149,6 +149,39 @@ class AppDatabase extends _$AppDatabase {
             ..limit(1))
           .getSingleOrNull();
 
+  // ── Analytics queries ─────────────────────────────────────────────────────
+
+  Future<List<ActivityEntry>> getActivityEntriesForEmployee(
+    String employeeId, {
+    DateTime? from,
+    DateTime? to,
+    int limit = 500,
+  }) =>
+      (select(activityEntries)
+            ..where((t) {
+              var predicate = t.employeeId.equals(employeeId);
+              if (from != null) predicate = predicate & t.timestamp.isBiggerOrEqualValue(from);
+              if (to != null) predicate = predicate & t.timestamp.isSmallerOrEqualValue(to);
+              return predicate;
+            })
+            ..orderBy([(t) => OrderingTerm.desc(t.timestamp)])
+            ..limit(limit))
+          .get();
+
+  Future<List<ActivityEntry>> getAllActivityEntriesByDateRange({
+    required DateTime from,
+    required DateTime to,
+    int limit = 2000,
+  }) =>
+      (select(activityEntries)
+            ..where((t) =>
+                t.employeeId.isNotNull() &
+                t.timestamp.isBiggerOrEqualValue(from) &
+                t.timestamp.isSmallerOrEqualValue(to))
+            ..orderBy([(t) => OrderingTerm.desc(t.timestamp)])
+            ..limit(limit))
+          .get();
+
   // ── EmployeeRecords DAO methods ───────────────────────────────────────────
 
   Future<void> insertEmployeeRecord(EmployeeRecordsCompanion record) =>
