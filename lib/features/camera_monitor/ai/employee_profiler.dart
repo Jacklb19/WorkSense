@@ -1,3 +1,4 @@
+import 'dart:ui' show Size;
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'package:worksense_app/features/camera_monitor/ai/body_signature.dart';
@@ -28,34 +29,34 @@ class ScanInstruction {
 /// Orquesta la captura de las 5 muestras para construir un EmployeeProfile.
 class EmployeeProfiler {
   static const int samplesRequired = 5;
-  static const double minFaceConfidence = 0.75;
-  static const double minPoseConfidence = 0.60;
+  static const double minFaceConfidence = 0.40; // Más flexible para cámara frontal
+  static const double minPoseConfidence = 0.30; // Muy flexible para entornos de oficina
 
   static const List<ScanInstruction> instructions = [
     ScanInstruction(
       index: 0,
       text: 'Mira directo a la cámara en tu posición normal de trabajo',
-      emoji: '👁️',
+      emoji: '',
     ),
     ScanInstruction(
       index: 1,
       text: 'Gira levemente la cabeza hacia tu izquierda (15-20 grados)',
-      emoji: '↖️',
+      emoji: '',
     ),
     ScanInstruction(
       index: 2,
       text: 'Gira levemente la cabeza hacia tu derecha (15-20 grados)',
-      emoji: '↗️',
+      emoji: '',
     ),
     ScanInstruction(
       index: 3,
       text: 'Inclina la cabeza levemente hacia abajo (como mirando el escritorio)',
-      emoji: '⬇️',
+      emoji: '',
     ),
     ScanInstruction(
       index: 4,
       text: 'Levanta levemente la cabeza (como mirando una pantalla alta)',
-      emoji: '⬆️',
+      emoji: '',
     ),
   ];
 
@@ -73,6 +74,7 @@ class EmployeeProfiler {
       options: FaceDetectorOptions(
         performanceMode: FaceDetectorMode.accurate,
         enableLandmarks: true,
+        enableClassification: true, // Habilitar para probabilidad de ojos/sonrisa
         enableTracking: false,
       ),
     );
@@ -97,29 +99,46 @@ class EmployeeProfiler {
     if (faces.length > 1) return SampleResult.multiplePeople;
 
     final face = faces.first;
+    final frameSize = inputImage.metadata?.size;
 
-    // Confianza de cara (derivada de landmarks)
-    final faceConf = _estimateFaceConfidence(face);
+    // Confianza de cara enriquecida
+    final faceConf = _estimateFaceConfidence(face, frameSize);
+    print('[SCAN] FACE CONF: ${faceConf.toStringAsFixed(3)} (threshold: $minFaceConfidence)');
+
     if (faceConf < minFaceConfidence) return SampleResult.lowConfidence;
 
-    // Debe detectarse al menos 1 pose
-    if (poses.isEmpty) return SampleResult.noPose;
+    // Pose: Intentar obtenerla, pero ser indulgente si la cara es muy buena (>0.6)
+    Pose? pose;
+    if (poses.isNotEmpty) {
+      pose = poses.first;
+    }
 
-    final pose = poses.first;
+    double poseConf = 0.0;
+    if (pose != null) {
+      poseConf = _estimatePoseConfidence(pose);
+      print('[SCAN] POSE CONF: ${poseConf.toStringAsFixed(3)} (threshold: $minPoseConfidence)');
+    }
 
-    // Verificar confianza de pose con landmarks principales
-    final poseConf = _estimatePoseConfidence(pose);
-    if (poseConf < minPoseConfidence) return SampleResult.lowConfidence;
+    // Si no hay pose o es baja, pero la cara es excelente, aceptamos
+    final acceptWithoutPose = faceConf > 0.60;
 
-    // Calcular BodySignature
-    final sig = BodySignature.fromPose(pose);
-    if (sig == null || !sig.isValid) return SampleResult.invalidSignature;
+    if (poseConf < minPoseConfidence && !acceptWithoutPose) {
+      return poses.isEmpty ? SampleResult.noPose : SampleResult.lowConfidence;
+    }
+
+    // Calcular BodySignature solo si hay pose válida
+    BodySignature? sig;
+    if (pose != null) {
+      sig = BodySignature.fromPose(pose);
+    }
 
     // Calcular embedding facial
     final embedding = _extractFaceEmbedding(face);
 
     _faceEmbeddings.add(embedding);
-    _bodySignatures.add(sig);
+    // Si no hay firma válida, usamos una previa o zero para no romper el promedio simple,
+    // o mejor guardamos la que tengamos.
+    _bodySignatures.add(sig ?? (_bodySignatures.isNotEmpty ? _bodySignatures.last : BodySignature.zero));
 
     return SampleResult.success;
   }
@@ -174,11 +193,31 @@ class EmployeeProfiler {
 
   // ── Helpers privados ───────────────────────────────────────────────────────
 
-  double _estimateFaceConfidence(Face face) {
-    double conf = 0.75;
-    if (face.landmarks.isNotEmpty) conf = 0.85;
-    if (face.headEulerAngleY != null) conf = 0.90;
-    return conf;
+  double _estimateFaceConfidence(Face face, Size? frameSize) {
+    // 1. Tamaño relativo (0.5 weight)
+    double sizeScore = 0.5; // default si no tenemos frameSize
+    if (frameSize != null) {
+      final boxArea = face.boundingBox.width * face.boundingBox.height;
+      final frameArea = frameSize.width * frameSize.height;
+      sizeScore = (boxArea / frameArea).clamp(0.0, 1.0) * 2.0; // Escalar para que ~25% sea 0.5
+      sizeScore = sizeScore.clamp(0.0, 1.0);
+    }
+
+    // 2. Ángulo (0.3 weight) - Penaliza perfiles extremos
+    final rotY = face.headEulerAngleY?.abs() ?? 45.0;
+    final rotZ = face.headEulerAngleZ?.abs() ?? 45.0;
+    final angleScore = (1.0 - ((rotY + rotZ) / 90.0)).clamp(0.0, 1.0);
+
+    // 3. Clasificación/Landmarks (0.2 weight)
+    final landmarksScore = face.landmarks.isNotEmpty ? 1.0 : 0.0;
+    final eyeScore = ((face.leftEyeOpenProbability ?? 0.5) + (face.rightEyeOpenProbability ?? 0.5)) / 2.0;
+    final classScore = (landmarksScore * 0.5) + (eyeScore * 0.5);
+
+    final finalConf = (sizeScore * 0.5) + (angleScore * 0.3) + (classScore * 0.2);
+
+    print('[SCAN] CONF DETAILS — size: ${sizeScore.toStringAsFixed(2)}, angle: ${angleScore.toStringAsFixed(2)}, class: ${classScore.toStringAsFixed(2)}');
+
+    return finalConf;
   }
 
   double _estimatePoseConfidence(Pose pose) {

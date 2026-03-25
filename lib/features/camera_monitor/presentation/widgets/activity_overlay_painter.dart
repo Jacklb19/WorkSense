@@ -72,12 +72,21 @@ class ActivityOverlayPainter extends CustomPainter {
     }
   }
 
-  Offset _scale(double x, double y, Size canvasSize) {
-    if (imageSize == Size.zero) return Offset(x, y);
-    return Offset(
-      x * canvasSize.width / imageSize.width,
-      y * canvasSize.height / imageSize.height,
-    );
+  double _toScreenX(double x, Size canvasSize) {
+    if (imageSize == Size.zero) return x;
+    final scaleX = canvasSize.width / imageSize.width;
+    // Mirror X for front camera
+    return (imageSize.width - x) * scaleX;
+  }
+
+  double _toScreenY(double y, Size canvasSize) {
+    if (imageSize == Size.zero) return y;
+    final scaleY = canvasSize.height / imageSize.height;
+    return y * scaleY;
+  }
+
+  Offset _toScreen(double x, double y, Size canvasSize) {
+    return Offset(_toScreenX(x, canvasSize), _toScreenY(y, canvasSize));
   }
 
   void _drawPose(Canvas canvas, Size size) {
@@ -98,8 +107,8 @@ class ActivityOverlayPainter extends CustomPainter {
         final b = pose.landmarks[connection[1]];
         if (a == null || b == null) continue;
         canvas.drawLine(
-          _scale(a.x, a.y, size),
-          _scale(b.x, b.y, size),
+          _toScreen(a.x, a.y, size),
+          _toScreen(b.x, b.y, size),
           linePaint,
         );
       }
@@ -107,7 +116,7 @@ class ActivityOverlayPainter extends CustomPainter {
       for (final type in _keyDots) {
         final lm = pose.landmarks[type];
         if (lm == null) continue;
-        canvas.drawCircle(_scale(lm.x, lm.y, size), 4.0, dotPaint);
+        canvas.drawCircle(_toScreen(lm.x, lm.y, size), 4.0, dotPaint);
       }
     }
   }
@@ -123,7 +132,7 @@ class ActivityOverlayPainter extends CustomPainter {
       for (final lm in face.landmarks.values) {
         if (lm == null) continue;
         canvas.drawCircle(
-          _scale(lm.position.x.toDouble(), lm.position.y.toDouble(), size),
+          _toScreen(lm.position.x.toDouble(), lm.position.y.toDouble(), size),
           3.0,
           dotPaint,
         );
@@ -209,23 +218,28 @@ class ActivityOverlayPainter extends CustomPainter {
     const cornerLength = 20.0;
     final r = faceRect!;
 
+    final left = _toScreenX(r.right, size); // Swapped due to mirroring
+    final right = _toScreenX(r.left, size);
+    final top = _toScreenY(r.top, size);
+    final bottom = _toScreenY(r.bottom, size);
+
     final paths = [
       Path()
-        ..moveTo(r.left, r.top + cornerLength)
-        ..lineTo(r.left, r.top)
-        ..lineTo(r.left + cornerLength, r.top),
+        ..moveTo(left, top + cornerLength)
+        ..lineTo(left, top)
+        ..lineTo(left + cornerLength, top),
       Path()
-        ..moveTo(r.right - cornerLength, r.top)
-        ..lineTo(r.right, r.top)
-        ..lineTo(r.right, r.top + cornerLength),
+        ..moveTo(right - cornerLength, top)
+        ..lineTo(right, top)
+        ..lineTo(right, top + cornerLength),
       Path()
-        ..moveTo(r.left, r.bottom - cornerLength)
-        ..lineTo(r.left, r.bottom)
-        ..lineTo(r.left + cornerLength, r.bottom),
+        ..moveTo(left, bottom - cornerLength)
+        ..lineTo(left, bottom)
+        ..lineTo(left + cornerLength, bottom),
       Path()
-        ..moveTo(r.right - cornerLength, r.bottom)
-        ..lineTo(r.right, r.bottom)
-        ..lineTo(r.right, r.bottom - cornerLength),
+        ..moveTo(right - cornerLength, bottom)
+        ..lineTo(right, bottom)
+        ..lineTo(right, bottom - cornerLength),
     ];
 
     for (final path in paths) {

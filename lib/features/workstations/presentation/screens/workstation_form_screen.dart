@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/workstation.dart';
 import 'package:worksense_app/features/workstations/presentation/providers/workstations_provider.dart';
+import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 
 class WorkstationFormScreen extends ConsumerStatefulWidget {
   const WorkstationFormScreen({super.key});
@@ -24,6 +25,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
   double _geofenceRadius = 100.0;
   bool _isLoadingLocation = false;
   bool _isSaving = false;
+  String? _selectedEmployeeId;
 
   @override
   void initState() {
@@ -102,6 +104,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
         latitude: _latitude,
         longitude: _longitude,
         geofenceRadius: _geofenceRadius,
+        assignedEmployeeId: _selectedEmployeeId,
       );
 
       await ref.read(saveWorkstationUseCaseProvider)(newWorkstation);
@@ -110,7 +113,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Estación guardada exitosamente'), backgroundColor: AppColors.success),
         );
-        context.pop();
+        context.go('/workstations');
       }
     } catch (e) {
       if (mounted) {
@@ -123,11 +126,59 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
     }
   }
 
+  Widget _buildEmployeeSelector() {
+    final employeesAsync = ref.watch(employeesStreamProvider);
+
+    return employeesAsync.when(
+      data: (employees) {
+        if (employees.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8.0),
+            child: Text(
+              'No hay empleados registrados',
+              style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+            ),
+          );
+        }
+
+        return DropdownButtonFormField<String>(
+          value: _selectedEmployeeId,
+          decoration: const InputDecoration(
+            labelText: 'Asignar Empleado (Opcional)',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.person_outline),
+          ),
+          items: [
+            const DropdownMenuItem<String>(
+              value: null,
+              child: Text('Ninguno'),
+            ),
+            ...employees.map((e) => DropdownMenuItem(
+                  value: e.id,
+                  child: Text(e.name),
+                )),
+          ],
+          onChanged: (value) {
+            setState(() {
+              _selectedEmployeeId = value;
+            });
+          },
+        );
+      },
+      loading: () => const LinearProgressIndicator(),
+      error: (err, stack) => Text('Error al cargar empleados: $err'),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Nueva Estación'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -155,6 +206,8 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
                 validator: (value) => 
                   value == null || value.trim().isEmpty ? 'El ID no puede estar vacío' : null,
               ),
+              const SizedBox(height: 16),
+              _buildEmployeeSelector(),
               const SizedBox(height: 24),
               const Text(
                 'Geolocalización',

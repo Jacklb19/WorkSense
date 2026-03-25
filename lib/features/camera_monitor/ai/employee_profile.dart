@@ -20,7 +20,9 @@ class EmployeeProfile {
   final int version;
 
   static const int currentVersion = 1;
-  static const double identityThreshold = 0.68;
+  // Threshold reducido para kiosko de empleado único (0.42).
+  // Revisar si se implementa multi-empleado por estación.
+  static const double identityThreshold = 0.42;
 
   const EmployeeProfile({
     required this.employeeId,
@@ -36,12 +38,13 @@ class EmployeeProfile {
   /// [faceScore] null si la cara no fue visible en el frame.
   /// [bodyScore] null si la pose no fue detectable en el frame.
   double matchScore({double? faceScore, double? bodyScore}) {
+    print('[MATCH] faceScore: $faceScore, bodyScore: $bodyScore');
     if (faceScore != null && bodyScore != null) {
       return faceScore * 0.70 + bodyScore * 0.30;
     } else if (faceScore != null) {
-      return faceScore * 0.85;
+      return faceScore; // Sin penalización si solo hay cara
     } else if (bodyScore != null) {
-      return bodyScore * 0.55;
+      return bodyScore; // Sin penalización si solo hay pose
     }
     return 0.0;
   }

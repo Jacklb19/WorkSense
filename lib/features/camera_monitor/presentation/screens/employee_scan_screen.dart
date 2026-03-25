@@ -76,6 +76,8 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
   late final PoseDetector _livePoseDetector;
 
   bool _isLiveProcessing = false;
+  bool _disposed = false;
+  bool _blockFrameUpdates = false;
   CameraImage? _lastFrame;
 
   static const Map<DeviceOrientation, int> _orientationMap = {
@@ -94,8 +96,10 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
     _profiler = EmployeeProfiler();
     _liveDetector = FaceDetector(
       options: FaceDetectorOptions(
-        performanceMode: FaceDetectorMode.fast,
-        enableTracking: false,
+        performanceMode: FaceDetectorMode.fast, // Optimizado para stream
+        enableClassification: true,            // Requerido para métricas de confianza
+        enableLandmarks: true,
+        enableTracking: true,
       ),
     );
     _livePoseDetector = PoseDetector(
@@ -106,7 +110,7 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
   CameraController? get cameraController => _cameraController;
 
   Future<void> initCamera(List<CameraDescription> cameras) async {
-    if (cameras.isEmpty) return;
+    if (_disposed || cameras.isEmpty) return;
 
     final camera = cameras.firstWhere(
       (c) => c.lensDirection == CameraLensDirection.front,
@@ -129,26 +133,40 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
     }
   }
 
+  Future<void> stopCamera() async {
+    if (_disposed || _cameraController == null) return;
+    try {
+      if (_cameraController!.value.isStreamingImages) {
+        await _cameraController!.stopImageStream();
+      }
+      await _cameraController!.dispose();
+      _cameraController = null;
+      state = state.copyWith(cameraReady: false);
+    } catch (_) {}
+  }
+
   void _onFrame(CameraImage image) {
+    if (_disposed || _blockFrameUpdates) return;
     _lastFrame = image;
     if (_isLiveProcessing) return;
     _isLiveProcessing = true;
 
-    _analyzeLive(image).whenComplete(() => _isLiveProcessing = false);
+    _analyzeLive(image).whenComplete(() {
+      _isLiveProcessing = false;
+    });
   }
 
   Future<void> _analyzeLive(CameraImage image) async {
+    if (_disposed) return;
     final inputImage = _buildInputImage(image);
     if (inputImage == null) return;
 
     try {
-      final results = await Future.wait([
-        _liveDetector.processImage(inputImage),
-        _livePoseDetector.processImage(inputImage),
-      ]);
+      final faces = await _liveDetector.processImage(inputImage);
+      if (_disposed) return;
 
-      final faces = results[0] as List<Face>;
-      final poses = results[1] as List<Pose>;
+      final poses = await _livePoseDetector.processImage(inputImage);
+      if (_disposed) return;
 
       if (faces.isEmpty) {
         state = state.copyWith(
@@ -166,68 +184,104 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
           feedback: 'Asegúrate de que tu cuerpo sea visible',
         );
       } else {
-        state = state.copyWith(
-          frameStatus: _FrameStatus.detected,
-          feedback: 'Posición correcta ✓',
-        );
+        // Solo actualizar si no estamos en medio de una captura (para no pisar éxito/error)
+        if (!state.isCapturing && (state.frameStatus != _FrameStatus.capturing)) {
+          state = state.copyWith(
+            frameStatus: _FrameStatus.detected,
+            feedback: 'Posicion correcta',
+          );
+        }
       }
     } catch (_) {}
   }
 
   /// Captura la muestra actual. Llama cuando el usuario presiona el botón.
   Future<void> captureCurrentSample() async {
-    if (state.isCapturing || _lastFrame == null) return;
-    if (state.frameStatus != _FrameStatus.detected) return;
-
-    state = state.copyWith(
-      isCapturing: true,
-      frameStatus: _FrameStatus.capturing,
-    );
-
-    final inputImage = _buildInputImage(_lastFrame!);
-    if (inputImage == null) {
-      state = state.copyWith(
-        isCapturing: false,
-        frameStatus: _FrameStatus.error,
-        feedback: 'Error al procesar el frame',
-      );
+    if (_disposed) return;
+    print('[SCAN] Iniciando captura...');
+    if (state.isCapturing || _lastFrame == null) {
+      print('[SCAN] Abortando: isCapturing=${state.isCapturing}, lastFrame=${_lastFrame == null}');
+      return;
+    }
+    if (state.frameStatus != _FrameStatus.detected) {
+      print('[SCAN] Abortando: frameStatus=${state.frameStatus}');
       return;
     }
 
-    final result = await _profiler.addSample(inputImage);
-
-    if (result == SampleResult.success) {
-      final newCompleted = List<bool>.from(state.completedSamples);
-      newCompleted[state.currentSampleIndex] = true;
-
-      final nextIndex = state.currentSampleIndex + 1;
-      final isComplete = nextIndex >= EmployeeProfiler.samplesRequired;
-
+    try {
       state = state.copyWith(
-        completedSamples: newCompleted,
-        currentSampleIndex: isComplete ? state.currentSampleIndex : nextIndex,
-        isCapturing: false,
-        isComplete: isComplete,
-        frameStatus: _FrameStatus.searching,
-        feedback: isComplete
-            ? '¡Escaneo completado!'
-            : EmployeeProfiler.instructions[nextIndex].text,
+        isCapturing: true,
+        frameStatus: _FrameStatus.capturing,
       );
+      print('[SCAN] Antes de captureFrame / addSample');
 
-      if (isComplete) {
-        await _buildAndSaveProfile();
+      final inputImage = _buildInputImage(_lastFrame!);
+      if (inputImage == null) {
+        print('[SCAN] Error: inputImage es null');
+        state = state.copyWith(
+          isCapturing: false,
+          frameStatus: _FrameStatus.error,
+          feedback: 'Error al procesar el frame',
+        );
+        return;
       }
-    } else {
-      final msg = _resultMessage(result);
-      state = state.copyWith(
-        isCapturing: false,
-        frameStatus: _FrameStatus.error,
-        feedback: msg,
-      );
+
+      print('[SCAN] Procesando muestra con profiler...');
+      final result = await _profiler.addSample(inputImage);
+      print('[SCAN] Resultado captura: $result');
+
+      if (result == SampleResult.success) {
+        print('[SCAN] Antes de setState (actualizando recuento)');
+        final newCompleted = List<bool>.from(state.completedSamples);
+        newCompleted[state.currentSampleIndex] = true;
+
+        final nextIndex = state.currentSampleIndex + 1;
+        final isComplete = nextIndex >= EmployeeProfiler.samplesRequired;
+
+        state = state.copyWith(
+          completedSamples: newCompleted,
+          currentSampleIndex: isComplete ? state.currentSampleIndex : nextIndex,
+          isCapturing: false,
+          isComplete: isComplete,
+          frameStatus: _FrameStatus.searching,
+          feedback: isComplete
+              ? 'Escaneo completado'
+              : EmployeeProfiler.instructions[nextIndex].text,
+        );
+        print('[SCAN] photoCount actualizado: ${state.capturedCount}');
+
+        // Persistir el mensaje de éxito por un momento
+        _blockFrameUpdates = true;
+        if (!isComplete) {
+          await Future<void>.delayed(const Duration(milliseconds: 1500));
+        }
+        _blockFrameUpdates = false;
+
+        if (isComplete) {
+          await _buildAndSaveProfile();
+        }
+      } else {
+        final msg = _resultMessage(result);
+        state = state.copyWith(
+          isCapturing: false,
+          frameStatus: _FrameStatus.error,
+          feedback: msg,
+        );
+        // Persistir el mensaje de error para que el usuario pueda leerlo
+        _blockFrameUpdates = true;
+        await Future<void>.delayed(const Duration(milliseconds: 2000));
+        _blockFrameUpdates = false;
+      }
+    } catch (e, stack) {
+      if (_disposed) return;
+      print('[SCAN] ERROR capturado: $e');
+      print('[SCAN] StackTrace: $stack');
+      state = state.copyWith(isCapturing: false, error: e.toString());
     }
   }
 
   Future<void> _buildAndSaveProfile() async {
+    if (_disposed) return;
     try {
       final profile = _profiler.buildProfile(
         employeeId: employeeId,
@@ -241,6 +295,7 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
         bodySignatureJson: jsonEncode(profile.bodySignature.toJson()),
       );
     } catch (e) {
+      if (_disposed) return;
       state = state.copyWith(
         error: 'Error al guardar el perfil: $e',
         isComplete: false,
@@ -249,6 +304,7 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
   }
 
   void resetScan() {
+    if (_disposed) return;
     _profiler.reset();
     state = const EmployeeScanState(cameraReady: true);
   }
@@ -256,17 +312,17 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
   String _resultMessage(SampleResult result) {
     switch (result) {
       case SampleResult.success:
-        return '¡Muestra capturada!';
+        return 'Muestra capturada';
       case SampleResult.noFace:
-        return 'No se detectó ningún rostro. Acércate más.';
+        return 'No se detectó rostro. Acércate más.';
       case SampleResult.multiplePeople:
         return 'Solo debe estar el empleado en cámara.';
       case SampleResult.lowConfidence:
-        return 'Poca iluminación o distancia incorrecta. Intenta de nuevo.';
+        return 'Poca iluminación o distancia incorrecta.';
       case SampleResult.noPose:
-        return 'No se detectó tu cuerpo. Asegúrate de ser visible.';
+        return 'Cuerpo no detectado. Asegúrate de ser visible.';
       case SampleResult.invalidSignature:
-        return 'Postura no válida. Quédate quieto e intenta de nuevo.';
+        return 'Postura no válida. Quédate quieto.';
     }
   }
 
@@ -280,7 +336,7 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
       final deviceOrientation = _cameraController!.value.deviceOrientation;
       int comp = _orientationMap[deviceOrientation] ?? 0;
       if (camera.lensDirection == CameraLensDirection.front) {
-        comp = (sensorOrientation + comp) % 360;
+        comp = (sensorOrientation - comp + 360) % 360;
       } else {
         comp = (sensorOrientation - comp + 360) % 360;
       }
@@ -311,25 +367,30 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
 
   @override
   void dispose() {
-    _cameraController?.stopImageStream().catchError((_) {});
-    _cameraController?.dispose();
-    _profiler.dispose();
+    _disposed = true;
+    try {
+      _cameraController?.stopImageStream().catchError((_) {});
+      _cameraController?.dispose();
+    } catch (_) {}
     _liveDetector.close();
     _livePoseDetector.close();
+    _profiler.dispose();
     super.dispose();
   }
 }
 
 // ── Provider (family por workstationId+employeeId) ─────────────────────────────
 
-final employeeScanProvider = StateNotifierProvider.family<EmployeeScanNotifier,
-    EmployeeScanState, (String, String)>(
-  (ref, ids) {
+typedef ScanParams = ({String workstationId, String employeeId});
+
+final employeeScanProvider = StateNotifierProvider.autoDispose
+    .family<EmployeeScanNotifier, EmployeeScanState, ScanParams>(
+  (ref, params) {
     final db = ref.watch(appDatabaseProvider);
     return EmployeeScanNotifier(
       db: db,
-      workstationId: ids.$1,
-      employeeId: ids.$2,
+      workstationId: params.workstationId,
+      employeeId: params.employeeId,
     );
   },
 );
@@ -354,26 +415,52 @@ class EmployeeScanScreen extends ConsumerStatefulWidget {
   ConsumerState<EmployeeScanScreen> createState() => _EmployeeScanScreenState();
 }
 
-class _EmployeeScanScreenState extends ConsumerState<EmployeeScanScreen> {
-  (String, String) get _ids => (widget.workstationId, widget.employeeId);
+class _EmployeeScanScreenState extends ConsumerState<EmployeeScanScreen>
+    with WidgetsBindingObserver {
+  ScanParams get _params => (
+        workstationId: widget.workstationId,
+        employeeId: widget.employeeId,
+      );
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final cameras = await ref.read(availableCamerasProvider.future);
-      if (mounted) {
-        await ref
-            .read(employeeScanProvider(_ids).notifier)
-            .initCamera(cameras);
-      }
-    });
+    _initCamera();
+  }
+
+  Future<void> _initCamera() async {
+    final cameras = await ref.read(availableCamerasProvider.future);
+    if (mounted) {
+      await ref.read(employeeScanProvider(_params).notifier).initCamera(cameras);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      final notifier = ref.read(employeeScanProvider(_params).notifier);
+      notifier.cameraController?.stopImageStream().catchError((_) {});
+    } else if (state == AppLifecycleState.resumed) {
+      _initCamera();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    if (mounted) {
+      final notifier = ref.read(employeeScanProvider(_params).notifier);
+      notifier.cameraController?.stopImageStream().catchError((_) {});
+      notifier.cameraController?.dispose();
+    }
+    // Los detectores se cierran en el dispose del notifier que es llamado por Riverpod,
+    // pero aseguramos el llamado aquí si es necesario o dejamos que Riverpod lo maneje.
+    // El notifier.dispose() ya los cierra.
+    
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
@@ -385,12 +472,12 @@ class _EmployeeScanScreenState extends ConsumerState<EmployeeScanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scanState = ref.watch(employeeScanProvider(_ids));
+    final scanState = ref.watch(employeeScanProvider(_params));
     final controller =
-        ref.read(employeeScanProvider(_ids).notifier).cameraController;
+        ref.read(employeeScanProvider(_params).notifier).cameraController;
 
     // Navegar al completar
-    ref.listen<EmployeeScanState>(employeeScanProvider(_ids), (prev, next) {
+    ref.listen<EmployeeScanState>(employeeScanProvider(_params), (prev, next) {
       if (!mounted) return;
       if (next.isComplete && !(prev?.isComplete ?? false)) {
         Future.delayed(const Duration(milliseconds: 800), () {
@@ -433,11 +520,16 @@ class _EmployeeScanScreenState extends ConsumerState<EmployeeScanScreen> {
             right: 0,
             child: _BottomPanel(
               scanState: scanState,
-              onCapture: () => ref
-                  .read(employeeScanProvider(_ids).notifier)
-                  .captureCurrentSample(),
-              onReset: () =>
-                  ref.read(employeeScanProvider(_ids).notifier).resetScan(),
+              onCapture: () async {
+                if (!mounted) return;
+                final notifier = ref.read(employeeScanProvider(_params).notifier);
+                await notifier.captureCurrentSample();
+              },
+              onReset: () {
+                if (mounted) {
+                  ref.read(employeeScanProvider(_params).notifier).resetScan();
+                }
+              },
             ),
           ),
         ],
@@ -468,7 +560,7 @@ class _TopBar extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: Text(
-          'Escaneo del Empleado — Muestra ${sampleIndex + 1} de $total',
+          'Captura de Perfil — Muestra ${sampleIndex + 1} de $total',
           style: const TextStyle(
             color: Colors.white,
             fontSize: 16,
@@ -601,17 +693,12 @@ class _BottomPanel extends StatelessWidget {
             // Emoji grande + instrucción
             if (instruction != null) ...[
               Text(
-                instruction.emoji,
-                style: const TextStyle(fontSize: 40),
-              ),
-              const SizedBox(height: 8),
-              Text(
                 instruction.text,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 12),
@@ -678,9 +765,9 @@ class _BottomPanel extends StatelessWidget {
                           ),
                         )
                       : const Icon(Icons.camera_alt),
-                  label: const Text(
-                    'Capturar esta posición',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  label: Text(
+                    'Capturar posicion ${scanState.currentSampleIndex + 1}',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -692,7 +779,7 @@ class _BottomPanel extends StatelessWidget {
               Column(
                 children: [
                   const Text(
-                    '¡Escaneo completado! Iniciando monitoreo...',
+                    'Escaneo completado. Iniciando monitoreo...',
                     style: TextStyle(
                       color: Colors.greenAccent,
                       fontWeight: FontWeight.bold,

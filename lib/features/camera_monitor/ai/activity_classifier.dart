@@ -38,8 +38,9 @@ class ActivityClassifier {
     required FaceAnalysisResult face,
     required bool isInactive,
   }) {
-    // Priority 1: No person detected
-    if (!pose.personDetected) {
+    // Priority 1: No signals detected (neither face nor pose)
+    final alguienPresente = face.faceDetected || pose.personDetected;
+    if (!alguienPresente) {
       return const AiResult(
         state: ActivityState.ausente,
         confidence: 0.85,

@@ -1,10 +1,11 @@
-import 'dart:async';
+  import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'dart:ui' show Size;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/services.dart' show DeviceOrientation;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
@@ -136,6 +137,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
   EmployeeFinder? _finder;
 
   bool _isAnalyzing = false;
+  bool _disposed = false;
   DateTime _lastAnalysisTime = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _lastMovementTime = DateTime.now();
   DateTime _lastSaveTime = DateTime.fromMillisecondsSinceEpoch(0);
@@ -209,6 +211,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
       );
 
       _finder = EmployeeFinder(profile);
+      debugPrint('[MONITOR] Perfil cargado para ${profile.employeeId}. Muestras: ${profile.sampleCount}');
       state = state.copyWith(
         isEmployeeScanned: true,
         employeeProfile: profile,
@@ -267,6 +270,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
   }
 
   void _processFrame(CameraImage image) {
+    if (_disposed) return;
     if (_isAnalyzing) return;
 
     final now = DateTime.now();
@@ -288,6 +292,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
   }
 
   Future<void> _analyzeFrame(CameraImage image, DateTime now) async {
+    if (_disposed) return;
     try {
       final inputImage = _buildInputImage(image);
       if (inputImage == null) {
@@ -303,6 +308,8 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
       final allPoses = results[0] as List<Pose>;
       final allFaces = results[1] as List<Face>;
+
+      debugPrint('[MONITOR] Frame analizado. Caras: ${allFaces.length}, Poses: ${allPoses.length}');
 
       // Si no hay perfil registrado, solo actualizar overlay de detección
       if (_finder == null) {
@@ -322,6 +329,8 @@ class KioskNotifier extends StateNotifier<KioskState> {
         detectedFaces: allFaces,
         detectedPoses: allPoses,
       );
+
+      debugPrint('[MONITOR] findInFrame result: ${findResult.status}, confidence: ${findResult.confidence.toStringAsFixed(2)}');
 
       final imgSize = Size(image.width.toDouble(), image.height.toDouble());
 
@@ -439,7 +448,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
       if (camera.lensDirection == CameraLensDirection.front) {
         rotationCompensation =
-            (sensorOrientation + rotationCompensation) % 360;
+            (sensorOrientation - rotationCompensation + 360) % 360;
       } else {
         rotationCompensation =
             (sensorOrientation - rotationCompensation + 360) % 360;
@@ -516,10 +525,17 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
   @override
   void dispose() {
-    _cameraController?.stopImageStream().catchError((_) {});
-    _cameraController?.dispose();
-    _poseDetector.close();
-    _faceDetector.close();
+    _disposed = true;
+    try {
+      if (_cameraController?.value.isStreamingImages == true) {
+        _cameraController!.stopImageStream().catchError((_) {});
+      }
+    } catch (_) {}
+    Future.microtask(() async {
+      try { await _cameraController?.dispose(); } catch (_) {}
+      try { _poseDetector.close(); } catch (_) {}
+      try { _faceDetector.close(); } catch (_) {}
+    });
     _poseAnalyzer.reset();
     _classifier.reset();
     super.dispose();
@@ -529,7 +545,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
 // ── Provider ───────────────────────────────────────────────────────────────────
 
 final kioskProvider =
-    StateNotifierProvider<KioskNotifier, KioskState>((ref) {
+    StateNotifierProvider.autoDispose<KioskNotifier, KioskState>((ref) {
   final saveUseCase = ref.watch(saveActivityEventUseCaseProvider);
   final db = ref.watch(appDatabaseProvider);
   return KioskNotifier(saveUseCase, db);

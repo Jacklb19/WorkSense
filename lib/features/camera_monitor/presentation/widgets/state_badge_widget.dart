@@ -33,13 +33,17 @@ class StateBadgeWidget extends StatelessWidget {
         children: [
           _StateIndicatorDot(color: state.color),
           const SizedBox(width: 6),
-          Text(
-            state.label,
-            style: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.w600,
-              color: state.color,
-              letterSpacing: 0.3,
+          Flexible(
+            child: Text(
+              state.label,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: fontSize,
+                fontWeight: FontWeight.w600,
+                color: state.color,
+                letterSpacing: 0.3,
+              ),
             ),
           ),
           if (showConfidence && confidence != null) ...[

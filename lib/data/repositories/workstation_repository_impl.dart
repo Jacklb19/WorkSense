@@ -23,6 +23,7 @@ class WorkstationRepositoryImpl implements WorkstationRepository {
         latitude: Value(workstation.latitude),
         longitude: Value(workstation.longitude),
         geofenceRadius: Value(workstation.geofenceRadius),
+        assignedEmployeeId: Value(workstation.assignedEmployeeId),
       ));
 
       // 2. Encolar en SyncQueue
@@ -39,6 +40,7 @@ class WorkstationRepositoryImpl implements WorkstationRepository {
           'latitude': workstation.latitude,
           'longitude': workstation.longitude,
           'geofenceRadius': workstation.geofenceRadius,
+          'assignedEmployeeId': workstation.assignedEmployeeId,
         })),
       ));
     });
@@ -77,6 +79,7 @@ class WorkstationRepositoryImpl implements WorkstationRepository {
       latitude: row.latitude,
       longitude: row.longitude,
       geofenceRadius: row.geofenceRadius,
+      assignedEmployeeId: row.assignedEmployeeId,
     );
   }
 }
