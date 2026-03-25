@@ -8,14 +8,14 @@ class SyncIndicatorWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Escuchar conectividad
+    // Inicializar el SyncNotifier (y su listener de conectividad)
+    ref.watch(syncNotifierProvider);
+
     final isOnline = ref.watch(isOnlineProvider);
-    
-    // Escuchar conteo de eventos (usamos el provider individual por simplicidad)
-    final pendingCount = ref.watch(pendingEventCountProvider); 
+    final pendingCountAsync = ref.watch(pendingActivityCountProvider);
+    final pendingCount = pendingCountAsync.valueOrNull ?? 0;
 
     if (!isOnline) {
-      // 3. Ícono de nube roja si está offline
       return const Tooltip(
         message: 'Modo Offline',
         child: Padding(
@@ -26,8 +26,6 @@ class SyncIndicatorWidget extends ConsumerWidget {
     }
 
     if (pendingCount > 0) {
-      // 2. Ícono de nube naranja con badge si hay pendientes
-      // 4. El badge muestra cuántos eventos hay
       return Tooltip(
         message: '$pendingCount eventos pendientes de sincronización',
         child: Padding(
@@ -66,7 +64,6 @@ class SyncIndicatorWidget extends ConsumerWidget {
       );
     }
 
-    // 1. Ícono de nube verde si está online y sin pendientes
     return const Tooltip(
       message: 'Online y Sincronizado',
       child: Padding(

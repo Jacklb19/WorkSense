@@ -90,7 +90,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -102,9 +102,6 @@ class AppDatabase extends _$AppDatabase {
                 workstationRecords, workstationRecords.geofenceRadius);
           }
           if (from < 3) {
-            // Raw SQL para evitar dependencia circular con código generado.
-            // SQLite no soporta ADD COLUMN IF NOT EXISTS, pero esta migración
-            // solo corre una vez al pasar de v2 → v3.
             await customStatement(
                 'ALTER TABLE workstation_records ADD COLUMN assigned_employee_id TEXT');
             await customStatement(
@@ -119,6 +116,11 @@ class AppDatabase extends _$AppDatabase {
                 'ALTER TABLE activity_entries ADD COLUMN identity_confidence REAL');
             await customStatement(
                 'ALTER TABLE activity_entries ADD COLUMN identification_method TEXT');
+          }
+          if (from < 4) {
+            // Crear la tabla de cola de sincronización para dispositivos
+            // que ya existían antes de que se añadiera esta tabla.
+            await m.createTable(syncQueueEntries);
           }
         },
       );
@@ -226,4 +228,11 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteSyncQueueEntry(String id) =>
       (delete(syncQueueEntries)..where((t) => t.id.equals(id))).go();
+
+  // ── Pending count stream ──────────────────────────────────────────────────
+
+  Stream<int> watchPendingActivityCount() =>
+      (select(activityEntries)..where((t) => t.synced.equals(false)))
+          .watch()
+          .map((rows) => rows.length);
 }

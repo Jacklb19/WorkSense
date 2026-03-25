@@ -113,7 +113,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Estación guardada exitosamente'), backgroundColor: AppColors.success),
         );
-        context.go('/workstations');
+        context.pop();
       }
     } catch (e) {
       if (mounted) {

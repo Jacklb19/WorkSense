@@ -1,12 +1,13 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/data/datasources/remote/supabase_datasource.dart';
 import 'package:worksense_app/data/repositories/activity_repository_impl.dart';
 import 'package:worksense_app/shared/domain/usecases/sync_events_use_case.dart';
+import 'package:worksense_app/shared/domain/usecases/process_sync_queue_use_case.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
 import 'package:worksense_app/shared/providers/connectivity_provider.dart';
 
-// â”€â”€ Sync Use Case Provider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Sync Use Case Provider ────────────────────────────────────────────────────
 
 final syncEventsUseCaseProvider = Provider<SyncEventsUseCase>((ref) {
   final db = ref.watch(appDatabaseProvider);
@@ -15,11 +16,20 @@ final syncEventsUseCaseProvider = Provider<SyncEventsUseCase>((ref) {
   return SyncEventsUseCase(repo, remoteDs);
 });
 
-// â”€â”€ Pending Sync Count â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+final processSyncQueueUseCaseProvider = Provider<ProcessSyncQueueUseCase>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  final remoteDs = ref.watch(supabaseDataSourceProvider);
+  return ProcessSyncQueueUseCase(db, remoteDs);
+});
 
-final pendingEventCountProvider = StateProvider<int>((ref) => 0);
+// ── Pending count stream (tiempo real desde Drift) ────────────────────────────
 
-// â”€â”€ Sync Status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+final pendingActivityCountProvider = StreamProvider<int>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.watchPendingActivityCount();
+});
+
+// ── Sync Status ───────────────────────────────────────────────────────────────
 
 enum SyncStatus { idle, syncing, success, error }
 
@@ -56,19 +66,22 @@ class SyncState {
 }
 
 class SyncNotifier extends StateNotifier<SyncState> {
-  final SyncEventsUseCase _syncUseCase;
+  final SyncEventsUseCase _syncEventsUseCase;
+  final ProcessSyncQueueUseCase _processSyncQueueUseCase;
 
-  SyncNotifier(this._syncUseCase) : super(const SyncState());
+  SyncNotifier(this._syncEventsUseCase, this._processSyncQueueUseCase)
+      : super(const SyncState());
 
   Future<void> syncNow() async {
     if (state.status == SyncStatus.syncing) return;
 
     state = state.copyWith(status: SyncStatus.syncing, errorMessage: null);
     try {
-      final synced = await _syncUseCase();
+      final syncedEvents = await _syncEventsUseCase();
+      final syncedQueue = await _processSyncQueueUseCase();
       state = state.copyWith(
         status: SyncStatus.success,
-        lastSyncedCount: synced,
+        lastSyncedCount: syncedEvents + syncedQueue,
         lastSyncTime: DateTime.now(),
       );
     } catch (e) {
@@ -78,18 +91,15 @@ class SyncNotifier extends StateNotifier<SyncState> {
       );
     }
   }
-
-  void updatePendingCount(int count) {
-    state = state.copyWith(pendingCount: count);
-  }
 }
 
 final syncNotifierProvider =
     StateNotifierProvider<SyncNotifier, SyncState>((ref) {
-  final syncUseCase = ref.watch(syncEventsUseCaseProvider);
-  final notifier = SyncNotifier(syncUseCase);
+  final syncEventsUseCase = ref.watch(syncEventsUseCaseProvider);
+  final processSyncQueueUseCase = ref.watch(processSyncQueueUseCaseProvider);
+  final notifier = SyncNotifier(syncEventsUseCase, processSyncQueueUseCase);
 
-  // Auto-sync when connectivity is restored
+  // Auto-sync cuando se recupera la conexión
   ref.listen<bool>(isOnlineProvider, (wasOnline, isNow) {
     final previouslyOffline = wasOnline == null || !wasOnline;
     if (previouslyOffline && isNow) {
@@ -99,4 +109,3 @@ final syncNotifierProvider =
 
   return notifier;
 });
-

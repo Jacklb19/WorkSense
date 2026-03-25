@@ -97,6 +97,13 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       await _localRepo.deleteEmployee(id);
+
+      try {
+        await _remoteDataSource.deleteEmployee(id);
+      } catch (_) {
+        // Falló el borrado remoto — el registro local ya fue eliminado
+      }
+
       state = state.copyWith(isLoading: false);
     } catch (e) {
       state = state.copyWith(

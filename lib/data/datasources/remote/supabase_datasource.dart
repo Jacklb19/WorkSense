@@ -48,6 +48,14 @@ class SupabaseDataSource {
     await _client.from('workstations').update(data).eq('id', id);
   }
 
+  Future<void> upsertWorkstation(Map<String, dynamic> data) async {
+    await _client.from('workstations').upsert(data);
+  }
+
+  Future<void> deleteWorkstationById(String id) async {
+    await _client.from('workstations').delete().eq('id', id);
+  }
+
   // ── Employees ─────────────────────────────────────────────────────────────
 
   Future<List<Map<String, dynamic>>> getEmployees() async {

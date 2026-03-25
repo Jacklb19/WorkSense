@@ -47,7 +47,6 @@ class ActivityEvent {
       'state': state.name,
       'confidence': confidence,
       'timestamp': timestamp.toIso8601String(),
-      'synced': synced,
     };
   }
 
