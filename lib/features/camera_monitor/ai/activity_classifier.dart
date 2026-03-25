@@ -65,9 +65,10 @@ class ActivityClassifier {
       );
     }
 
-    // Priority 4: Head drooping (pitch below threshold) or tilted (roll) → fatigue
+    // Priority 4: Head drooping or eyes closed → fatigue
     if (face.pitch < AiThresholds.minPitchAngle ||
-        face.roll.abs() > AiThresholds.maxRollAngle) {
+        face.roll.abs() > AiThresholds.maxRollAngle ||
+        face.eyesClosed) {
       return const AiResult(
         state: ActivityState.fatiga,
         confidence: 0.75,

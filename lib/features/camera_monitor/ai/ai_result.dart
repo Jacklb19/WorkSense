@@ -44,6 +44,7 @@ class FaceAnalysisResult {
   final double pitch;
   final double roll;
   final double faceConfidence;
+  final bool eyesClosed;
 
   const FaceAnalysisResult({
     required this.faceDetected,
@@ -51,6 +52,7 @@ class FaceAnalysisResult {
     required this.pitch,
     required this.roll,
     required this.faceConfidence,
+    this.eyesClosed = false,
   });
 
   static const FaceAnalysisResult empty = FaceAnalysisResult(
@@ -59,5 +61,6 @@ class FaceAnalysisResult {
     pitch: 0.0,
     roll: 0.0,
     faceConfidence: 0.0,
+    eyesClosed: false,
   );
 }

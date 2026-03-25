@@ -171,6 +171,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
         performanceMode: FaceDetectorMode.fast,
         enableTracking: true,
         enableLandmarks: true,
+        enableClassification: true,
       ),
     );
     _poseAnalyzer = PoseAnalyzer();

@@ -41,12 +41,23 @@ class FaceAnalyzer {
       confidence *= 0.7;
     }
 
+    // Detect closed eyes (probability < 0.3 means likely closed)
+    bool eyesClosed = false;
+    if (face.leftEyeOpenProbability != null &&
+        face.rightEyeOpenProbability != null) {
+      if (face.leftEyeOpenProbability! < 0.3 &&
+          face.rightEyeOpenProbability! < 0.3) {
+        eyesClosed = true;
+      }
+    }
+
     return FaceAnalysisResult(
       faceDetected: true,
       yaw: yaw,
       pitch: pitch,
       roll: roll,
       faceConfidence: confidence,
+      eyesClosed: eyesClosed,
     );
   }
 }
