@@ -43,6 +43,9 @@ class FaceAnalysisResult {
   final double yaw;
   final double pitch;
   final double roll;
+  final double leftEyeOpen;
+  final double rightEyeOpen;
+  final double smileProbability;
   final double faceConfidence;
 
   const FaceAnalysisResult({
@@ -50,6 +53,9 @@ class FaceAnalysisResult {
     required this.yaw,
     required this.pitch,
     required this.roll,
+    required this.leftEyeOpen,
+    required this.rightEyeOpen,
+    required this.smileProbability,
     required this.faceConfidence,
   });
 
@@ -58,6 +64,10 @@ class FaceAnalysisResult {
     yaw: 0.0,
     pitch: 0.0,
     roll: 0.0,
+    leftEyeOpen: 1.0,
+    rightEyeOpen: 1.0,
+    smileProbability: 0.0,
     faceConfidence: 0.0,
   );
 }
+

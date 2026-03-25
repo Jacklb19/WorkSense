@@ -22,8 +22,12 @@ class FaceAnalyzer {
     final pitch = face.headEulerAngleX ?? 0.0;
     final roll = face.headEulerAngleZ ?? 0.0;
 
-    // Confidence estimate — ML Kit Face Detection doesn't expose a raw
-    // confidence value, so we derive one from the landmark availability.
+    // Classification: Blinks and Smiles (Requires enableClassification: true)
+    final leftEyeOpen = face.leftEyeOpenProbability ?? 1.0;
+    final rightEyeOpen = face.rightEyeOpenProbability ?? 1.0;
+    final smileProb = face.smilingProbability ?? 0.0;
+
+    // Confidence estimate
     double confidence = 0.8;
     if (face.landmarks.isNotEmpty) {
       confidence = 0.9;
@@ -37,7 +41,11 @@ class FaceAnalyzer {
       yaw: yaw,
       pitch: pitch,
       roll: roll,
+      leftEyeOpen: leftEyeOpen,
+      rightEyeOpen: rightEyeOpen,
+      smileProbability: smileProb,
       faceConfidence: confidence,
     );
+
   }
 }

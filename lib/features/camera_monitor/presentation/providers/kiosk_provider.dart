@@ -47,6 +47,8 @@ class KioskState {
   final bool cameraInitialized;
   final String? error;
   final String workstationId;
+  final List<Pose> poses;
+  final List<Face> faces;
 
   const KioskState({
     this.currentState = ActivityState.ausente,
@@ -57,6 +59,8 @@ class KioskState {
     this.cameraInitialized = false,
     this.error,
     this.workstationId = 'default',
+    this.poses = const [],
+    this.faces = const [],
   });
 
   KioskState copyWith({
@@ -68,6 +72,8 @@ class KioskState {
     bool? cameraInitialized,
     String? error,
     String? workstationId,
+    List<Pose>? poses,
+    List<Face>? faces,
   }) {
     return KioskState(
       currentState: currentState ?? this.currentState,
@@ -78,6 +84,8 @@ class KioskState {
       cameraInitialized: cameraInitialized ?? this.cameraInitialized,
       error: error,
       workstationId: workstationId ?? this.workstationId,
+      poses: poses ?? this.poses,
+      faces: faces ?? this.faces,
     );
   }
 }
@@ -125,6 +133,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
       options: FaceDetectorOptions(
         performanceMode: FaceDetectorMode.fast,
         enableTracking: true,
+        enableClassification: true, // Requerido para parpadeos/sonrisas
       ),
     );
     _poseAnalyzer = PoseAnalyzer();
@@ -232,6 +241,8 @@ class KioskNotifier extends StateNotifier<KioskState> {
         currentState: aiResult.state,
         confidence: aiResult.confidence,
         isProcessing: false,
+        poses: poses,
+        faces: faces,
       );
 
       // Guardar evento si: cambiÃ³ el estado O pasaron 30 segundos

@@ -55,7 +55,15 @@ class ActivityClassifier {
       );
     }
 
-    // Priority 3: Head turned significantly or hand near face → distracted
+    // Priority 3: Eyes closed (Blink detection) -> fatigue
+    if (face.leftEyeOpen < 0.3 && face.rightEyeOpen < 0.3) {
+      return const AiResult(
+        state: ActivityState.fatiga,
+        confidence: 0.85,
+      );
+    }
+
+    // Priority 4: Head turned significantly or hand near face -> distracted
     final yawAbsolute = face.yaw.abs();
     if (yawAbsolute > AiThresholds.maxYawAngle || pose.handNearFace) {
       return const AiResult(
@@ -64,7 +72,7 @@ class ActivityClassifier {
       );
     }
 
-    // Priority 4: Head drooping (pitch below threshold) or tilted (roll) → fatigue
+    // Priority 5: Head drooping (pitch below threshold) or tilted (roll) -> fatigue
     if (face.pitch < AiThresholds.minPitchAngle ||
         face.roll.abs() > AiThresholds.maxRollAngle) {
       return const AiResult(
@@ -73,7 +81,7 @@ class ActivityClassifier {
       );
     }
 
-    // Priority 5: Person present but not moving hands → inactive
+    // Priority 6: Person present but not moving hands -> inactive
     if (isInactive && !pose.handsMoving) {
       return const AiResult(
         state: ActivityState.inactivo,
@@ -81,7 +89,7 @@ class ActivityClassifier {
       );
     }
 
-    // Priority 6: Default — person present, face forward, hands moving
+    // Priority 7: Default — person present, face forward, hands moving
     return const AiResult(
       state: ActivityState.trabajando,
       confidence: 0.90,

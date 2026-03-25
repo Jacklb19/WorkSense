@@ -1,64 +1,108 @@
 import 'package:flutter/material.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 
 class ActivityOverlayPainter extends CustomPainter {
   final ActivityState state;
   final double confidence;
-  final Rect? faceRect;
+  final List<Pose> poses;
+  final List<Face> faces;
 
   ActivityOverlayPainter({
     required this.state,
     required this.confidence,
-    this.faceRect,
+    this.poses = const [],
+    this.faces = const [],
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    _drawFaceRect(canvas, size);
+    _drawSkeleton(canvas, size);
+    _drawFaceMask(canvas, size);
     _drawConfidenceBar(canvas, size);
     _drawStateBadge(canvas, size);
   }
 
-  void _drawFaceRect(Canvas canvas, Size size) {
-    if (faceRect == null) return;
+  void _drawSkeleton(Canvas canvas, Size size) {
+    if (poses.isEmpty) return;
 
     final paint = Paint()
-      ..color = AppColors.overlayFaceRect
+      ..color = state.color.withOpacity(0.6)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5;
+      ..strokeWidth = 3.0;
 
-    const cornerLength = 20.0;
-    final r = faceRect!;
+    final pointPaint = Paint()
+      ..color = Colors.white.withOpacity(0.8)
+      ..style = PaintingStyle.fill;
 
-    // Draw corner brackets instead of full rectangle
-    final paths = [
-      // Top-left
-      Path()
-        ..moveTo(r.left, r.top + cornerLength)
-        ..lineTo(r.left, r.top)
-        ..lineTo(r.left + cornerLength, r.top),
-      // Top-right
-      Path()
-        ..moveTo(r.right - cornerLength, r.top)
-        ..lineTo(r.right, r.top)
-        ..lineTo(r.right, r.top + cornerLength),
-      // Bottom-left
-      Path()
-        ..moveTo(r.left, r.bottom - cornerLength)
-        ..lineTo(r.left, r.bottom)
-        ..lineTo(r.left + cornerLength, r.bottom),
-      // Bottom-right
-      Path()
-        ..moveTo(r.right - cornerLength, r.bottom)
-        ..lineTo(r.right, r.bottom)
-        ..lineTo(r.right, r.bottom - cornerLength),
-    ];
+    for (final pose in poses) {
+      // Draw connections
+      void drawLine(PoseLandmarkType type1, PoseLandmarkType type2) {
+        final p1 = pose.landmarks[type1];
+        final p2 = pose.landmarks[type2];
+        if (p1 != null && p2 != null) {
+          canvas.drawLine(
+            Offset(p1.x, p1.y),
+            Offset(p2.x, p2.y),
+            paint,
+          );
+        }
+      }
 
-    for (final path in paths) {
-      canvas.drawPath(path, paint);
+      // Shoulders & Arms
+      drawLine(PoseLandmarkType.leftShoulder, PoseLandmarkType.rightShoulder);
+      drawLine(PoseLandmarkType.leftShoulder, PoseLandmarkType.leftElbow);
+      drawLine(PoseLandmarkType.leftElbow, PoseLandmarkType.leftWrist);
+      drawLine(PoseLandmarkType.rightShoulder, PoseLandmarkType.rightElbow);
+      drawLine(PoseLandmarkType.rightElbow, PoseLandmarkType.rightWrist);
+
+      // Torso
+      drawLine(PoseLandmarkType.leftShoulder, PoseLandmarkType.leftHip);
+      drawLine(PoseLandmarkType.rightShoulder, PoseLandmarkType.rightHip);
+      drawLine(PoseLandmarkType.leftHip, PoseLandmarkType.rightHip);
+
+      // Legs
+      drawLine(PoseLandmarkType.leftHip, PoseLandmarkType.leftKnee);
+      drawLine(PoseLandmarkType.rightHip, PoseLandmarkType.rightKnee);
+
+      // Draw points
+      for (final landmark in pose.landmarks.values) {
+        canvas.drawCircle(Offset(landmark.x, landmark.y), 4, pointPaint);
+      }
     }
   }
+
+  void _drawFaceMask(Canvas canvas, Size size) {
+    if (faces.isEmpty) return;
+
+    final paint = Paint()
+      ..color = state.color.withOpacity(0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    for (final face in faces) {
+      final r = face.boundingBox;
+      canvas.drawRect(r, paint);
+
+      // Draw landmarks
+      final landmarkPaint = Paint()
+        ..color = Colors.white.withOpacity(0.8)
+        ..style = PaintingStyle.fill;
+
+      for (final landmark in face.landmarks.values) {
+        if (landmark != null) {
+          canvas.drawCircle(
+            Offset(landmark.position.x.toDouble(), landmark.position.y.toDouble()),
+            2,
+            landmarkPaint,
+          );
+        }
+      }
+    }
+  }
+
 
   void _drawConfidenceBar(Canvas canvas, Size size) {
     const barHeight = 4.0;
@@ -157,6 +201,8 @@ class ActivityOverlayPainter extends CustomPainter {
   bool shouldRepaint(ActivityOverlayPainter oldDelegate) {
     return oldDelegate.state != state ||
         oldDelegate.confidence != confidence ||
-        oldDelegate.faceRect != faceRect;
+        oldDelegate.poses != poses ||
+        oldDelegate.faces != faces;
   }
+
 }

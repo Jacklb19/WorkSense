@@ -161,9 +161,12 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
               painter: ActivityOverlayPainter(
                 state: kioskState.currentState,
                 confidence: kioskState.confidence,
+                poses: kioskState.poses,
+                faces: kioskState.faces,
               ),
               child: const SizedBox.expand(),
             ),
+
 
           // Top AppBar
           Positioned(
