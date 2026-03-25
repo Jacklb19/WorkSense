@@ -17,7 +17,12 @@ abstract class ActivityRepository {
     String employeeId, {
     DateTime? from,
     DateTime? to,
-    int limit,
+    int limit = 500,
+  });
+
+  Stream<List<ActivityEvent>> watchEventsForEmployee(
+    String employeeId, {
+    int limit = 10,
   });
 
   Future<List<ActivityEvent>> getEventsByDateRange({

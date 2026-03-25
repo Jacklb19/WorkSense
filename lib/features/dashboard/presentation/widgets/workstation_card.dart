@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
-import 'package:worksense_app/features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/widgets/state_badge_widget.dart';
-import 'package:intl/intl.dart';
+import 'package:worksense_app/features/dashboard/presentation/providers/dashboard_provider.dart';
 
 class WorkstationCard extends ConsumerWidget {
   final WorkstationRecord workstation;
 
   const WorkstationCard({
-    super.key,
     required this.workstation,
+    super.key,
   });
 
   @override
@@ -41,7 +41,7 @@ class WorkstationCard extends ConsumerWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(

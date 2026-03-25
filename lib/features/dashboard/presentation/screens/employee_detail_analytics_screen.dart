@@ -11,8 +11,8 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
   final String employeeId;
 
   const EmployeeDetailAnalyticsScreen({
-    super.key,
     required this.employeeId,
+    super.key,
   });
 
   @override
@@ -29,8 +29,10 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
       body: detailAsync.when(
         loading: () => const AppLoadingWidget(),
         error: (e, _) => Center(
-          child: Text('Error: $e',
-              style: const TextStyle(color: AppColors.error)),
+          child: Text(
+            'Error: $e',
+            style: const TextStyle(color: AppColors.error),
+          ),
         ),
         data: (analytics) {
           if (analytics == null) {
@@ -203,7 +205,7 @@ class _SummaryHeader extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 24,
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                     child: Text(
                       analytics.employee.name.isNotEmpty
                           ? analytics.employee.name[0].toUpperCase()
@@ -241,7 +243,7 @@ class _SummaryHeader extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: analytics.lastState!.color.withOpacity(0.12),
+                        color: analytics.lastState!.color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -351,7 +353,7 @@ class _Chip extends StatelessWidget {
       label: Text(label),
       selected: selected,
       onSelected: (_) => onTap(),
-      selectedColor: AppColors.primary.withOpacity(0.15),
+      selectedColor: AppColors.primary.withValues(alpha: 0.15),
       labelStyle: TextStyle(
         color: selected ? AppColors.primary : AppColors.grey600,
         fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
@@ -375,8 +377,11 @@ class _EmptyDetailView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.person_search_outlined,
-              size: 64, color: AppColors.grey300),
+          const Icon(
+            Icons.person_search_outlined,
+            size: 64,
+            color: AppColors.grey300,
+          ),
           const SizedBox(height: 16),
           Text(
             'Sin datos para $name',

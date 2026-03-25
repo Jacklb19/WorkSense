@@ -9,9 +9,9 @@ class ActivityEventTile extends StatelessWidget {
   final bool showWorkstationId;
 
   const ActivityEventTile({
-    super.key,
     required this.event,
     this.showWorkstationId = true,
+    super.key,
   });
 
   @override
@@ -25,7 +25,7 @@ class ActivityEventTile extends StatelessWidget {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: event.state.color.withOpacity(0.1),
+          color: event.state.color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Center(
@@ -44,10 +44,11 @@ class ActivityEventTile extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: AppColors.syncPending.withOpacity(0.15),
+                color: AppColors.syncPending.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
-                    color: AppColors.syncPending.withOpacity(0.5)),
+                  color: AppColors.syncPending.withValues(alpha: 0.5),
+                ),
               ),
               child: const Text(
                 'Pendiente',

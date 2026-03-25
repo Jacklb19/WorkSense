@@ -71,12 +71,16 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.error_outline,
-                          color: AppColors.error, size: 48),
+                      const Icon(
+                        Icons.error_outline,
+                        color: AppColors.error,
+                        size: 48,
+                      ),
                       const SizedBox(height: 16),
                       Text('Error: $e',
                           style: const TextStyle(color: AppColors.grey500),
-                          textAlign: TextAlign.center),
+                          textAlign: TextAlign.center,
+                        ),
                     ],
                   ),
                 ),
@@ -121,8 +125,10 @@ class AdminAnalyticsScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Leyenda de estados',
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Leyenda de estados',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 16),
             ...ActivityState.values.map(
               (s) => Padding(
@@ -169,7 +175,7 @@ class _DateChip extends StatelessWidget {
       label: Text(label),
       selected: selected,
       onSelected: (_) => onTap(),
-      selectedColor: AppColors.primary.withOpacity(0.15),
+      selectedColor: AppColors.primary.withValues(alpha: 0.15),
       labelStyle: TextStyle(
         color: selected ? AppColors.primary : AppColors.grey600,
         fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
@@ -213,7 +219,7 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 20,
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                     child: Text(
                       emp.name.isNotEmpty
                           ? emp.name[0].toUpperCase()
@@ -385,8 +391,11 @@ class _EmptyView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.bar_chart_outlined,
-              size: 64, color: AppColors.grey300),
+          const Icon(
+            Icons.bar_chart_outlined,
+            size: 64,
+            color: AppColors.grey300,
+          ),
           const SizedBox(height: 16),
           Text(
             'Sin datos de analíticas',

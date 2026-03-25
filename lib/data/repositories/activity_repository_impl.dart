@@ -72,6 +72,15 @@ class ActivityRepositoryImpl implements ActivityRepository {
   }
 
   @override
+  Stream<List<ActivityEvent>> watchEventsForEmployee(
+    String employeeId, {
+    int limit = 10,
+  }) {
+    return _db
+        .watchActivityEntriesForEmployee(employeeId, limit: limit)
+        .map((rows) => rows.map(_mapToEntity).toList());
+  }
+  @override
   Future<List<ActivityEvent>> getEventsByDateRange({
     required DateTime from,
     required DateTime to,

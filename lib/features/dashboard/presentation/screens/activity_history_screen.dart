@@ -66,7 +66,9 @@ class _ActivityHistoryScreenState
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8),
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: Row(
                     children: [
                       FilterChip(
@@ -145,11 +147,13 @@ class _ActivityHistoryScreenState
 
             ...ActivityState.values.map(
               (s) => ListTile(
-                leading: Text(s.emoji,
-                    style: const TextStyle(fontSize: 24)),
+                leading: Text(
+                  s.emoji,
+                  style: const TextStyle(fontSize: 24),
+                ),
                 title: Text(s.label),
                 selected: _filterState == s,
-                selectedTileColor: s.color.withOpacity(0.08),
+                selectedTileColor: s.color.withValues(alpha: 0.08),
                 onTap: () {
                   setState(() => _filterState = s);
                   Navigator.pop(ctx, s);

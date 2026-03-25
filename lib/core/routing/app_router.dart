@@ -64,11 +64,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
         // Si acaban de hacer login o están en la raíz, los mandamos a su home
         if (loc == AppRoutes.login || loc == '/') {
-          if (role == AppRole.admin || role == AppRole.superAdmin) {
-            return AppRoutes.dashboard;
-          } else if (role == AppRole.employee) {
-            return AppRoutes.homeEmployee;
-          }
+          return AppRoutes.dashboard;
         }
 
         switch (role) {
@@ -78,17 +74,20 @@ final routerProvider = Provider<GoRouter>((ref) {
             }
             break;
           case AppRole.employee:
-            final allowedEmployeeRoutes = [AppRoutes.homeEmployee, AppRoutes.myActivity, AppRoutes.myHours, AppRoutes.settings];
-            if (!allowedEmployeeRoutes.contains(loc) && loc != AppRoutes.login) {
-              return AppRoutes.homeEmployee;
+            final allowedEmployeeRoutes = [
+              AppRoutes.dashboard,
+              AppRoutes.history,
+              AppRoutes.settings,
+            ];
+            if (!allowedEmployeeRoutes.contains(loc) &&
+                loc != AppRoutes.login) {
+              return AppRoutes.dashboard;
             }
             break;
           case AppRole.admin:
           case AppRole.superAdmin:
             // Admins can navigate freely usually, but block from employee home if needed
-            if (loc == AppRoutes.homeEmployee) {
-              return AppRoutes.dashboard;
-            }
+            // Admins can navigate freely usually
             break;
         }
       }

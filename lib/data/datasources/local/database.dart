@@ -168,6 +168,16 @@ class AppDatabase extends _$AppDatabase {
             ..limit(limit))
           .get();
 
+  Stream<List<ActivityEntry>> watchActivityEntriesForEmployee(
+    String employeeId, {
+    int limit = 10,
+  }) =>
+      (select(activityEntries)
+            ..where((t) => t.employeeId.equals(employeeId))
+            ..orderBy([(t) => OrderingTerm.desc(t.timestamp)])
+            ..limit(limit))
+          .watch();
+
   Future<List<ActivityEntry>> getAllActivityEntriesByDateRange({
     required DateTime from,
     required DateTime to,
