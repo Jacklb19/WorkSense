@@ -63,16 +63,13 @@ class ActivityEntries extends Table {
 }
 
 class SyncQueueEntries extends Table {
-  TextColumn get id => text()();
-  TextColumn get targetTable => text().named('table_name')();
-  TextColumn get recordId => text()();
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get targetTable => text()();
   TextColumn get operation => text()();
   TextColumn get payload => text()();
-  IntColumn get retries => integer().withDefault(const Constant(0))();
+  TextColumn get recordId => text()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
-
-  @override
-  Set<Column> get primaryKey => {id};
+  BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 }
 
 // ─── Database ─────────────────────────────────────────────────────────────────
@@ -94,38 +91,32 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onUpgrade: (m, from, to) async {
-          if (from < 2) {
-            await m.addColumn(workstationRecords, workstationRecords.latitude);
-            await m.addColumn(workstationRecords, workstationRecords.longitude);
-            await m.addColumn(
-                workstationRecords, workstationRecords.geofenceRadius);
-          }
-          if (from < 3) {
-            // Raw SQL para evitar dependencia circular con código generado.
-            // SQLite no soporta ADD COLUMN IF NOT EXISTS, pero esta migración
-            // solo corre una vez al pasar de v2 → v3.
-            await customStatement(
-                'ALTER TABLE workstation_records ADD COLUMN assigned_employee_id TEXT');
-            await customStatement(
-                'ALTER TABLE workstation_records ADD COLUMN face_embedding TEXT');
-            await customStatement(
-                'ALTER TABLE workstation_records ADD COLUMN body_signature TEXT');
-            await customStatement(
-                'ALTER TABLE workstation_records ADD COLUMN profile_captured_at INTEGER');
-            await customStatement(
-                'ALTER TABLE workstation_records ADD COLUMN profile_version INTEGER NOT NULL DEFAULT 0');
-            await customStatement(
-                'ALTER TABLE activity_entries ADD COLUMN identity_confidence REAL');
-            await customStatement(
-                'ALTER TABLE activity_entries ADD COLUMN identification_method TEXT');
-          }
-        },
-      );
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(workstationRecords, workstationRecords.latitude);
+        await m.addColumn(workstationRecords, workstationRecords.longitude);
+        await m.addColumn(workstationRecords, workstationRecords.geofenceRadius);
+      }
+      if (from < 3) {
+        await m.createTable(syncQueueEntries); // ← FALTABA ESTO
 
-  static QueryExecutor _openConnection() {
-    return driftDatabase(name: 'worksense_db');
-  }
+        await customStatement(
+            'ALTER TABLE workstation_records ADD COLUMN assigned_employee_id TEXT');
+        await customStatement(
+            'ALTER TABLE workstation_records ADD COLUMN face_embedding TEXT');
+        await customStatement(
+            'ALTER TABLE workstation_records ADD COLUMN body_signature TEXT');
+        await customStatement(
+            'ALTER TABLE workstation_records ADD COLUMN profile_captured_at INTEGER');
+        await customStatement(
+            'ALTER TABLE workstation_records ADD COLUMN profile_version INTEGER NOT NULL DEFAULT 0');
+        await customStatement(
+            'ALTER TABLE activity_entries ADD COLUMN identity_confidence REAL');
+        await customStatement(
+            'ALTER TABLE activity_entries ADD COLUMN identification_method TEXT');
+      }
+    },
+  );
 
   // ── ActivityEntries DAO methods ───────────────────────────────────────────
 
@@ -224,6 +215,10 @@ class AppDatabase extends _$AppDatabase {
   Future<List<SyncQueueEntry>> getPendingSyncQueueEntries() =>
       select(syncQueueEntries).get();
 
-  Future<void> deleteSyncQueueEntry(String id) =>
+  Future<void> deleteSyncQueueEntry(int id) =>
       (delete(syncQueueEntries)..where((t) => t.id.equals(id))).go();
+
+  static QueryExecutor _openConnection() {
+    return driftDatabase(name: 'worksense_db');
+  }
 }

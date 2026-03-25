@@ -3,23 +3,36 @@ import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/activity_event.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/domain/repositories/activity_repository.dart';
+import 'sync_repository_impl.dart';
 
 class ActivityRepositoryImpl implements ActivityRepository {
   final AppDatabase _db;
+  final SyncRepositoryImpl _syncRepo;
 
-  ActivityRepositoryImpl(this._db);
+  ActivityRepositoryImpl(this._db, this._syncRepo);
 
   @override
   Future<void> saveEvent(ActivityEvent event) async {
-    await _db.insertActivityEntry(ActivityEntriesCompanion(
-      id: Value(event.id),
-      employeeId: Value(event.employeeId),
-      workstationId: Value(event.workstationId),
-      state: Value(event.state.name),
-      confidence: Value(event.confidence),
-      timestamp: Value(event.timestamp),
-      synced: Value(event.synced),
-    ));
+    await _db.transaction(() async {
+      // 1. Guardar localmente
+      await _db.insertActivityEntry(ActivityEntriesCompanion(
+        id: Value(event.id),
+        employeeId: Value(event.employeeId),
+        workstationId: Value(event.workstationId),
+        state: Value(event.state.name),
+        confidence: Value(event.confidence),
+        timestamp: Value(event.timestamp),
+        synced: Value(event.synced),
+      ));
+
+      // 2. Encolar para sincronizaciÃ³n genÃ©rica
+      await _syncRepo.enqueue(
+        targetTable: 'activity_events',
+        operation: 'UPSERT',
+        recordId: event.id,
+        payload: event.toMap(),
+      );
+    });
   }
 
   @override

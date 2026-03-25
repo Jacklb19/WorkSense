@@ -4,14 +4,16 @@ import 'package:worksense_app/data/repositories/employee_repository_impl.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/domain/repositories/employee_repository.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
-import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
-import 'package:worksense_app/data/datasources/remote/supabase_datasource.dart';
+import 'package:worksense_app/shared/providers/sync_state_provider.dart';
+
+import '../../../../core/constants/app_constants.dart';
 
 // ── Repository Provider ───────────────────────────────────────────────────────
 
 final employeeRepositoryProvider = Provider<EmployeeRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  return EmployeeRepositoryImpl(db);
+  final syncRepo = ref.watch(syncRepositoryProvider);
+  return EmployeeRepositoryImpl(db, syncRepo);
 });
 
 // ── Employee List ─────────────────────────────────────────────────────────────
@@ -54,14 +56,13 @@ class EmployeeFormState {
 
 class EmployeeFormNotifier extends StateNotifier<EmployeeFormState> {
   final EmployeeRepository _localRepo;
-  final SupabaseDataSource _remoteDataSource;
 
-  EmployeeFormNotifier(this._localRepo, this._remoteDataSource)
+  EmployeeFormNotifier(this._localRepo)
       : super(const EmployeeFormState());
 
   Future<void> saveEmployee({
     required String name,
-    String companyId = 'default',
+    String companyId = AppConstants.defaultCompanyId,
     String? existingId,
   }) async {
     state = state.copyWith(isLoading: true, errorMessage: null, saved: false);
@@ -74,15 +75,8 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormState> {
         createdAt: DateTime.now(),
       );
 
-      // Save locally
+      // Save locally (enqueues sync automatically)
       await _localRepo.saveEmployee(employee);
-
-      // Try to sync remotely (best effort)
-      try {
-        await _remoteDataSource.insertEmployee(employee.toMap());
-      } catch (_) {
-        // Remote sync failed — local save succeeded, will sync later
-      }
 
       state = state.copyWith(isLoading: false, saved: true);
     } catch (e) {
@@ -114,6 +108,5 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormState> {
 final employeeFormNotifierProvider =
     StateNotifierProvider<EmployeeFormNotifier, EmployeeFormState>((ref) {
   final repo = ref.watch(employeeRepositoryProvider);
-  final remoteDs = ref.watch(supabaseDataSourceProvider);
-  return EmployeeFormNotifier(repo, remoteDs);
+  return EmployeeFormNotifier(repo);
 });

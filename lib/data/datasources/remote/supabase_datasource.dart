@@ -3,73 +3,51 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class SupabaseDataSource {
   final SupabaseClient _client = Supabase.instance.client;
 
-  // ── Activity Events ───────────────────────────────────────────────────────
-
-  Future<void> insertActivityEvent(Map<String, dynamic> data) async {
-    await _client.from('activity_events').insert(data);
-  }
-
-  Future<List<Map<String, dynamic>>> getActivityEvents({
-    String? workstationId,
-    int limit = 50,
-  }) async {
-    var query = _client
-        .from('activity_events')
-        .select()
-        .order('timestamp', ascending: false)
-        .limit(limit);
-
-    if (workstationId != null) {
-      query = _client
-          .from('activity_events')
-          .select()
-          .eq('workstation_id', workstationId)
-          .order('timestamp', ascending: false)
-          .limit(limit);
+  /// MÃ©todo genÃ©rico â€” el nÃºcleo del Outbox Pattern
+  Future<void> upsert(String table, Map<String, dynamic> data) async {
+    try {
+      await _client.from(table).upsert(data);
+    } on PostgrestException catch (e) {
+      throw SyncException(
+        'Error upserting en $table: ${e.message} (code: ${e.code})',
+      );
+    } catch (e) {
+      throw SyncException('Error inesperado en $table: $e');
     }
-
-    final response = await query;
-    return List<Map<String, dynamic>>.from(response);
   }
 
-  // ── Workstations ──────────────────────────────────────────────────────────
-
-  Future<List<Map<String, dynamic>>> getWorkstations() async {
-    final response = await _client.from('workstations').select();
-    return List<Map<String, dynamic>>.from(response);
+  Future<void> delete(String table, String id) async {
+    try {
+      await _client.from(table).delete().eq('id', id);
+    } on PostgrestException catch (e) {
+      throw SyncException('Error eliminando en $table: ${e.message}');
+    }
   }
 
-  Future<void> insertWorkstation(Map<String, dynamic> data) async {
-    await _client.from('workstations').insert(data);
+  // MÃ©todos especÃficos (usan el genÃ©rico internamente)
+  Future<void> insertEmployee(Map<String, dynamic> data) =>
+      upsert('employees', data);
+
+  Future<void> insertWorkstation(Map<String, dynamic> data) =>
+      upsert('workstations', data);
+
+  Future<void> insertCompany(Map<String, dynamic> data) =>
+      upsert('companies', data);
+
+  Future<void> insertActivityEvent(Map<String, dynamic> data) =>
+      upsert('activity_events', data);
+
+  // Test de conectividad aislado
+  Future<bool> testConnection() async {
+    try {
+      await _client.from('employees').select('id').limit(1);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
-  Future<void> updateWorkstation(
-      String id, Map<String, dynamic> data) async {
-    await _client.from('workstations').update(data).eq('id', id);
-  }
-
-  // ── Employees ─────────────────────────────────────────────────────────────
-
-  Future<List<Map<String, dynamic>>> getEmployees() async {
-    final response = await _client.from('employees').select();
-    return List<Map<String, dynamic>>.from(response);
-  }
-
-  Future<void> insertEmployee(Map<String, dynamic> data) async {
-    await _client.from('employees').insert(data);
-  }
-
-  Future<void> updateEmployee(
-      String id, Map<String, dynamic> data) async {
-    await _client.from('employees').update(data).eq('id', id);
-  }
-
-  Future<void> deleteEmployee(String id) async {
-    await _client.from('employees').delete().eq('id', id);
-  }
-
-  // ── Auth ──────────────────────────────────────────────────────────────────
-
+  // Getters para UI o procesos internos
   Stream<bool> get authStateStream =>
       _client.auth.onAuthStateChange
           .map((event) => event.session != null);
@@ -93,4 +71,11 @@ class SupabaseDataSource {
   Future<void> signOut() async {
     await _client.auth.signOut();
   }
+}
+
+class SyncException implements Exception {
+  final String message;
+  SyncException(this.message);
+  @override
+  String toString() => 'SyncException: $message';
 }

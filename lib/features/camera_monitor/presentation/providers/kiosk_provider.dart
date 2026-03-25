@@ -23,6 +23,7 @@ import 'package:worksense_app/features/camera_monitor/ai/employee_profile.dart';
 import 'package:worksense_app/features/camera_monitor/ai/face_analyzer.dart';
 import 'package:worksense_app/features/camera_monitor/ai/pose_analyzer.dart';
 import 'package:worksense_app/features/camera_monitor/domain/usecases/save_activity_event_use_case.dart';
+import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 
 // ── Database Provider ──────────────────────────────────────────────────────────
 
@@ -32,12 +33,15 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
   return db;
 });
 
-// ── Save Use Case Provider ─────────────────────────────────────────────────────
+// ... (other imports)
+
+// â”€â”€ Save Use Case Provider ─────────────────────────────────────────────────────
 
 final saveActivityEventUseCaseProvider =
     Provider<SaveActivityEventUseCase>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  final repo = ActivityRepositoryImpl(db);
+  final syncRepo = ref.watch(syncRepositoryProvider);
+  final repo = ActivityRepositoryImpl(db, syncRepo);
   return SaveActivityEventUseCase(repo);
 });
 
@@ -71,7 +75,7 @@ class KioskState {
     this.lastEventTime,
     this.cameraInitialized = false,
     this.error,
-    this.workstationId = 'default',
+    this.workstationId = '',
     this.poses = const [],
     this.faces = const [],
     this.imageSize = Size.zero,
@@ -498,11 +502,13 @@ class KioskNotifier extends StateNotifier<KioskState> {
   }
 
   Future<void> _saveEvent(
-    AiResult aiResult,
-    DateTime timestamp, {
-    double identityConfidence = 0.0,
-    String? identificationMethod,
-  }) async {
+      AiResult aiResult,
+      DateTime timestamp, {
+        double identityConfidence = 0.0,
+        String? identificationMethod,
+      }) async {
+    if (state.workstationId.isEmpty) return; // ← aquí, primera línea del cuerpo
+
     final event = ActivityEvent(
       id: const Uuid().v4(),
       workstationId: state.workstationId,

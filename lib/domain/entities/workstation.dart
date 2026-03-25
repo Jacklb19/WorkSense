@@ -41,6 +41,19 @@ class Workstation {
     );
   }
 
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'company_id': companyId,
+      'device_id': deviceId,
+      'latitude': latitude,
+      'longitude': longitude,
+      'geofence_radius': geofenceRadius,
+      'assigned_employee_id': assignedEmployeeId,
+    };
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

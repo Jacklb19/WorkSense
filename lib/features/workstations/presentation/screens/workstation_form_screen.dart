@@ -8,6 +8,8 @@ import 'package:worksense_app/domain/entities/workstation.dart';
 import 'package:worksense_app/features/workstations/presentation/providers/workstations_provider.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 
+import '../../../../core/constants/app_constants.dart';
+
 class WorkstationFormScreen extends ConsumerStatefulWidget {
   const WorkstationFormScreen({super.key});
 
@@ -91,7 +93,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     
     // As in employees_provider, default to "default" if no companyId in session.
-    final companyId = 'default';
+    final companyId = AppConstants.defaultCompanyId;
 
     setState(() => _isSaving = true);
 

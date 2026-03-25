@@ -7,9 +7,12 @@ import 'package:worksense_app/features/workstations/domain/usecases/get_workstat
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
 import 'package:worksense_app/features/workstations/domain/usecases/save_workstation_use_case.dart';
 
+import 'package:worksense_app/shared/providers/sync_state_provider.dart';
+
 final workstationRepositoryProvider = Provider<WorkstationRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  return WorkstationRepositoryImpl(db);
+  final syncRepo = ref.watch(syncRepositoryProvider);
+  return WorkstationRepositoryImpl(db, syncRepo);
 });
 
 final getWorkstationsUseCaseProvider = Provider<GetWorkstationsUseCase>((ref) {

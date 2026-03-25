@@ -1,102 +1,62 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/data/datasources/remote/supabase_datasource.dart';
-import 'package:worksense_app/data/repositories/activity_repository_impl.dart';
-import 'package:worksense_app/shared/domain/usecases/sync_events_use_case.dart';
-import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
-import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
+import 'package:worksense_app/data/repositories/sync_repository_impl.dart';
+import 'package:worksense_app/shared/domain/usecases/process_sync_queue_use_case.dart';
 import 'package:worksense_app/shared/providers/connectivity_provider.dart';
+import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
 
-// â”€â”€ Sync Use Case Provider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Providers ────────────────────────────────────────────────────────────────
 
-final syncEventsUseCaseProvider = Provider<SyncEventsUseCase>((ref) {
+final syncRepositoryProvider = Provider<SyncRepositoryImpl>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  final repo = ActivityRepositoryImpl(db);
-  final remoteDs = ref.watch(supabaseDataSourceProvider);
-  return SyncEventsUseCase(repo, remoteDs);
+  return SyncRepositoryImpl(db);
 });
 
-// â”€â”€ Pending Sync Count â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+final processSyncQueueProvider = Provider<ProcessSyncQueueUseCase>((ref) {
+  final syncRepo = ref.watch(syncRepositoryProvider);
+  final remote = ref.watch(supabaseDataSourceProvider);
+  return ProcessSyncQueueUseCase(syncRepo, remote);
+});
 
-final pendingEventCountProvider = StateProvider<int>((ref) => 0);
+final supabaseDataSourceProvider = Provider<SupabaseDataSource>((ref) {
+  return SupabaseDataSource();
+});
 
-// â”€â”€ Sync Status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-enum SyncStatus { idle, syncing, success, error }
-
-class SyncState {
-  final SyncStatus status;
-  final int pendingCount;
-  final int lastSyncedCount;
-  final DateTime? lastSyncTime;
-  final String? errorMessage;
-
-  const SyncState({
-    this.status = SyncStatus.idle,
-    this.pendingCount = 0,
-    this.lastSyncedCount = 0,
-    this.lastSyncTime,
-    this.errorMessage,
-  });
-
-  SyncState copyWith({
-    SyncStatus? status,
-    int? pendingCount,
-    int? lastSyncedCount,
-    DateTime? lastSyncTime,
-    String? errorMessage,
-  }) {
-    return SyncState(
-      status: status ?? this.status,
-      pendingCount: pendingCount ?? this.pendingCount,
-      lastSyncedCount: lastSyncedCount ?? this.lastSyncedCount,
-      lastSyncTime: lastSyncTime ?? this.lastSyncTime,
-      errorMessage: errorMessage,
-    );
-  }
-}
-
-class SyncNotifier extends StateNotifier<SyncState> {
-  final SyncEventsUseCase _syncUseCase;
-
-  SyncNotifier(this._syncUseCase) : super(const SyncState());
-
-  Future<void> syncNow() async {
-    if (state.status == SyncStatus.syncing) return;
-
-    state = state.copyWith(status: SyncStatus.syncing, errorMessage: null);
-    try {
-      final synced = await _syncUseCase();
-      state = state.copyWith(
-        status: SyncStatus.success,
-        lastSyncedCount: synced,
-        lastSyncTime: DateTime.now(),
-      );
-    } catch (e) {
-      state = state.copyWith(
-        status: SyncStatus.error,
-        errorMessage: e.toString(),
-      );
-    }
-  }
-
-  void updatePendingCount(int count) {
-    state = state.copyWith(pendingCount: count);
-  }
-}
+// ── Sync State Notifier ──────────────────────────────────────────────────────
 
 final syncNotifierProvider =
-    StateNotifierProvider<SyncNotifier, SyncState>((ref) {
-  final syncUseCase = ref.watch(syncEventsUseCaseProvider);
-  final notifier = SyncNotifier(syncUseCase);
+    StateNotifierProvider<SyncNotifier, AsyncValue<SyncResult?>>((ref) {
+  final useCase = ref.watch(processSyncQueueProvider);
+  final notifier = SyncNotifier(useCase);
 
-  // Auto-sync when connectivity is restored
-  ref.listen<bool>(isOnlineProvider, (wasOnline, isNow) {
-    final previouslyOffline = wasOnline == null || !wasOnline;
-    if (previouslyOffline && isNow) {
-      notifier.syncNow();
+  // Auto-sync al recuperar conexión
+  ref.listen<bool>(isOnlineProvider, (previous, isOnline) {
+    if (isOnline && (previous == null || !previous)) {
+      notifier.sync();
     }
   });
 
   return notifier;
 });
 
+class SyncNotifier extends StateNotifier<AsyncValue<SyncResult?>> {
+  final ProcessSyncQueueUseCase _useCase;
+
+  SyncNotifier(this._useCase) : super(const AsyncValue.data(null));
+
+  Future<void> sync() async {
+    if (state.isLoading) return;
+
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => _useCase());
+  }
+}
+
+final pendingSyncCountProvider = StreamProvider<int>((ref) {
+  final syncRepo = ref.watch(syncRepositoryProvider);
+  return Stream<void>.periodic(const Duration(seconds: 5))
+      .asyncMap((_) async {
+        final pending = await syncRepo.getPending();
+        return pending.length;
+      });
+});

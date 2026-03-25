@@ -1,20 +1,19 @@
-import 'dart:convert';
 import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/workstation.dart';
 import 'package:worksense_app/domain/repositories/workstation_repository.dart';
+import 'sync_repository_impl.dart';
 
 class WorkstationRepositoryImpl implements WorkstationRepository {
   final AppDatabase _db;
-  final _uuid = const Uuid();
+  final SyncRepositoryImpl _syncRepo;
 
-  WorkstationRepositoryImpl(this._db);
+  WorkstationRepositoryImpl(this._db, this._syncRepo);
 
   @override
   Future<void> saveWorkstation(Workstation workstation) async {
     await _db.transaction(() async {
-      // 1. Guardar en Drift localmente
+      // 1. Guardar localmente
       await _db.insertWorkstationRecord(WorkstationRecordsCompanion(
         id: Value(workstation.id),
         name: Value(workstation.name),
@@ -26,23 +25,13 @@ class WorkstationRepositoryImpl implements WorkstationRepository {
         assignedEmployeeId: Value(workstation.assignedEmployeeId),
       ));
 
-      // 2. Encolar en SyncQueue
-      await _db.insertSyncQueueEntry(SyncQueueEntriesCompanion(
-        id: Value(_uuid.v4()),
-        targetTable: const Value('workstations'),
-        recordId: Value(workstation.id),
-        operation: const Value('UPSERT'),
-        payload: Value(jsonEncode({
-          'id': workstation.id,
-          'name': workstation.name,
-          'companyId': workstation.companyId,
-          'deviceId': workstation.deviceId,
-          'latitude': workstation.latitude,
-          'longitude': workstation.longitude,
-          'geofenceRadius': workstation.geofenceRadius,
-          'assignedEmployeeId': workstation.assignedEmployeeId,
-        })),
-      ));
+      // 2. Encolar para sincronizaciÃ³n
+      await _syncRepo.enqueue(
+        targetTable: 'workstations',
+        operation: 'UPSERT',
+        recordId: workstation.id,
+        payload: workstation.toMap(),
+      );
     });
   }
 
@@ -56,17 +45,16 @@ class WorkstationRepositoryImpl implements WorkstationRepository {
   @override
   Future<void> deleteWorkstation(String id) async {
     await _db.transaction(() async {
-      // 1. Encolar en SyncQueue primero
-      await _db.insertSyncQueueEntry(SyncQueueEntriesCompanion(
-        id: Value(_uuid.v4()),
-        targetTable: const Value('workstations'),
-        recordId: Value(id),
-        operation: const Value('DELETE'),
-        payload: const Value('{}'),
-      ));
-
-      // 2. Eliminar de Drift localmente
+      // 1. Eliminar localmente
       await (_db.delete(_db.workstationRecords)..where((t) => t.id.equals(id))).go();
+
+      // 2. Encolar eliminaciÃ³n
+      await _syncRepo.enqueue(
+        targetTable: 'workstations',
+        operation: 'DELETE',
+        recordId: id,
+        payload: {'id': id},
+      );
     });
   }
 
