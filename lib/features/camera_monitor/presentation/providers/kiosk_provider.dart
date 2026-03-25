@@ -1,4 +1,4 @@
-  import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'dart:ui' show Size;
@@ -192,10 +192,9 @@ class KioskNotifier extends StateNotifier<KioskState> {
         record.bodySignature != null &&
         assignedId != null) {
       // Reconstruir el perfil desde la BD
-      final embeddingRaw =
-          (jsonDecode(record.faceEmbedding!) as List<dynamic>)
-              .map((e) => (e as num).toDouble())
-              .toList();
+      final embeddingRaw = (jsonDecode(record.faceEmbedding!) as List<dynamic>)
+          .map((e) => (e as num).toDouble())
+          .toList();
       final bodyJson =
           (jsonDecode(record.bodySignature!) as Map<String, dynamic>)
               .map((k, v) => MapEntry(k, (v as num).toDouble()));
@@ -211,7 +210,8 @@ class KioskNotifier extends StateNotifier<KioskState> {
       );
 
       _finder = EmployeeFinder(profile);
-      debugPrint('[MONITOR] Perfil cargado para ${profile.employeeId}. Muestras: ${profile.sampleCount}');
+      debugPrint(
+          '[MONITOR] Perfil cargado para ${profile.employeeId}. Muestras: ${profile.sampleCount}');
       state = state.copyWith(
         isEmployeeScanned: true,
         employeeProfile: profile,
@@ -305,11 +305,13 @@ class KioskNotifier extends StateNotifier<KioskState> {
         _poseDetector.processImage(inputImage),
         _faceDetector.processImage(inputImage),
       ]);
+      if (_disposed) return;
 
       final allPoses = results[0] as List<Pose>;
       final allFaces = results[1] as List<Face>;
 
-      debugPrint('[MONITOR] Frame analizado. Caras: ${allFaces.length}, Poses: ${allPoses.length}');
+      debugPrint(
+          '[MONITOR] Frame analizado. Caras: ${allFaces.length}, Poses: ${allPoses.length}');
 
       // Si no hay perfil registrado, solo actualizar overlay de detección
       if (_finder == null) {
@@ -329,8 +331,10 @@ class KioskNotifier extends StateNotifier<KioskState> {
         detectedFaces: allFaces,
         detectedPoses: allPoses,
       );
+      if (_disposed) return;
 
-      debugPrint('[MONITOR] findInFrame result: ${findResult.status}, confidence: ${findResult.confidence.toStringAsFixed(2)}');
+      debugPrint(
+          '[MONITOR] findInFrame result: ${findResult.status}, confidence: ${findResult.confidence.toStringAsFixed(2)}');
 
       final imgSize = Size(image.width.toDouble(), image.height.toDouble());
 
@@ -406,6 +410,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
                 identificationMethod: methodLabel);
             _lastSaveTime = now;
           }
+          if (_disposed) return;
 
           // ── Aprendizaje incremental ───────────────────────────────────────
           // Solo aprender cuando la confianza es alta (≥ 0.85)
@@ -523,19 +528,37 @@ class KioskNotifier extends StateNotifier<KioskState> {
     state = state.copyWith(error: message, cameraInitialized: false);
   }
 
-  @override
-  void dispose() {
+  /// Detiene el stream y libera la cámara. Llamar al salir de la pantalla.
+  Future<void> stopCamera() async {
     _disposed = true;
+    _isAnalyzing = false;
+
+    final controller = _cameraController;
+    _cameraController = null;
+
     try {
-      if (_cameraController?.value.isStreamingImages == true) {
-        _cameraController!.stopImageStream().catchError((_) {});
+      if (controller != null && controller.value.isInitialized) {
+        if (controller.value.isStreamingImages) {
+          await controller.stopImageStream().catchError((_) {});
+        }
+        await controller.dispose().catchError((_) {});
       }
     } catch (_) {}
+
+    state = state.copyWith(cameraInitialized: false);
+  }
+
+  @override
+  void dispose() {
+    stopCamera();
+
     Future.microtask(() async {
-      try { await _cameraController?.dispose(); } catch (_) {}
-      try { _poseDetector.close(); } catch (_) {}
-      try { _faceDetector.close(); } catch (_) {}
+      try {
+        await _poseDetector.close();
+        await _faceDetector.close();
+      } catch (_) {}
     });
+
     _poseAnalyzer.reset();
     _classifier.reset();
     super.dispose();

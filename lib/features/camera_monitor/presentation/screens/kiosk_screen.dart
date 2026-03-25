@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
@@ -9,9 +10,9 @@ import 'package:worksense_app/features/camera_monitor/presentation/providers/kio
 import 'package:worksense_app/features/camera_monitor/presentation/widgets/activity_overlay_painter.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/widgets/camera_preview_widget.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/widgets/state_badge_widget.dart';
-import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/features/alerts/presentation/providers/alerts_provider.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/employee_scan_screen.dart';
+
 class KioskScreen extends ConsumerStatefulWidget {
   final String? workstationId;
 
@@ -65,8 +66,7 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
     final cameras = await ref.read(availableCamerasProvider.future);
     if (!mounted) return;
 
-    final workstationId =
-        ref.read(kioskProvider).workstationId;
+    final workstationId = ref.read(kioskProvider).workstationId;
     final hasProfile = await ref
         .read(kioskProvider.notifier)
         .loadProfileAndInit(cameras, workstationId);
@@ -83,11 +83,9 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
     }
   }
 
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState appState) {
-    final controller =
-        ref.read(kioskProvider.notifier).cameraController;
+    final controller = ref.read(kioskProvider.notifier).cameraController;
     if (controller == null || !controller.value.isInitialized) return;
 
     if (appState == AppLifecycleState.inactive) {
@@ -102,6 +100,12 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+
+    // Forzar detención de cámara antes de que Riverpod haga dispose del notifier
+    try {
+      ref.read(kioskProvider.notifier).stopCamera();
+    } catch (_) {}
+
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
@@ -117,7 +121,7 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
     ref.listen<AlertMessage?>(alertsProvider, (previous, current) {
       if (current != null) {
         if (!context.mounted) return;
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: current.backgroundColor,
@@ -141,77 +145,88 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
             behavior: SnackBarBehavior.floating,
           ),
         );
-        
+
         // Limpiamos la alerta inmediatamente para permitir futuras notificaciones
         ref.read(alertsProvider.notifier).clearAlert();
       }
     });
 
     final kioskState = ref.watch(kioskProvider);
-    final controller =
-        ref.read(kioskProvider.notifier).cameraController;
+    final controller = ref.read(kioskProvider.notifier).cameraController;
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Camera preview
-          if (kioskState.error != null)
-            CameraErrorWidget(
-              message: kioskState.error!,
-              onRetry: _initCamera,
-            )
-          else if (controller != null && kioskState.cameraInitialized)
-            CameraPreviewWidget(controller: controller)
-          else if (!kioskState.isEmployeeScanned)
-            _NoProfileView(
-              workstationId: kioskState.workstationId,
-              assignedEmployeeId: kioskState.assignedEmployeeId,
-              onScanComplete: _initCamera,
-            )
-          else
-            const _LoadingView(),
+    return PopScope(
+      canPop: false, // Bloquear back del sistema completamente
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return; // Ya se procesó, ignorar
 
-          // AI overlay
-          if (kioskState.cameraInitialized)
-            CustomPaint(
-              painter: ActivityOverlayPainter(
+        final confirmed = await _showExitConfirmation(context);
+        if (confirmed && context.mounted) {
+          await ref.read(kioskProvider.notifier).stopCamera();
+          if (context.mounted) context.pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Camera preview
+            if (kioskState.error != null)
+              CameraErrorWidget(
+                message: kioskState.error!,
+                onRetry: _initCamera,
+              )
+            else if (controller != null && kioskState.cameraInitialized)
+              CameraPreviewWidget(controller: controller)
+            else if (!kioskState.isEmployeeScanned)
+              _NoProfileView(
+                workstationId: kioskState.workstationId,
+                assignedEmployeeId: kioskState.assignedEmployeeId,
+                onScanComplete: _initCamera,
+              )
+            else
+              const _LoadingView(),
+
+            // AI overlay
+            if (kioskState.cameraInitialized)
+              CustomPaint(
+                painter: ActivityOverlayPainter(
+                  state: kioskState.currentState,
+                  confidence: kioskState.confidence,
+                  poses: kioskState.poses,
+                  faces: kioskState.faces,
+                  imageSize: kioskState.imageSize,
+                  identificationMethod: kioskState.identificationMethod,
+                  identityConfidence: kioskState.identityConfidence,
+                ),
+                child: const SizedBox.expand(),
+              ),
+
+            // Top AppBar
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: _KioskAppBar(
+                workstationId: kioskState.workstationId,
+                isProcessing: kioskState.isProcessing,
+              ),
+            ),
+
+            // Bottom info panel
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: _BottomInfoPanel(
                 state: kioskState.currentState,
                 confidence: kioskState.confidence,
-                poses: kioskState.poses,
-                faces: kioskState.faces,
-                imageSize: kioskState.imageSize,
-                identificationMethod: kioskState.identificationMethod,
-                identityConfidence: kioskState.identityConfidence,
+                frameCount: kioskState.frameCount,
+                lastEventTime: kioskState.lastEventTime,
               ),
-              child: const SizedBox.expand(),
             ),
-
-          // Top AppBar
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: _KioskAppBar(
-              workstationId: kioskState.workstationId,
-              isProcessing: kioskState.isProcessing,
-            ),
-          ),
-
-          // Bottom info panel
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: _BottomInfoPanel(
-              state: kioskState.currentState,
-              confidence: kioskState.confidence,
-              frameCount: kioskState.frameCount,
-              lastEventTime: kioskState.lastEventTime,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -279,8 +294,7 @@ class _KioskAppBar extends ConsumerWidget {
             const SizedBox(width: 8),
             Flexible(
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(4),
@@ -309,42 +323,44 @@ class _KioskAppBar extends ConsumerWidget {
               ),
             const SizedBox(width: 4),
             IconButton(
-              icon: const Icon(Icons.exit_to_app, color: Colors.white70),
+              icon: const Icon(Icons.arrow_back, color: Colors.white70),
               onPressed: () async {
-                final confirmed = await _confirmExit(context);
+                final confirmed = await _showExitConfirmation(context);
                 if (confirmed && context.mounted) {
-                  await ref.read(loginNotifierProvider.notifier).signOut();
+                  await ref.read(kioskProvider.notifier).stopCamera();
+                  if (context.mounted) {
+                    context.pop();
+                  }
                 }
               },
-              tooltip: 'Salir del modo kiosco',
+              tooltip: 'Volver al dashboard',
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Future<bool> _confirmExit(BuildContext context) async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Salir del modo kiosco'),
-            content: const Text(
-                '¿Deseas cerrar sesión y salir del monitoreo?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancelar'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Salir'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-  }
+Future<bool> _showExitConfirmation(BuildContext context) async {
+  return await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Salir del modo kiosco'),
+          content: const Text('¿Deseas cerrar sesión y salir del monitoreo?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Salir'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
 }
 
 // ── Vista cuando no hay perfil biométrico registrado ──────────────────────────
