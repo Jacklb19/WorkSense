@@ -17,6 +17,10 @@ class EmployeeFormScreen extends ConsumerStatefulWidget {
 class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  String _selectedRole = 'employee';
   bool _hasListened = false;
 
   bool get _isEditing => widget.employeeId != null;
@@ -33,6 +37,9 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -40,7 +47,11 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     await ref.read(employeeFormNotifierProvider.notifier).saveEmployee(
-          name: _nameController.text,
+          name: _nameController.text.trim(),
+          lastName: _lastNameController.text.trim(),
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          role: _selectedRole,
           existingId: widget.employeeId,
         );
   }
@@ -72,7 +83,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
         title: Text(_isEditing ? 'Editar Empleado' : 'Nuevo Empleado'),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,
@@ -119,6 +130,88 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                       return 'El nombre no puede exceder 100 caracteres.';
                     }
                     return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Last Name field
+                TextFormField(
+                  controller: _lastNameController,
+                  textCapitalization: TextCapitalization.words,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Apellidos',
+                    hintText: 'Ej. Pérez',
+                    prefixIcon: Icon(Icons.badge_outlined),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Los apellidos son obligatorios.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Email field
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Correo electrónico',
+                    hintText: 'ejemplo@empresa.com',
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'El correo es obligatorio.';
+                    }
+                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value.trim())) {
+                      return 'Correo inválido.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Password field
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Contraseña (temporal)',
+                    hintText: 'Mínimo 6 caracteres',
+                    prefixIcon: Icon(Icons.lock_outline),
+                  ),
+                  validator: (value) {
+                    if (!_isEditing && (value == null || value.isEmpty)) {
+                      return 'La contraseña es obligatoria para nuevos usuarios.';
+                    }
+                    if (value != null && value.isNotEmpty && value.length < 6) {
+                      return 'Debe tener al menos 6 caracteres.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Role Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedRole,
+                  decoration: const InputDecoration(
+                    labelText: 'Rol',
+                    prefixIcon: Icon(Icons.security_outlined),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'employee', child: Text('Empleado (Kiosk)')),
+                    DropdownMenuItem(value: 'admin', child: Text('Administrador')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() => _selectedRole = val);
+                    }
                   },
                 ),
 

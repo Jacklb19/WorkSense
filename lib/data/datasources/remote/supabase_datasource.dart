@@ -37,6 +37,62 @@ class SupabaseDataSource {
   Future<void> insertActivityEvent(Map<String, dynamic> data) =>
       upsert('activity_events', data);
 
+  // Authentication & Admin Methods
+  Future<Map<String, dynamic>> createEmployeeWithAuth(Map<String, dynamic> data) async {
+    try {
+      final response = await _client.functions.invoke(
+        'create-employee',
+        body: data,
+      );
+      if (response.status != 200) {
+        throw SyncException('Error en Edge Function: ${response.data}');
+      }
+      // Edge function will return { "id": "uuid", "message": "..." } on success
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      throw SyncException('Error creando empleado con Auth: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchCurrentEmployee() async {
+    final userId = currentUserId;
+    if (userId == null) return null;
+    try {
+      final response = await _client
+          .from('employees')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+      return response;
+    } catch (e) {
+      throw SyncException('Error obteniendo empleado actual: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchAllEmployees(String companyId) async {
+    try {
+      final response = await _client
+          .from('employees')
+          .select()
+          .eq('company_id', companyId);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      throw SyncException('Error obteniendo empleados: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchAllWorkstations(String companyId) async {
+    try {
+      final response = await _client
+          .from('workstations')
+          .select()
+          .eq('company_id', companyId);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      throw SyncException('Error obteniendo workstations: $e');
+    }
+  }
+
   // Test de conectividad aislado
   Future<bool> testConnection() async {
     try {

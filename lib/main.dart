@@ -18,6 +18,9 @@ Future<void> main() async {
     anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
   );
 
+  // Restaurar sesión al arrancar
+  final session = Supabase.instance.client.auth.currentSession;
+
   runApp(
     const ProviderScope(
       child: WorkSenseApp(),

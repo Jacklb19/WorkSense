@@ -4,7 +4,9 @@ import 'package:worksense_app/data/repositories/employee_repository_impl.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/domain/repositories/employee_repository.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
-import 'package:worksense_app/shared/providers/sync_state_provider.dart';
+import 'package:worksense_app/shared/providers/sync_state_provider.dart' hide supabaseDataSourceProvider;
+import 'package:worksense_app/data/datasources/remote/supabase_datasource.dart';
+import 'package:worksense_app/shared/providers/auth_provider.dart';
 
 import '../../../../core/constants/app_constants.dart';
 
@@ -26,6 +28,24 @@ final employeesStreamProvider = StreamProvider<List<Employee>>((ref) {
 final employeesProvider = FutureProvider<List<Employee>>((ref) async {
   final repo = ref.watch(employeeRepositoryProvider);
   return repo.getEmployees();
+});
+
+// Admin-specific provider that fetches directly from Supabase
+final adminEmployeesProvider = FutureProvider<List<Employee>>((ref) async {
+  final supabase = ref.watch(supabaseDataSourceProvider);
+  
+  // Asumiendo que DefaultCompanyId es usado por ahora.
+  // Podrías leer el companyId del current_user_provider si tienes multi-tenant
+  final data = await supabase.fetchAllEmployees(AppConstants.defaultCompanyId);
+  
+  return data.map((json) {
+    return Employee(
+      id: json['id'] as String,
+      name: '${json['name']} ${json['last_name'] ?? ''}'.trim(),
+      companyId: json['company_id'] as String,
+      createdAt: DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now(),
+    );
+  }).toList();
 });
 
 // ── Employee Form State ───────────────────────────────────────────────────────
@@ -56,33 +76,57 @@ class EmployeeFormState {
 
 class EmployeeFormNotifier extends StateNotifier<EmployeeFormState> {
   final EmployeeRepository _localRepo;
+  final SupabaseDataSource _supabase;
 
-  EmployeeFormNotifier(this._localRepo)
+  EmployeeFormNotifier(this._localRepo, this._supabase)
       : super(const EmployeeFormState());
 
   Future<void> saveEmployee({
     required String name,
+    required String lastName,
+    required String email,
+    required String password,
+    required String role,
     String companyId = AppConstants.defaultCompanyId,
     String? existingId,
   }) async {
     state = state.copyWith(isLoading: true, errorMessage: null, saved: false);
 
     try {
-      final employee = Employee(
-        id: existingId ?? const Uuid().v4(),
-        name: name.trim(),
-        companyId: companyId,
-        createdAt: DateTime.now(),
-      );
-
-      // Save locally (enqueues sync automatically)
-      await _localRepo.saveEmployee(employee);
+      if (existingId == null) {
+        // Creating NEW employee via Edge Function
+        await _supabase.createEmployeeWithAuth({
+          'email': email,
+          'password': password,
+          'name': name,
+          'lastName': lastName,
+          'role': role,
+          'companyId': companyId,
+        });
+      } else {
+        // Editing existing: usually handled differently based on exact needs, 
+        // but sticking to local saving for updates to avoid messing up the scope.
+        final employee = Employee(
+          id: existingId,
+          name: name.trim(),
+          companyId: companyId,
+          createdAt: DateTime.now(),
+        );
+        await _localRepo.saveEmployee(employee);
+      }
 
       state = state.copyWith(isLoading: false, saved: true);
     } catch (e) {
+      String errorMessage = 'Error al guardar empleado: $e';
+      if (e.toString().toLowerCase().contains('socket') || 
+          e.toString().toLowerCase().contains('network') ||
+          e.toString().toLowerCase().contains('offline')) {
+        errorMessage = 'Sin conexión a internet. La creación de usuarios requiere conexión al servidor.';
+      }
+      
       state = state.copyWith(
         isLoading: false,
-        errorMessage: 'Error al guardar empleado: $e',
+        errorMessage: errorMessage,
       );
     }
   }
@@ -108,5 +152,6 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormState> {
 final employeeFormNotifierProvider =
     StateNotifierProvider<EmployeeFormNotifier, EmployeeFormState>((ref) {
   final repo = ref.watch(employeeRepositoryProvider);
-  return EmployeeFormNotifier(repo);
+  final supabase = ref.watch(supabaseDataSourceProvider);
+  return EmployeeFormNotifier(repo, supabase);
 });

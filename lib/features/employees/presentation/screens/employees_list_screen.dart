@@ -11,7 +11,7 @@ class EmployeesListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final employeesAsync = ref.watch(employeesStreamProvider);
+    final employeesAsync = ref.watch(adminEmployeesProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -67,6 +67,7 @@ class EmployeesListScreen extends ConsumerWidget {
                         await ref
                             .read(employeeFormNotifierProvider.notifier)
                             .deleteEmployee(employee.id);
+                        ref.invalidate(adminEmployeesProvider);
                       }
                     }
                   },
@@ -93,7 +94,10 @@ class EmployeesListScreen extends ConsumerWidget {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/employees/new'),
+        onPressed: () async {
+          await context.push('/employees/new');
+          ref.invalidate(adminEmployeesProvider);
+        },
         tooltip: 'Agregar empleado',
         child: const Icon(Icons.person_add_outlined),
       ),

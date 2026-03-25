@@ -12,6 +12,7 @@ import 'package:worksense_app/features/settings/presentation/screens/settings_sc
 import 'package:worksense_app/features/workstations/presentation/screens/workstation_form_screen.dart';
 import 'package:worksense_app/features/workstations/presentation/screens/workstations_list_screen.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/features/dashboard/presentation/screens/home_employee_screen.dart';
 
 
 // Route name constants
@@ -26,6 +27,7 @@ abstract final class AppRoutes {
   static const workstations = '/workstations';
   static const workstationNew = '/workstations/new';
   static const kioskWaiting = '/kiosk_waiting';
+  static const homeEmployee = '/home-employee';
   static const myActivity = '/my-activity';
   static const myHours = '/my-hours';
 }
@@ -56,6 +58,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         final role = currentUser.role;
         final loc = state.matchedLocation;
 
+        // Si acaban de hacer login o están en la raíz, los mandamos a su home
+        if (loc == AppRoutes.login || loc == '/') {
+          if (role == AppRole.admin || role == AppRole.superAdmin) {
+            return AppRoutes.dashboard;
+          } else if (role == AppRole.employee) {
+            return AppRoutes.homeEmployee;
+          }
+        }
+
         switch (role) {
           case AppRole.cameraMonitor:
             if (!loc.startsWith('/kiosk') && loc != AppRoutes.login) {
@@ -63,13 +74,17 @@ final routerProvider = Provider<GoRouter>((ref) {
             }
             break;
           case AppRole.employee:
-            final allowedEmployeeRoutes = [AppRoutes.myActivity, AppRoutes.myHours, AppRoutes.settings];
+            final allowedEmployeeRoutes = [AppRoutes.homeEmployee, AppRoutes.myActivity, AppRoutes.myHours, AppRoutes.settings];
             if (!allowedEmployeeRoutes.contains(loc) && loc != AppRoutes.login) {
-              return AppRoutes.myActivity;
+              return AppRoutes.homeEmployee;
             }
             break;
           case AppRole.admin:
           case AppRole.superAdmin:
+            // Admins can navigate freely usually, but block from employee home if needed
+            if (loc == AppRoutes.homeEmployee) {
+              return AppRoutes.dashboard;
+            }
             break;
         }
       }
@@ -171,6 +186,13 @@ final routerProvider = Provider<GoRouter>((ref) {
               );
             },
           ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.homeEmployee,
+        name: 'home-employee',
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: HomeEmployeeScreen(),
         ),
       ),
       GoRoute(
