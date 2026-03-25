@@ -14,7 +14,7 @@ class SyncRepositoryImpl {
   }) async {
     await _db.into(_db.syncQueueEntries).insert(
       SyncQueueEntriesCompanion.insert(
-        targetTable : targetTable ,
+        targetTable: targetTable,
         operation: operation,
         recordId: recordId,
         payload: jsonEncode(payload),
