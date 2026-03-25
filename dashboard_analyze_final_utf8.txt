@@ -1,8 +1,0 @@
-﻿Analyzing dashboard...                                          
-
-   info - Sort directive sections alphabetically - lib\features\dashboard\presentation\providers\dashboard_provider.dart:7:1 - directives_ordering
-   info - The value of the argument is redundant because it matches the default value - lib\features\dashboard\presentation\providers\employee_dashboard_provider.dart:40:60 - avoid_redundant_argument_values
-   info - Sort directive sections alphabetically - lib\features\dashboard\presentation\screens\admin_dashboard_screen.dart:9:1 - directives_ordering
-   info - Missing a required trailing comma - lib\features\dashboard\presentation\screens\employee_detail_analytics_screen.dart:244:54 - require_trailing_commas
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\dashboard\presentation\widgets\activity_event_tile.dart:47:46 - deprecated_member_use
-
