@@ -9,6 +9,9 @@ class ActivityEvent {
   final DateTime timestamp;
   final bool synced;
 
+  final double? identityConfidence;
+  final String? identificationMethod;
+
   const ActivityEvent({
     required this.id,
     this.employeeId,
@@ -17,6 +20,8 @@ class ActivityEvent {
     required this.confidence,
     required this.timestamp,
     required this.synced,
+    this.identityConfidence,
+    this.identificationMethod,
   });
 
   ActivityEvent copyWith({
@@ -27,6 +32,8 @@ class ActivityEvent {
     double? confidence,
     DateTime? timestamp,
     bool? synced,
+    double? identityConfidence,
+    String? identificationMethod,
   }) {
     return ActivityEvent(
       id: id ?? this.id,
@@ -36,6 +43,8 @@ class ActivityEvent {
       confidence: confidence ?? this.confidence,
       timestamp: timestamp ?? this.timestamp,
       synced: synced ?? this.synced,
+      identityConfidence: identityConfidence ?? this.identityConfidence,
+      identificationMethod: identificationMethod ?? this.identificationMethod,
     );
   }
 
@@ -48,6 +57,8 @@ class ActivityEvent {
       'confidence': confidence,
       'timestamp': timestamp.toIso8601String(),
       'synced': synced,
+      if (identityConfidence != null) 'identity_confidence': identityConfidence,
+      if (identificationMethod != null) 'identification_method': identificationMethod,
     };
   }
 

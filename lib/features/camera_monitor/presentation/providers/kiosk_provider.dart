@@ -357,8 +357,8 @@ class KioskNotifier extends StateNotifier<KioskState> {
             identityConfidence: 0.0,
             identificationMethod: null,
             isProcessing: false,
-            poses: allPoses,
-            faces: allFaces,
+            poses: const [],
+            faces: const [],
             imageSize: imgSize,
           );
 
@@ -369,8 +369,8 @@ class KioskNotifier extends StateNotifier<KioskState> {
             identityConfidence: 0.0,
             identificationMethod: null,
             isProcessing: false,
-            poses: allPoses,
-            faces: allFaces,
+            poses: const [],
+            faces: const [],
             imageSize: imgSize,
           );
 
@@ -406,8 +406,8 @@ class KioskNotifier extends StateNotifier<KioskState> {
             identityConfidence: findResult.confidence,
             identificationMethod: methodLabel,
             isProcessing: false,
-            poses: allPoses,
-            faces: allFaces,
+            poses: employeePose != null ? [employeePose] : const [],
+            faces: [employeeFace],
             imageSize: imgSize,
           );
 
@@ -524,6 +524,8 @@ class KioskNotifier extends StateNotifier<KioskState> {
       confidence: aiResult.confidence,
       timestamp: timestamp,
       synced: false,
+      identityConfidence: identityConfidence,
+      identificationMethod: identificationMethod,
     );
 
     try {

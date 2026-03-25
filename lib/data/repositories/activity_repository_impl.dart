@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/activity_event.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
@@ -15,15 +15,7 @@ class ActivityRepositoryImpl implements ActivityRepository {
   Future<void> saveEvent(ActivityEvent event) async {
     await _db.transaction(() async {
       // 1. Guardar localmente
-      await _db.insertActivityEntry(ActivityEntriesCompanion(
-        id: Value(event.id),
-        employeeId: Value(event.employeeId),
-        workstationId: Value(event.workstationId),
-        state: Value(event.state.name),
-        confidence: Value(event.confidence),
-        timestamp: Value(event.timestamp),
-        synced: Value(event.synced),
-      ));
+      await _db.insertActivityEntry(_mapToCompanion(event));
 
       // 2. Encolar para sincronizaciÃ³n genÃ©rica
       await _syncRepo.enqueue(
@@ -105,6 +97,22 @@ class ActivityRepositoryImpl implements ActivityRepository {
       confidence: row.confidence,
       timestamp: row.timestamp,
       synced: row.synced,
+      identityConfidence: row.identityConfidence,
+      identificationMethod: row.identificationMethod,
+    );
+  }
+
+  ActivityEntriesCompanion _mapToCompanion(ActivityEvent event) {
+    return ActivityEntriesCompanion.insert(
+      id: event.id,
+      employeeId: Value(event.employeeId),
+      workstationId: event.workstationId,
+      state: event.state.name,
+      confidence: event.confidence,
+      timestamp: Value(event.timestamp),
+      synced: Value(event.synced),
+      identityConfidence: Value(event.identityConfidence),
+      identificationMethod: Value(event.identificationMethod),
     );
   }
 }
