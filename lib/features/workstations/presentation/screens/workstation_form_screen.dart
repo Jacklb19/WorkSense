@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
+import 'package:worksense_app/core/constants/app_constants.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/workstation.dart';
 import 'package:worksense_app/features/workstations/presentation/providers/workstations_provider.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
-
-import '../../../../core/constants/app_constants.dart';
 
 class WorkstationFormScreen extends ConsumerStatefulWidget {
   const WorkstationFormScreen({super.key});
@@ -75,7 +75,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ubicación obtenida con éxito.'), backgroundColor: AppColors.success),
+          const SnackBar(content: Text(AppStrings.locationSuccess), backgroundColor: AppColors.success),
         );
       }
     } catch (e) {
@@ -113,7 +113,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Estación guardada exitosamente'), backgroundColor: AppColors.success),
+          const SnackBar(content: Text(AppStrings.workstationSaved), backgroundColor: AppColors.success),
         );
         context.pop();
       }
@@ -137,8 +137,8 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
           return const Padding(
             padding: EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
-              'No hay empleados registrados',
-              style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+              AppStrings.noEmployeesRegistered,
+              style: TextStyle(color: AppColors.orangeWarning, fontWeight: FontWeight.bold),
             ),
           );
         }
@@ -176,7 +176,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nueva Estación'),
+        title: const Text(AppStrings.newWorkstation),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
@@ -192,27 +192,27 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
-                  labelText: 'Nombre del puesto',
+                  labelText: AppStrings.workstationNameLabel,
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) => 
-                  value == null || value.trim().isEmpty ? 'Ingresa un nombre' : null,
+                  value == null || value.trim().isEmpty ? AppStrings.workstationNameRequired : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _deviceIdController,
                 decoration: const InputDecoration(
-                  labelText: 'ID del dispositivo',
+                  labelText: AppStrings.deviceIdLabel,
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) => 
-                  value == null || value.trim().isEmpty ? 'El ID no puede estar vacío' : null,
+                  value == null || value.trim().isEmpty ? AppStrings.deviceIdRequired : null,
               ),
               const SizedBox(height: 16),
               _buildEmployeeSelector(),
               const SizedBox(height: 24),
               const Text(
-                'Geolocalización',
+                AppStrings.geolocation,
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(height: 8),
@@ -221,7 +221,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
                 icon: _isLoadingLocation 
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.location_on),
-                label: const Text('Usar mi ubicación actual'),
+                label: const Text(AppStrings.useCurrentLocation),
               ),
               if (_latitude != null && _longitude != null) ...[
                 const SizedBox(height: 8),
@@ -252,7 +252,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
                 ),
                 child: _isSaving 
                   ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: AppColors.white))
-                  : const Text('Guardar Estación', style: TextStyle(fontSize: 16)),
+                  : const Text(AppStrings.saveWorkstation, style: TextStyle(fontSize: 16)),
               ),
             ],
           ),

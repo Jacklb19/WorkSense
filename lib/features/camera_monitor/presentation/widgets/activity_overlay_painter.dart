@@ -28,10 +28,10 @@ class ActivityOverlayPainter extends CustomPainter {
   });
 
   // ─── COLORES ────────────────────────────────────────────────────────────────
-  static const Color _cyanDot  = Color(0xFF00E5FF);
-  static const Color _cyanLine = Color(0xFF0099CC);
-  static const Color _redDot   = Color(0xFFFF3333);
-  static const Color _redLine  = Color(0xFFCC1111);
+  static const Color _cyanDot  = AppColors.overlayCyanDot;
+  static const Color _cyanLine = AppColors.overlayCyanLine;
+  static const Color _redDot   = AppColors.overlayRedDot;
+  static const Color _redLine  = AppColors.overlayRedLine;
 
   // ─── ESQUELETO (conexiones) ──────────────────────────────────────────────
   static const List<List<PoseLandmarkType>> _skeletonConnections = [
@@ -175,7 +175,7 @@ class ActivityOverlayPainter extends CustomPainter {
   // ─── OVERLAY FUERA DEL ÁREA ──────────────────────────────────────────────
   void _drawOutsideAreaOverlay(Canvas canvas, Size size) {
     final tintPaint = Paint()
-      ..color = const Color(0xFF2196F3).withOpacity(0.25)
+      ..color = AppColors.overlayBlueFill.withOpacity(0.25)
       ..style = PaintingStyle.fill;
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), tintPaint);
 

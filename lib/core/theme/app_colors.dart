@@ -81,5 +81,41 @@ abstract final class AppColors {
   static const Color dividerLight = Color(0xFFE0E0E0);
   static const Color dividerDark = Color(0xFF424242);
 
+  // ── Overlay Kiosk ──────────────────────────────────────────
+  static const Color overlayBlack70 = Color(0xB3000000);
+  static const Color overlayBlack85 = Color(0xD9000000);
+
+  // ── Scan Feedback ──────────────────────────────────────────
+  static const Color feedbackDetected = Color(0xFF69F0AE);   // greenAccent
+  static const Color feedbackError = Color(0xFFFF5252);       // redAccent
+  static const Color feedbackCapturing = Color(0xFF40C4FF);   // lightBlueAccent
+  static const Color feedbackSearching = Color(0xFFFFFF00);   // yellow
+
+  // ── Identity Confidence ────────────────────────────────────
+  static const Color identityHigh = Color(0xFF69F0AE);   // greenAccent
+  static const Color identityMedium = Color(0xFFFFFF00);  // yellowAccent
+  static const Color identityLow = Color(0xFFFF5252);     // redAccent
+
+  // ── Alert Colors ───────────────────────────────────────────
+  static const Color alertAbsent = Color(0xFFEA4335);
+  static const Color alertDistracted = Color(0xFFFFC107);
+
+  // ── Sync Specific ──────────────────────────────────────────
+  static const Color syncUploading = Color(0xFFFF6D00);
+
+  // ── Badge ──────────────────────────────────────────────────
+  static const Color badgeRed = Color(0xFFF44336);
+
+  // ── Overlay Painter ────────────────────────────────────────
+  static const Color overlayCyanDot = Color(0xFF00E5FF);
+  static const Color overlayCyanLine = Color(0xFF0099CC);
+  static const Color overlayRedDot = Color(0xFFFF3333);
+  static const Color overlayRedLine = Color(0xFFCC1111);
+  static const Color overlayBlueFill = Color(0xFF2196F3);
+
+  // ── Misc ───────────────────────────────────────────────────
+  static const Color amber = Color(0xFFFFC107);
+  static const Color orangeWarning = Color(0xFFFF9800);
+
   AppColors._();
 }

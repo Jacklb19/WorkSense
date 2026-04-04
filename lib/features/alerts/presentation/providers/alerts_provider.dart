@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:worksense_app/core/constants/app_durations.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
+import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
 
@@ -40,7 +43,7 @@ class AlertsNotifier extends StateNotifier<AlertMessage?> {
 
     // Solo iniciamos el temporizador si es un estado que requiere alerta
     if (newState == ActivityState.ausente || newState == ActivityState.distraido) {
-      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _timer = Timer.periodic(AppDurations.alertCheckInterval, (timer) {
         _secondsInState++;
         _checkThresholds();
       });
@@ -50,17 +53,17 @@ class AlertsNotifier extends StateNotifier<AlertMessage?> {
   void _checkThresholds() {
     if (_alertSent) return; // Solo una vez por episodio
 
-    if (_currentState == ActivityState.ausente && _secondsInState >= 60) {
+    if (_currentState == ActivityState.ausente && _secondsInState >= AppDurations.absenceAlertSeconds) {
       _alertSent = true;
       state = AlertMessage(
-        '⚠️ Empleado ausente del puesto',
-        const Color(0xFFEA4335), // Rojo
+        AppStrings.alertAbsent,
+        AppColors.alertAbsent,
       );
-    } else if (_currentState == ActivityState.distraido && _secondsInState >= 45) {
+    } else if (_currentState == ActivityState.distraido && _secondsInState >= AppDurations.distractionAlertSeconds) {
       _alertSent = true;
       state = AlertMessage(
-        '⚠️ Empleado distraído',
-        const Color(0xFFFFC107), // Amarillo
+        AppStrings.alertDistracted,
+        AppColors.alertDistracted,
       );
     }
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/widgets/workstation_card.dart';
@@ -19,7 +20,7 @@ class AdminDashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('WorkSense (Admin)'),
+        title: const Text(AppStrings.adminTitle),
         centerTitle: false,
         actions: [
           // Sync indicator
@@ -29,32 +30,32 @@ class AdminDashboardScreen extends ConsumerWidget {
           // History
           IconButton(
             icon: const Icon(Icons.history),
-            tooltip: 'Historial de actividad',
+            tooltip: AppStrings.historyTooltip,
             onPressed: () => context.push('/history'),
           ),
           
           // Analytics
           IconButton(
             icon: const Icon(Icons.bar_chart_outlined),
-            tooltip: 'Analíticas',
+            tooltip: AppStrings.analyticsTooltip,
             onPressed: () => context.push('/analytics'),
           ),
           // Employees
           IconButton(
             icon: const Icon(Icons.people_outline),
-            tooltip: 'Empleados',
+            tooltip: AppStrings.employeesTooltip,
             onPressed: () => context.push('/employees'),
           ),
           // Workstations
           IconButton(
             icon: const Icon(Icons.computer_outlined),
-            tooltip: 'Puestos de Trabajo',
+            tooltip: AppStrings.workstationsTooltip,
             onPressed: () => context.push('/workstations'),
           ),
           // Settings
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Configuración',
+            tooltip: AppStrings.settingsTooltip,
             onPressed: () => context.push('/settings'),
           ),
         ],
@@ -117,7 +118,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           context.push('/kiosk/$firstId');
         },
         icon: const Icon(Icons.camera_alt_outlined),
-        label: const Text('Iniciar Kiosco'),
+        label: const Text(AppStrings.startKiosk),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
@@ -139,7 +140,7 @@ class _DashboardHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Panel de Control',
+          AppStrings.controlPanel,
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -178,14 +179,14 @@ class _EmptyWorkstationsView extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Sin puestos registrados',
+              AppStrings.noWorkstationsRegistered,
               style: theme.textTheme.titleLarge?.copyWith(
                 color: AppColors.grey600,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Configura los puestos de trabajo desde\nla consola de administración.',
+              AppStrings.noWorkstationsDescription,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: AppColors.grey400,
               ),
@@ -195,7 +196,7 @@ class _EmptyWorkstationsView extends ConsumerWidget {
             FilledButton.icon(
               onPressed: () => context.push('/kiosk/default'),
               icon: const Icon(Icons.play_arrow),
-              label: const Text('Iniciar modo kiosco'),
+              label: const Text(AppStrings.startKioskMode),
             ),
           ],
         ),
@@ -224,7 +225,7 @@ class _ErrorView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Error al cargar datos',
+              AppStrings.errorLoadingData,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),

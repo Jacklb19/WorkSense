@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:worksense_app/core/constants/appconstants.dart';
-import 'package:worksense_app/core/constants/aithresholds.dart';
+import 'package:worksense_app/core/constants/app_constants.dart';
+import 'package:worksense_app/core/constants/ai_thresholds.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 
@@ -51,22 +52,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Configuración'),
+        title: const Text(AppStrings.settings),
       ),
       body: ListView(
         children: [
           // ── Account section ─────────────────────────────────────
-          _SectionHeader(title: 'Cuenta'),
+          _SectionHeader(title: AppStrings.accountSection),
           ListTile(
             leading: const Icon(Icons.account_circle_outlined),
-            title: const Text('Usuario'),
-            subtitle: Text(userEmail ?? 'No disponible'),
+            title: const Text(AppStrings.user),
+            subtitle: Text(userEmail ?? AppStrings.notAvailable),
           ),
 
           const Divider(),
 
           // ── AI Pipeline section ──────────────────────────────────
-          _SectionHeader(title: 'Análisis de Actividad'),
+          _SectionHeader(title: AppStrings.activityAnalysis),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
@@ -76,7 +77,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Intervalo de análisis',
+                      AppStrings.analysisInterval,
                       style: theme.textTheme.bodyMedium,
                     ),
                     Text(
@@ -115,35 +116,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Divider(),
 
           // ── Thresholds info ──────────────────────────────────────
-          _SectionHeader(title: 'Umbrales de Detección (solo lectura)'),
+          _SectionHeader(title: AppStrings.detectionThresholds),
           _ThresholdTile(
-            label: 'Ángulo máximo de giro (yaw)',
+            label: AppStrings.maxYawLabel,
             value: '${AiThresholds.maxYawAngle}°',
           ),
           _ThresholdTile(
-            label: 'Ángulo mínimo de inclinación (pitch)',
+            label: AppStrings.minPitchLabel,
             value: '${AiThresholds.minPitchAngle}°',
           ),
           _ThresholdTile(
-            label: 'Ángulo máximo de volteo (roll)',
+            label: AppStrings.maxRollLabel,
             value: '${AiThresholds.maxRollAngle}°',
           ),
           _ThresholdTile(
-            label: 'Confianza mínima de pose',
+            label: AppStrings.minPoseConfidenceLabel,
             value: '${(AiThresholds.minPoseConfidence * 100).toInt()}%',
           ),
           _ThresholdTile(
-            label: 'Umbral de inactividad',
+            label: AppStrings.inactivityThresholdLabel,
             value: '${AiThresholds.inactivityThresholdSeconds} seg',
           ),
 
           const Divider(),
 
           // ── App info ─────────────────────────────────────────────
-          _SectionHeader(title: 'Acerca de'),
+          _SectionHeader(title: AppStrings.about),
           ListTile(
             leading: const Icon(Icons.info_outline),
-            title: const Text('Versión'),
+            title: const Text(AppStrings.version),
             trailing: Text(
               AppConstants.appVersion,
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -153,7 +154,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.apps),
-            title: const Text('Aplicación'),
+            title: const Text(AppStrings.application),
             trailing: Text(
               AppConstants.appName,
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -172,7 +173,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onPressed: () => _handleLogout(context, ref),
               icon: const Icon(Icons.logout, color: AppColors.error),
               label: const Text(
-                'Cerrar sesión',
+                AppStrings.logout,
                 style: TextStyle(color: AppColors.error),
               ),
               style: OutlinedButton.styleFrom(
@@ -191,18 +192,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Cerrar sesión'),
-        content: const Text('¿Deseas cerrar sesión?'),
+        title: const Text(AppStrings.logout),
+        content: const Text(AppStrings.logoutConfirmation),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
+            child: const Text(AppStrings.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style:
                 FilledButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Cerrar sesión'),
+            child: const Text(AppStrings.logout),
           ),
         ],
       ),

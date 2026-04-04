@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
-import 'package:worksense_app/core/constants/aithresholds.dart';
+import 'package:worksense_app/core/constants/ai_thresholds.dart';
 import 'package:worksense_app/features/camera_monitor/ai/ai_result.dart';
 
 class PoseAnalyzer {

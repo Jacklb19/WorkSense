@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
+import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/shared/providers/connectivity_provider.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 
@@ -14,10 +16,10 @@ class SyncIndicatorWidget extends ConsumerWidget {
 
     if (!isOnline) {
       return const Tooltip(
-        message: 'Modo Offline',
+        message: AppStrings.offlineMode,
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0),
-          child: Icon(Icons.cloud_off, color: Color(0xFFEA4335)),
+          child: Icon(Icons.cloud_off, color: AppColors.syncOffline),
         ),
       );
     }
@@ -30,7 +32,7 @@ class SyncIndicatorWidget extends ConsumerWidget {
             child: SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.orange),
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.syncUploading),
             ),
           );
         }
@@ -45,7 +47,7 @@ class SyncIndicatorWidget extends ConsumerWidget {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    const Icon(Icons.cloud_upload, color: Color(0xFFFF6D00)),
+                    const Icon(Icons.cloud_upload, color: AppColors.syncUploading),
                     Positioned(
                       right: 0,
                       top: 8,
@@ -59,15 +61,15 @@ class SyncIndicatorWidget extends ConsumerWidget {
         }
 
         return const Tooltip(
-          message: 'Online y Sincronizado',
+          message: AppStrings.onlineAndSynced,
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.0),
-            child: Icon(Icons.cloud_done, color: Color(0xFF34A853)),
+            child: Icon(Icons.cloud_done, color: AppColors.syncOk),
           ),
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const Icon(Icons.error, color: Colors.red),
+      error: (_, __) => const Icon(Icons.error, color: AppColors.error),
     );
   }
 }
@@ -81,7 +83,7 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: Colors.red,
+        color: AppColors.badgeRed,
         borderRadius: BorderRadius.circular(10),
       ),
       constraints: const BoxConstraints(minWidth: 14, minHeight: 14),

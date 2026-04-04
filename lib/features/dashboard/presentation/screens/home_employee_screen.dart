@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/shared/providers/auth_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
@@ -12,14 +13,14 @@ class HomeEmployeeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mi Panel de Empleado'),
+        title: const Text(AppStrings.myEmployeePanel),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
               ref.read(authNotifierProvider.notifier).logout();
             },
-            tooltip: 'Cerrar Sesión',
+            tooltip: AppStrings.logout,
           ),
         ],
       ),
@@ -32,7 +33,7 @@ class HomeEmployeeScreen extends ConsumerWidget {
                 const Icon(Icons.person, size: 80, color: Colors.blueAccent),
                 const SizedBox(height: 16),
                 Text(
-                  'Bienvenido',
+                  AppStrings.welcome,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 if (currentUser.user?.email != null) ...[
@@ -43,7 +44,7 @@ class HomeEmployeeScreen extends ConsumerWidget {
                   ),
                 ],
                 const SizedBox(height: 24),
-                const Text('Aquí verás tu horario y estado de actividad.'),
+                const Text(AppStrings.scheduleAndActivityHint),
               ],
             );
           },

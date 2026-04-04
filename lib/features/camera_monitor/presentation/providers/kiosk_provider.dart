@@ -10,7 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'package:uuid/uuid.dart';
-import 'package:worksense_app/core/constants/aithresholds.dart';
+import 'package:worksense_app/core/constants/ai_thresholds.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/data/repositories/activity_repository_impl.dart';
 import 'package:worksense_app/domain/entities/activity_event.dart';

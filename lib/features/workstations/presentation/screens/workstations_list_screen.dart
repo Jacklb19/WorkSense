@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/workstations/presentation/providers/workstations_provider.dart';
 import 'package:worksense_app/shared/widgets/async_value_widget.dart';
@@ -14,7 +15,7 @@ class WorkstationsListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Estaciones de Trabajo'),
+        title: const Text(AppStrings.workstations),
       ),
       body: AsyncValueWidget(
         value: workstationsAsync,
@@ -22,7 +23,7 @@ class WorkstationsListScreen extends ConsumerWidget {
           if (workstations.isEmpty) {
             return const Center(
               child: Text(
-                'No hay estaciones de trabajo registradas.',
+                AppStrings.noWorkstationsRegistered,
                 style: TextStyle(color: AppColors.grey500),
               ),
             );
@@ -69,17 +70,17 @@ class WorkstationsListScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar Estación'),
+        title: const Text(AppStrings.deleteWorkstation),
         content: Text('¿Seguro que deseas eliminar la estación "$name"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
+            child: const Text(AppStrings.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Eliminar'),
+            child: const Text(AppStrings.delete),
           ),
         ],
       ),
@@ -90,7 +91,7 @@ class WorkstationsListScreen extends ConsumerWidget {
       try {
         await ref.read(deleteWorkstationUseCaseProvider)(id);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Estación eliminada (Sincronización pendiente)')),
+          const SnackBar(content: Text(AppStrings.workstationDeleted)),
         );
       } catch (e) {
         if (!context.mounted) return;

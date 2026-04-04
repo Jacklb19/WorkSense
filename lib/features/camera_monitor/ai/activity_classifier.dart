@@ -1,4 +1,4 @@
-import 'package:worksense_app/core/constants/aithresholds.dart';
+import 'package:worksense_app/core/constants/ai_thresholds.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/camera_monitor/ai/ai_result.dart';
 

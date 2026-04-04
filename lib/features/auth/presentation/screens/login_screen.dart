@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 
@@ -76,17 +77,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           textInputAction: TextInputAction.next,
                           autocorrect: false,
                           decoration: const InputDecoration(
-                            labelText: 'Correo electrónico',
-                            hintText: 'admin@empresa.com',
+                            labelText: AppStrings.emailLabel,
+                            hintText: AppStrings.emailHint,
                             prefixIcon: Icon(Icons.email_outlined),
                           ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
-                              return 'Ingresa tu correo electrónico.';
+                              return AppStrings.emailRequired;
                             }
                             if (!RegExp(r'^[^@]+@[^@]+\.[^@]+')
                                 .hasMatch(value.trim())) {
-                              return 'Correo electrónico inválido.';
+                              return AppStrings.emailInvalid;
                             }
                             return null;
                           },
@@ -100,7 +101,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           textInputAction: TextInputAction.done,
                           onFieldSubmitted: (_) => _handleLogin(),
                           decoration: InputDecoration(
-                            labelText: 'Contraseña',
+                            labelText: AppStrings.passwordLabel,
                             prefixIcon: const Icon(Icons.lock_outlined),
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -117,10 +118,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Ingresa tu contraseña.';
+                              return AppStrings.passwordRequired;
                             }
                             if (value.length < 6) {
-                              return 'La contraseña debe tener al menos 6 caracteres.';
+                              return AppStrings.passwordTooShort;
                             }
                             return null;
                           },
@@ -152,7 +153,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                 )
                               : const Text(
-                                  'Iniciar sesión',
+                                  AppStrings.loginButton,
                                   style: TextStyle(fontSize: 16),
                                 ),
                         ),
@@ -164,7 +165,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   // Footer
                   Text(
-                    'WorkSense © 2026',
+                    AppStrings.copyright,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: AppColors.grey500,
@@ -206,7 +207,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Monitoreo inteligente de actividad',
+          AppStrings.subtitle,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: AppColors.grey600,
           ),

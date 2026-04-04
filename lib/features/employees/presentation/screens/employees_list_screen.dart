@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
@@ -15,7 +16,7 @@ class EmployeesListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Empleados'),
+        title: const Text(AppStrings.employees),
       ),
       body: employeesAsync.when(
         loading: () => const AppLoadingWidget(),
@@ -80,7 +81,7 @@ class EmployeesListScreen extends ConsumerWidget {
                               color: AppColors.error, size: 18),
                           SizedBox(width: 8),
                           Text(
-                            'Eliminar',
+                            AppStrings.delete,
                             style: TextStyle(color: AppColors.error),
                           ),
                         ],
@@ -98,7 +99,7 @@ class EmployeesListScreen extends ConsumerWidget {
           await context.push('/employees/new');
           ref.invalidate(adminEmployeesProvider);
         },
-        tooltip: 'Agregar empleado',
+        tooltip: AppStrings.addEmployee,
         child: const Icon(Icons.person_add_outlined),
       ),
     );
@@ -108,18 +109,18 @@ class EmployeesListScreen extends ConsumerWidget {
     return await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Eliminar empleado'),
+            title: const Text(AppStrings.deleteEmployee),
             content: Text('¿Eliminar a "$name"? Esta acción no se puede deshacer.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancelar'),
+                child: const Text(AppStrings.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 style: FilledButton.styleFrom(
                     backgroundColor: AppColors.error),
-                child: const Text('Eliminar'),
+                child: const Text(AppStrings.delete),
               ),
             ],
           ),
@@ -144,14 +145,14 @@ class _EmptyEmployeesView extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Sin empleados registrados',
+            AppStrings.noEmployees,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: AppColors.grey500,
                 ),
           ),
           const SizedBox(height: 8),
           const Text(
-            'Agrega empleados con el botón +',
+            AppStrings.addEmployeeHint,
             style: TextStyle(color: AppColors.grey400, fontSize: 13),
           ),
         ],

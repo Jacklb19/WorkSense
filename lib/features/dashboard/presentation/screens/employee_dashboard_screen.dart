@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
@@ -16,23 +17,23 @@ class EmployeeDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final userState = ref.watch(currentUserProvider);
-    final userEmail = userState.valueOrNull?.user?.email ?? 'Empleado';
+    final userEmail = userState.valueOrNull?.user?.email ?? AppStrings.employee;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mi Espacio'),
+        title: const Text(AppStrings.mySpace),
         centerTitle: false,
         actions: [
           const SyncIndicatorWidget(),
           const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.history),
-            tooltip: 'Mi historial global',
+            tooltip: AppStrings.myGlobalHistory,
             onPressed: () => context.push('/history'),
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Configuración',
+            tooltip: AppStrings.settingsTooltip,
             onPressed: () => context.push('/settings'),
           ),
         ],
@@ -58,7 +59,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Resumen de tu actividad de hoy',
+                AppStrings.todaySummary,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: AppColors.grey500,
                 ),
@@ -67,7 +68,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
 
               // Section 1: Assigned Workstation
               const Text(
-                'PUESTO ASIGNADO',
+                AppStrings.assignedWorkstation,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -81,7 +82,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
 
               // Section 2: Personal Productivity
               const Text(
-                'MI PRODUCTIVIDAD HOY',
+                AppStrings.myProductivityToday,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -95,7 +96,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
 
               // Section 3: Recent Activity Feed
               const Text(
-                'ACTIVIDAD RECIENTE (EN VIVO)',
+                AppStrings.recentActivityLive,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -123,12 +124,12 @@ class _AssignedWorkstationSection extends ConsumerWidget {
     final workstationAsync = ref.watch(employeeAssignedWorkstationProvider);
 
     return workstationAsync.when(
-      loading: () => const AppLoadingWidget(message: 'Verificando puesto...'),
+      loading: () => const AppLoadingWidget(message: AppStrings.verifyingWorkstation),
       error: (e, _) => Card(
         color: AppColors.error.withValues(alpha: 0.1),
         child: const Padding(
           padding: EdgeInsets.all(16.0),
-          child: Text('Error al cargar la información del puesto.'),
+          child: Text(AppStrings.errorLoadingWorkstation),
         ),
       ),
       data: (workstation) {
@@ -163,12 +164,12 @@ class _NoWorkstationCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Sin puesto asignado',
+                    AppStrings.noAssignedWorkstation,
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'Espera a que un administrador te asigne a un puesto de trabajo para comenzar el monitoreo.',
+                    AppStrings.noAssignedWorkstationDescription,
                     style: TextStyle(color: AppColors.grey600, fontSize: 13),
                   ),
                 ],
@@ -219,13 +220,13 @@ class _WorkstationCard extends StatelessWidget {
                         width: 8,
                         height: 8,
                         decoration: const BoxDecoration(
-                          color: Colors.green,
+                          color: AppColors.success,
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 6),
                       const Text(
-                        'Monitoreo asignado',
+                        AppStrings.monitoringAssigned,
                         style: TextStyle(color: AppColors.grey600, fontSize: 13),
                       ),
                     ],
@@ -249,8 +250,8 @@ class _PersonalProductivitySection extends ConsumerWidget {
     final analyticsAsync = ref.watch(employeeTodayAnalyticsProvider);
 
     return analyticsAsync.when(
-      loading: () => const AppLoadingWidget(message: 'Calculando tiempo...'),
-      error: (e, _) => const Text('No se pudieron obtener las métricas.'),
+      loading: () => const AppLoadingWidget(message: AppStrings.calculatingTime),
+      error: (e, _) => const Text(AppStrings.couldNotLoadMetrics),
       data: (analytics) {
         if (analytics == null || !analytics.hasData) {
           return const Card(
@@ -258,7 +259,7 @@ class _PersonalProductivitySection extends ConsumerWidget {
             child: Padding(
               padding: EdgeInsets.all(24.0),
               child: Center(
-                child: Text('Aún no hay actividad registrada para ti el día de hoy.', style: TextStyle(color: AppColors.grey600)),
+                child: Text(AppStrings.noActivityToday, style: TextStyle(color: AppColors.grey600)),
               ),
             ),
           );
@@ -296,7 +297,7 @@ class _PersonalProductivitySection extends ConsumerWidget {
                   label: 'Distraído',
                   duration: distractTime,
                   total: totalDuration,
-                  color: Colors.amber,
+                  color: AppColors.warning,
                   icon: Icons.search,
                 ),
                 const SizedBox(height: 12),
@@ -393,12 +394,12 @@ class _RecentActivitySection extends ConsumerWidget {
 
     return eventsAsync.when(
       loading: () => const AppLoadingWidget(),
-      error: (e, _) => const Text('Error cargando historial'),
+      error: (e, _) => const Text(AppStrings.errorLoadingHistory),
       data: (events) {
         if (events.isEmpty) {
           return const Padding(
             padding: EdgeInsets.all(16.0),
-            child: Center(child: Text('No hay eventos recientes.', style: TextStyle(color: AppColors.grey500))),
+            child: Center(child: Text(AppStrings.noRecentEvents, style: TextStyle(color: AppColors.grey500))),
           );
         }
 

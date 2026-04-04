@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 
@@ -68,8 +69,8 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
           SnackBar(
             content: Text(
               _isEditing
-                  ? 'Empleado actualizado correctamente.'
-                  : 'Empleado agregado correctamente.',
+                  ? AppStrings.employeeUpdated
+                  : AppStrings.employeeAdded,
             ),
             backgroundColor: AppColors.success,
           ),
@@ -80,7 +81,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Editar Empleado' : 'Nuevo Empleado'),
+        title: Text(_isEditing ? AppStrings.editEmployee : AppStrings.newEmployee),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -115,19 +116,19 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _handleSubmit(),
                   decoration: const InputDecoration(
-                    labelText: 'Nombre completo',
-                    hintText: 'Ej. Juan Pérez',
+                    labelText: AppStrings.nameLabel,
+                    hintText: AppStrings.nameHint,
                     prefixIcon: Icon(Icons.badge_outlined),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'El nombre es obligatorio.';
+                      return AppStrings.nameRequired;
                     }
                     if (value.trim().length < 2) {
-                      return 'El nombre debe tener al menos 2 caracteres.';
+                      return AppStrings.nameMinLength;
                     }
                     if (value.trim().length > 100) {
-                      return 'El nombre no puede exceder 100 caracteres.';
+                      return AppStrings.nameMaxLength;
                     }
                     return null;
                   },
@@ -140,13 +141,13 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                   textCapitalization: TextCapitalization.words,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
-                    labelText: 'Apellidos',
-                    hintText: 'Ej. Pérez',
+                    labelText: AppStrings.lastNameLabel,
+                    hintText: AppStrings.lastNameHint,
                     prefixIcon: Icon(Icons.badge_outlined),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Los apellidos son obligatorios.';
+                      return AppStrings.lastNameRequired;
                     }
                     return null;
                   },
@@ -159,16 +160,16 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
-                    labelText: 'Correo electrónico',
-                    hintText: 'ejemplo@empresa.com',
+                    labelText: AppStrings.emailLabel,
+                    hintText: AppStrings.emailEmployeeHint,
                     prefixIcon: Icon(Icons.email_outlined),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'El correo es obligatorio.';
+                      return AppStrings.emailRequired2;
                     }
                     if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value.trim())) {
-                      return 'Correo inválido.';
+                      return AppStrings.emailInvalid2;
                     }
                     return null;
                   },
@@ -181,16 +182,16 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                   obscureText: true,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
-                    labelText: 'Contraseña (temporal)',
-                    hintText: 'Mínimo 6 caracteres',
+                    labelText: AppStrings.passwordTempLabel,
+                    hintText: AppStrings.passwordTempHint,
                     prefixIcon: Icon(Icons.lock_outline),
                   ),
                   validator: (value) {
                     if (!_isEditing && (value == null || value.isEmpty)) {
-                      return 'La contraseña es obligatoria para nuevos usuarios.';
+                      return AppStrings.passwordRequiredNew;
                     }
                     if (value != null && value.isNotEmpty && value.length < 6) {
-                      return 'Debe tener al menos 6 caracteres.';
+                      return AppStrings.passwordMinLength;
                     }
                     return null;
                   },
@@ -201,12 +202,12 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                 DropdownButtonFormField<String>(
                   value: _selectedRole,
                   decoration: const InputDecoration(
-                    labelText: 'Rol',
+                    labelText: AppStrings.roleLabel,
                     prefixIcon: Icon(Icons.security_outlined),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'employee', child: Text('Empleado (Kiosk)')),
-                    DropdownMenuItem(value: 'admin', child: Text('Administrador')),
+                    DropdownMenuItem(value: 'employee', child: Text(AppStrings.roleEmployee)),
+                    DropdownMenuItem(value: 'admin', child: Text(AppStrings.roleAdmin)),
                   ],
                   onChanged: (val) {
                     if (val != null) {
@@ -260,7 +261,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                           ),
                         )
                       : Text(
-                          _isEditing ? 'Guardar cambios' : 'Agregar empleado',
+                          _isEditing ? AppStrings.saveChanges : AppStrings.addEmployee,
                           style: const TextStyle(fontSize: 16),
                         ),
                 ),

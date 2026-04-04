@@ -8,7 +8,7 @@ import 'package:worksense_app/shared/providers/sync_state_provider.dart' hide su
 import 'package:worksense_app/data/datasources/remote/supabase_datasource.dart';
 import 'package:worksense_app/shared/providers/auth_provider.dart';
 
-import '../../../../core/constants/app_constants.dart';
+import 'package:worksense_app/core/constants/app_constants.dart';
 
 // ── Repository Provider ───────────────────────────────────────────────────────
 
