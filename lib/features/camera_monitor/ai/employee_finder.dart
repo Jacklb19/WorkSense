@@ -1,4 +1,26 @@
-  import 'package:flutter/foundation.dart';
+/* 
+ * ARCHITECTURAL DECISION NOTE:
+ * The Artificial Intelligence (ML) code (embeddings, landmarks, tracking) is 
+ * intentionally kept here strictly inside `features/camera_monitor/ai/`.
+ * 
+ * In a previous refactor session, an empty `features/ai_pipeline/` directory 
+ * existed causing architectural ambiguity. After careful analysis, it was 
+ * determined that all computer vision and body/face signature calculations 
+ * are completely exclusive to the Kiosk camera monitor feature. 
+ * `camera_monitor` handles both live tracking (via EmployeeFinder) and the 
+ * setup phase (via EmployeeProfiler & EmployeeScanScreen). 
+ * 
+ * CONDITIONS FOR EXTRACTION:
+ * If the application scales to use these ML models OUTSIDE of the camera_monitor 
+ * context (e.g., a cross-feature requirement where employees upload profile 
+ * photos for validation from their own dashboards, or server-side CCTV video 
+ * processing), then — and only then — should this logic be extracted to its 
+ * own root feature module (like `features/ai_pipeline/`) to avoid circular 
+ * dependencies. Until then, keep it scoped to `camera_monitor` to adhere
+ * cleanly to Clean Architecture and avoid empty phantom folders.
+ */
+
+import 'package:flutter/foundation.dart';
   import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
   import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
   import 'package:worksense_app/features/camera_monitor/ai/body_signature.dart';

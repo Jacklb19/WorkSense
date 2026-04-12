@@ -1,3 +1,11 @@
+/* 
+ * ARCHITECTURAL DECISION NOTE:
+ * See employee_finder.dart for the full reasoning of why this ML pipeline code
+ * currently lives in `camera_monitor/ai/` instead of a standalone `ai_pipeline` 
+ * module. Keep computer vision logic scoped here unless cross-feature reuse 
+ * becomes absolutely necessary.
+ */
+
 import 'dart:ui' show Size;
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
