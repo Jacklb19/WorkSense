@@ -12,10 +12,21 @@ Future<void> main() async {
   // Cargar variables de entorno
   await dotenv.load();
 
+  // Fail-Fast: Validación de entorno al inicio
+  final supabaseUrl = dotenv.env['SUPABASE_URL'];
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
+  
+  if (supabaseUrl == null || supabaseUrl.isEmpty) {
+    throw Exception('🔥 Startup Error: SUPABASE_URL is missing from .env');
+  }
+  if (supabaseAnonKey == null || supabaseAnonKey.isEmpty) {
+    throw Exception('🔥 Startup Error: SUPABASE_ANON_KEY is missing from .env');
+  }
+
   // Inicializar Supabase
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL'] ?? '',
-    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
   );
 
   // Restaurar sesión al arrancar

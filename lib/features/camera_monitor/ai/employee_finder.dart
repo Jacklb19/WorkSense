@@ -1,3 +1,4 @@
+  import 'package:flutter/foundation.dart';
   import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
   import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
   import 'package:worksense_app/features/camera_monitor/ai/body_signature.dart';
@@ -42,6 +43,197 @@
         );
   }
 
+  // DTOs para comunicación con Isolate
+  class _FindInFrameParams {
+    final EmployeeProfile profile;
+    final List<_FaceData> faces;
+    final List<_PoseData> poses;
+    final int? lockedTrackingId;
+
+    _FindInFrameParams(this.profile, this.faces, this.poses, this.lockedTrackingId);
+  }
+
+  class _FaceData {
+    final int index;
+    final int? trackingId;
+    final List<double> rawEmbedding;
+    final double centerX;
+    final double centerY;
+
+    _FaceData(this.index, this.trackingId, this.rawEmbedding, this.centerX, this.centerY);
+  }
+
+  class _PoseData {
+    final int index;
+    final double noseX;
+    final double noseY;
+    final BodySignature? signature;
+
+    _PoseData(this.index, this.noseX, this.noseY, this.signature);
+  }
+
+  class _IsolatedFindResult {
+    final FindStatus status;
+    final int? faceIndex;
+    final int? poseIndex;
+    final double confidence;
+    final IdentificationMethod? identifiedBy;
+    final int? newLockedTrackingId;
+    final bool clearLockedTrackingId;
+
+    _IsolatedFindResult({
+      required this.status,
+      this.faceIndex,
+      this.poseIndex,
+      this.confidence = 0.0,
+      this.identifiedBy,
+      this.newLockedTrackingId,
+      this.clearLockedTrackingId = false,
+    });
+  }
+
+  _IsolatedFindResult _computeFindInFrameWorker(_FindInFrameParams params) {
+    int? currentLockedTrackingId = params.lockedTrackingId;
+    const double identityThreshold = EmployeeProfile.identityThreshold;
+    const double trackingBodyThreshold = 0.30;
+    const double maxFaceToPoseDistance = 200.0;
+
+    if (params.faces.isEmpty && params.poses.isEmpty) {
+      return _IsolatedFindResult(status: FindStatus.absent);
+    }
+
+    // Caso 2: optimización por trackingId
+    if (currentLockedTrackingId != null) {
+      final tracked = params.faces
+          .where((f) => f.trackingId == currentLockedTrackingId)
+          .firstOrNull;
+
+      if (tracked != null) {
+        final faceScore = tracked.rawEmbedding.any((v) => v != 0.0)
+            ? EmployeeProfile.cosineSimilarity(tracked.rawEmbedding, params.profile.faceEmbedding)
+            : null;
+
+        _PoseData? closestPose;
+        double minDist = double.infinity;
+        for (final p in params.poses) {
+          final dx = p.noseX - tracked.centerX;
+          final dy = p.noseY - tracked.centerY;
+          final dist = dx * dx + dy * dy;
+          if (dist < minDist && dist <= maxFaceToPoseDistance * maxFaceToPoseDistance) {
+            minDist = dist;
+            closestPose = p;
+          }
+        }
+
+        final bodyScore = closestPose?.signature != null && closestPose!.signature!.isValid
+            ? params.profile.bodySignature.similarityTo(closestPose.signature!)
+            : null;
+
+        final score = params.profile.matchScore(
+          faceScore: faceScore,
+          bodyScore: bodyScore,
+        );
+
+        if (score >= trackingBodyThreshold) {
+          return _IsolatedFindResult(
+            status: FindStatus.found,
+            faceIndex: tracked.index,
+            poseIndex: closestPose?.index,
+            confidence: score,
+            identifiedBy: IdentificationMethod.trackingId,
+            newLockedTrackingId: currentLockedTrackingId,
+          );
+        }
+      }
+    }
+
+    _FaceData? bestFace;
+    _PoseData? bestPose;
+    double bestScore = 0.0;
+    IdentificationMethod bestMethod = IdentificationMethod.faceEmbedding;
+
+    for (final face in params.faces) {
+      final faceScore = EmployeeProfile.cosineSimilarity(
+        face.rawEmbedding,
+        params.profile.faceEmbedding,
+      );
+
+      _PoseData? closestPose;
+      double minDist = double.infinity;
+      for (final p in params.poses) {
+        final dx = p.noseX - face.centerX;
+        final dy = p.noseY - face.centerY;
+        final dist = dx * dx + dy * dy;
+        if (dist < minDist && dist <= maxFaceToPoseDistance * maxFaceToPoseDistance) {
+          minDist = dist;
+          closestPose = p;
+        }
+      }
+
+      final bodyScore =
+          closestPose?.signature != null && closestPose!.signature!.isValid
+              ? params.profile.bodySignature.similarityTo(closestPose.signature!)
+              : null;
+
+      IdentificationMethod method;
+      if (faceScore > 0 && bodyScore != null) {
+        method = IdentificationMethod.combined;
+      } else if (faceScore > 0) {
+        method = IdentificationMethod.faceEmbedding;
+      } else {
+        method = IdentificationMethod.body;
+      }
+
+      final combined = params.profile.matchScore(
+        faceScore: faceScore > 0 ? faceScore : null,
+        bodyScore: bodyScore,
+      );
+
+      if (combined > bestScore) {
+        bestScore = combined;
+        bestFace = face;
+        bestPose = closestPose;
+        bestMethod = method;
+      }
+    }
+
+    if (bestScore >= identityThreshold && bestFace != null) {
+      return _IsolatedFindResult(
+        status: FindStatus.found,
+        faceIndex: bestFace.index,
+        poseIndex: bestPose?.index,
+        confidence: bestScore,
+        identifiedBy: bestMethod,
+        newLockedTrackingId: bestFace.trackingId,
+        clearLockedTrackingId: true,
+      );
+    }
+
+    if (bestScore >= identityThreshold * 0.75 && bestFace != null) {
+      return _IsolatedFindResult(
+        status: FindStatus.found,
+        faceIndex: bestFace.index,
+        poseIndex: bestPose?.index,
+        confidence: bestScore,
+        identifiedBy: bestMethod,
+        newLockedTrackingId: bestFace.trackingId,
+        clearLockedTrackingId: true,
+      );
+    }
+
+    if (params.faces.isNotEmpty || params.poses.isNotEmpty) {
+      return _IsolatedFindResult(
+        status: FindStatus.outsideArea,
+        clearLockedTrackingId: true,
+      );
+    }
+
+    return _IsolatedFindResult(
+      status: FindStatus.absent,
+      clearLockedTrackingId: true,
+    );
+  }
+
   /// Motor de búsqueda del empleado en tiempo real.
   /// Se instancia una vez al iniciar el Kiosk y se reutiliza en cada frame.
   class EmployeeFinder {
@@ -51,188 +243,92 @@
     int _consecutiveMisses = 0;
     DateTime? _lastFoundTime;
 
-    static const double _identityThreshold = EmployeeProfile.identityThreshold;
-    static const double _trackingBodyThreshold = 0.30;
     static const int _maxConsecutiveMisses = 5;
-    static const double _maxFaceToPoseDistance = 200.0;
 
     EmployeeFinder(this._profile);
 
     EmployeeProfile get profile => _profile;
 
-    /// Busca al empleado en el frame actual.
+    /// Busca al empleado en el frame actual aislando los calculos pesados
+    /// del UI thread para prevenir caida de frames.
     Future<FindResult> findInFrame({
       required List<Face> detectedFaces,
       required List<Pose> detectedPoses,
     }) async {
-      // Caso 1: nadie en cámara
-      if (detectedFaces.isEmpty && detectedPoses.isEmpty) {
-        _consecutiveMisses++;
-        if (_consecutiveMisses >= _maxConsecutiveMisses) _lockedTrackingId = null;
-        return FindResult.absent();
+      // 1. Extraer a DTOs serializables en el main thread (rápido)
+      final facesDto = <_FaceData>[];
+      for (int i = 0; i < detectedFaces.length; i++) {
+        final face = detectedFaces[i];
+        final centerX = face.boundingBox.left + face.boundingBox.width / 2;
+        final centerY = face.boundingBox.top + face.boundingBox.height / 2;
+        facesDto.add(_FaceData(
+          i,
+          face.trackingId,
+          extractFaceEmbedding(face),
+          centerX,
+          centerY,
+        ));
       }
 
-      // Caso 2: optimización por trackingId (rápido)
-      if (_lockedTrackingId != null) {
-        final tracked = detectedFaces
-            .where((f) => f.trackingId == _lockedTrackingId)
-            .firstOrNull;
-
-        if (tracked != null) {
-          // Extraer embedding facial del frame actual
-          final faceEmb = extractFaceEmbedding(tracked);
-          final faceScore = faceEmb.any((v) => v != 0.0)
-              ? EmployeeProfile.cosineSimilarity(faceEmb, _profile.faceEmbedding)
-              : null;
-
-          final closestPose = _closestPoseTo(tracked, detectedPoses);
-          final bodyScore = closestPose != null
-              ? _calculateBodyScore(closestPose)
-              : null;
-
-          final score = _profile.matchScore(
-            faceScore: faceScore,
-            bodyScore: bodyScore,
-          );
-
-          if (score >= _trackingBodyThreshold) {
-            _consecutiveMisses = 0;
-            _lastFoundTime = DateTime.now();
-            return FindResult.found(
-              face: tracked,
-              pose: closestPose,
-              confidence: score,
-              method: IdentificationMethod.trackingId,
-            );
-          }
+      final posesDto = <_PoseData>[];
+      for (int i = 0; i < detectedPoses.length; i++) {
+        final pose = detectedPoses[i];
+        final nose = pose.landmarks[PoseLandmarkType.nose];
+        if (nose != null) {
+          posesDto.add(_PoseData(
+            i,
+            nose.x,
+            nose.y,
+            BodySignature.fromPose(pose),
+          ));
         }
+      }
 
-        // Si el trackingId falló (cara no encontrada o score insuficiente),
-        // limpiar para permitir que el Caso 3 ejecute en este mismo frame.
+      final params = _FindInFrameParams(
+        _profile,
+        facesDto,
+        posesDto,
+        _lockedTrackingId,
+      );
+
+      // 2. Ejecutar cálculo pesado en Isolate
+      final isolatedResult = await compute(_computeFindInFrameWorker, params);
+
+      // 3. Manejar el regreso del estado local
+      if (isolatedResult.clearLockedTrackingId) {
         _lockedTrackingId = null;
       }
-
-      // Caso 3: búsqueda completa por embedding facial
-      // (siempre ejecuta si llegamos aquí, porque el Caso 2 ya limpió _lockedTrackingId)
-      _lockedTrackingId = null;
-
-      Face? bestFace;
-      Pose? bestPose;
-      double bestScore = 0.0;
-      IdentificationMethod bestMethod = IdentificationMethod.faceEmbedding;
-
-      print('[FINDER] Profile faceEmbedding length: ${_profile.faceEmbedding.length}');
-      print('[FINDER] Profile bodySignature valid: ${_profile.bodySignature.isValid}');
-      print('[FINDER] Faces detectadas: ${detectedFaces.length}');
-
-      for (final face in detectedFaces) {
-        final faceEmb = extractFaceEmbedding(face);
-        final faceScore = EmployeeProfile.cosineSimilarity(
-          faceEmb,
-          _profile.faceEmbedding,
-        );
-        print('[FINDER] faceEmb length: ${faceEmb.length}, score: $faceScore');
-        print('[FINDER] face landmarks count: ${face.landmarks.length}');
-
-        final closestPose = _closestPoseTo(face, detectedPoses);
-        final bodyScore =
-            closestPose != null ? _calculateBodyScore(closestPose) : null;
-
-        IdentificationMethod method;
-        if (faceScore > 0 && bodyScore != null) {
-          method = IdentificationMethod.combined;
-        } else if (faceScore > 0) {
-          method = IdentificationMethod.faceEmbedding;
-        } else {
-          method = IdentificationMethod.body;
-        }
-
-        final combined = _profile.matchScore(
-          faceScore: faceScore > 0 ? faceScore : null,
-          bodyScore: bodyScore,
-        );
-
-        if (combined > bestScore) {
-          bestScore = combined;
-          bestFace = face;
-          bestPose = closestPose;
-          bestMethod = method;
-        }
+      
+      if (isolatedResult.newLockedTrackingId != null) {
+        _lockedTrackingId = isolatedResult.newLockedTrackingId;
       }
 
-      if (bestScore >= _identityThreshold && bestFace != null) {
-        _lockedTrackingId = bestFace.trackingId;
-        _consecutiveMisses = 0;
-        _lastFoundTime = DateTime.now();
-        return FindResult.found(
-          face: bestFace,
-          pose: bestPose,
-          confidence: bestScore,
-          method: bestMethod,
-        );
-      }
-
-      // Confianza parcial — aceptar con tracking pero sin bloqueo fuerte
-      if (bestScore >= _identityThreshold * 0.75 && bestFace != null) {
-        _lockedTrackingId = bestFace.trackingId;
-        _consecutiveMisses = 0;
-        _lastFoundTime = DateTime.now();
-        return FindResult.found(
-          face: bestFace,
-          pose: bestPose,
-          confidence: bestScore,
-          method: bestMethod,
-        );
-      }
-
-      // Si hay personas pero ninguna es el empleado
-      if (detectedFaces.isNotEmpty || detectedPoses.isNotEmpty) {
+      if (isolatedResult.status == FindStatus.absent || isolatedResult.status == FindStatus.outsideArea) {
         _consecutiveMisses++;
-        return FindResult.outsideArea();
-      }
-
-      _consecutiveMisses++;
-      return FindResult.absent();
-    }
-
-    /// Encuentra la pose más cercana a una cara (por posición de nariz).
-    Pose? _closestPoseTo(Face face, List<Pose> poses) {
-      if (poses.isEmpty) return null;
-
-      final faceCenterX =
-          face.boundingBox.left + face.boundingBox.width / 2;
-      final faceCenterY =
-          face.boundingBox.top + face.boundingBox.height / 2;
-
-      Pose? closest;
-      double minDist = double.infinity;
-
-      for (final pose in poses) {
-        final nose = pose.landmarks[PoseLandmarkType.nose];
-        if (nose == null) continue;
-
-        final dx = nose.x - faceCenterX;
-        final dy = nose.y - faceCenterY;
-        final dist = dx * dx + dy * dy;
-
-        if (dist < minDist) {
-          minDist = dist;
-          closest = pose;
+        if (_consecutiveMisses >= _maxConsecutiveMisses) {
+          _lockedTrackingId = null;
         }
+      } else {
+        _consecutiveMisses = 0;
+        _lastFoundTime = DateTime.now();
       }
 
-      // Rechazar si la distancia es mayor al umbral
-      if (minDist > _maxFaceToPoseDistance * _maxFaceToPoseDistance) return null;
-      return closest;
+      // 4. Mapear al modelo que requiere objetos nativos (Face y Pose)
+      if (isolatedResult.status == FindStatus.found && isolatedResult.faceIndex != null) {
+        return FindResult.found(
+          face: detectedFaces[isolatedResult.faceIndex!],
+          pose: isolatedResult.poseIndex != null ? detectedPoses[isolatedResult.poseIndex!] : null,
+          confidence: isolatedResult.confidence,
+          method: isolatedResult.identifiedBy!,
+        );
+      } else if (isolatedResult.status == FindStatus.outsideArea) {
+        return FindResult.outsideArea();
+      } else {
+        return FindResult.absent();
+      }
     }
 
-    double _calculateBodyScore(Pose pose) {
-      final sig = BodySignature.fromPose(pose);
-      if (sig == null || !sig.isValid) return 0.0;
-      return _profile.bodySignature.similarityTo(sig);
-    }
-
-    /// Extrae embedding facial geométrico de los landmarks de la cara.
+    /// Extrae embedding facial geométrico de los landmarks de la cara. (ejecuta rápido)
     static List<double> extractFaceEmbedding(Face face) {
       final box = face.boundingBox;
       final w = box.width.clamp(1.0, double.infinity);
@@ -265,7 +361,6 @@
       return embedding;
     }
 
-    /// Resetea el estado interno (llamar al reiniciar el Kiosk o re-escanear).
     void reset() {
       _lockedTrackingId = null;
       _consecutiveMisses = 0;

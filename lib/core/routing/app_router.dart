@@ -4,10 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:worksense_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/kiosk_screen.dart';
+import 'package:worksense_app/features/camera_monitor/presentation/screens/kiosk_waiting_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/activity_history_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/admin_analytics_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/employee_detail_analytics_screen.dart';
+import 'package:worksense_app/features/dashboard/presentation/screens/my_activity_screen.dart';
+import 'package:worksense_app/features/dashboard/presentation/screens/my_hours_screen.dart';
 import 'package:worksense_app/features/employees/presentation/screens/employee_form_screen.dart';
 import 'package:worksense_app/features/employees/presentation/screens/employees_list_screen.dart';
 import 'package:worksense_app/features/settings/presentation/screens/settings_screen.dart';
@@ -17,6 +20,7 @@ import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/home_employee_screen.dart';
 import 'package:worksense_app/core/constants/constants.dart';
 import 'package:worksense_app/core/navigation/scaffold_with_bottom_nav.dart';
+import 'package:worksense_app/core/routing/route_error_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final GlobalKey<NavigatorState> _shellNavigatorDashboardKey = GlobalKey<NavigatorState>(debugLabel: 'shellDashboard');
@@ -233,23 +237,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.kioskWaiting,
         name: 'kiosk-waiting',
-        pageBuilder: (context, state) => NoTransitionPage(
-          child: Consumer(
-            builder: (context, ref, child) {
-              return Scaffold(
-                appBar: AppBar(
-                  title: const Text('Configuración'),
-                  actions: [
-                    IconButton(
-                      icon: const Icon(Icons.logout),
-                      onPressed: () => ref.read(loginNotifierProvider.notifier).signOut(),
-                    ),
-                  ],
-                ),
-                body: const Center(child: Text('Dispositivo no configurado')),
-              );
-            },
-          ),
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: KioskWaitingScreen(),
         ),
       ),
       GoRoute(
@@ -262,53 +251,21 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.myActivity,
         name: 'my-activity',
-        pageBuilder: (context, state) => NoTransitionPage(
-          child: Consumer(
-            builder: (context, ref, child) {
-              return Scaffold(
-                appBar: AppBar(
-                  title: const Text('Mi Actividad'),
-                  actions: [
-                    IconButton(
-                      icon: const Icon(Icons.logout),
-                      onPressed: () => ref.read(loginNotifierProvider.notifier).signOut(),
-                    ),
-                  ],
-                ),
-                body: const Center(child: Text('Panel de empleado — Próximamente')),
-              );
-            },
-          ),
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: MyActivityScreen(),
         ),
       ),
       GoRoute(
         path: AppRoutes.myHours,
         name: 'my-hours',
-        pageBuilder: (context, state) => NoTransitionPage(
-          child: Consumer(
-            builder: (context, ref, child) {
-              return Scaffold(
-                appBar: AppBar(
-                  title: const Text('Mis Horas'),
-                  actions: [
-                    IconButton(
-                      icon: const Icon(Icons.logout),
-                      onPressed: () => ref.read(loginNotifierProvider.notifier).signOut(),
-                    ),
-                  ],
-                ),
-                body: const Center(child: Text('Mis horas — Próximamente')),
-              );
-            },
-          ),
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: MyHoursScreen(),
         ),
       ),
 
-
-
     ],
     errorPageBuilder: (context, state) => MaterialPage(
-      child: _RouteErrorScreen(error: state.error?.message ?? 'Ruta no encontrada'),
+      child: RouteErrorScreen(error: state.error?.message ?? 'Ruta no encontrada'),
     ),
   );
 });
@@ -324,30 +281,3 @@ class _AuthNotifier extends ChangeNotifier {
   }
 }
 
-class _RouteErrorScreen extends StatelessWidget {
-  final String error;
-
-  const _RouteErrorScreen({required this.error});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Página no encontrada')),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.map_outlined, size: 48, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(error),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () => context.go(AppRoutes.dashboard),
-              child: const Text('Ir al dashboard'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
