@@ -5,6 +5,10 @@ import 'package:worksense_app/core/constants/app_constants.dart';
 import 'package:worksense_app/core/constants/ai_thresholds.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
+import 'package:worksense_app/core/theme/app_radius.dart';
+import 'package:worksense_app/shared/widgets/ws_card.dart';
+import 'package:worksense_app/shared/widgets/primary_button.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 
 // Settings provider using shared_preferences
@@ -51,25 +55,65 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final userEmail = ref.watch(currentUserEmailProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.settings),
-      ),
+      backgroundColor: AppColors.bgBase,
       body: ListView(
+        padding: const EdgeInsets.all(AppSpacing.xl),
         children: [
-          // ── Account section ─────────────────────────────────────
+          // ── Header ──────────────────────────────────
+          Text('Settings', style: theme.textTheme.titleMedium),
+          const SizedBox(height: AppSpacing.xxl),
+
+          // ── Account Section ─────────────────────────
           _SectionHeader(title: AppStrings.accountSection),
-          ListTile(
-            leading: const Icon(Icons.account_circle_outlined),
-            title: const Text(AppStrings.user),
-            subtitle: Text(userEmail ?? AppStrings.notAvailable),
+          const SizedBox(height: AppSpacing.sm),
+          WsCard(
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primaryDark,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      (userEmail ?? '?')[0].toUpperCase(),
+                      style: const TextStyle(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppStrings.user,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        userEmail ?? AppStrings.notAvailable,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
+          const SizedBox(height: AppSpacing.xxl),
 
-          const Divider(),
-
-          // ── AI Pipeline section ──────────────────────────────────
+          // ── Activity Analysis Section ────────────────
           _SectionHeader(title: AppStrings.activityAnalysis),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+          const SizedBox(height: AppSpacing.sm),
+          WsCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -89,100 +133,100 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ],
                 ),
-                Slider(
-                  value: analysisInterval.toDouble(),
-                  min: 10,
-                  max: 120,
-                  divisions: 22,
-                  label: '$analysisInterval seg',
-                  onChanged: (value) {
-                    ref
-                        .read(analysisIntervalProvider.notifier)
-                        .setInterval(value.round());
-                  },
+                const SizedBox(height: AppSpacing.sm),
+                SliderTheme(
+                  data: SliderThemeData(
+                    activeTrackColor: AppColors.primary,
+                    inactiveTrackColor: AppColors.borderColor,
+                    thumbColor: AppColors.primary,
+                    overlayColor: AppColors.primary.withValues(alpha: 0.2),
+                    trackHeight: 4,
+                  ),
+                  child: Slider(
+                    value: analysisInterval.toDouble(),
+                    min: 10,
+                    max: 120,
+                    divisions: 22,
+                    label: '$analysisInterval seg',
+                    onChanged: (value) {
+                      ref
+                          .read(analysisIntervalProvider.notifier)
+                          .setInterval(value.round());
+                    },
+                  ),
                 ),
                 Text(
                   'Frecuencia con la que se analiza la actividad del trabajador. '
                   'Valores menores son más precisos pero consumen más batería.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.grey500,
+                    color: AppColors.textMuted,
                   ),
                 ),
-                const SizedBox(height: 16),
               ],
             ),
           ),
+          const SizedBox(height: AppSpacing.xxl),
 
-          const Divider(),
-
-          // ── Thresholds info ──────────────────────────────────────
+          // ── Detection Thresholds ────────────────────
           _SectionHeader(title: AppStrings.detectionThresholds),
-          _ThresholdTile(
-            label: AppStrings.maxYawLabel,
-            value: '${AiThresholds.maxYawAngle}°',
+          const SizedBox(height: AppSpacing.sm),
+          WsCard(
+            child: Column(
+              children: [
+                _ThresholdRow(
+                  label: AppStrings.maxYawLabel,
+                  value: '${AiThresholds.maxYawAngle}°',
+                ),
+                _ThresholdRow(
+                  label: AppStrings.minPitchLabel,
+                  value: '${AiThresholds.minPitchAngle}°',
+                ),
+                _ThresholdRow(
+                  label: AppStrings.maxRollLabel,
+                  value: '${AiThresholds.maxRollAngle}°',
+                ),
+                _ThresholdRow(
+                  label: AppStrings.minPoseConfidenceLabel,
+                  value: '${(AiThresholds.minPoseConfidence * 100).toInt()}%',
+                ),
+                _ThresholdRow(
+                  label: AppStrings.inactivityThresholdLabel,
+                  value: '${AiThresholds.inactivityThresholdSeconds} seg',
+                  isLast: true,
+                ),
+              ],
+            ),
           ),
-          _ThresholdTile(
-            label: AppStrings.minPitchLabel,
-            value: '${AiThresholds.minPitchAngle}°',
-          ),
-          _ThresholdTile(
-            label: AppStrings.maxRollLabel,
-            value: '${AiThresholds.maxRollAngle}°',
-          ),
-          _ThresholdTile(
-            label: AppStrings.minPoseConfidenceLabel,
-            value: '${(AiThresholds.minPoseConfidence * 100).toInt()}%',
-          ),
-          _ThresholdTile(
-            label: AppStrings.inactivityThresholdLabel,
-            value: '${AiThresholds.inactivityThresholdSeconds} seg',
-          ),
+          const SizedBox(height: AppSpacing.xxl),
 
-          const Divider(),
-
-          // ── App info ─────────────────────────────────────────────
+          // ── App Info ────────────────────────────────
           _SectionHeader(title: AppStrings.about),
-          ListTile(
-            leading: const Icon(Icons.info_outline),
-            title: const Text(AppStrings.version),
-            trailing: Text(
-              AppConstants.appVersion,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.grey500,
-              ),
+          const SizedBox(height: AppSpacing.sm),
+          WsCard(
+            child: Column(
+              children: [
+                _ThresholdRow(
+                  label: AppStrings.version,
+                  value: AppConstants.appVersion,
+                ),
+                _ThresholdRow(
+                  label: AppStrings.application,
+                  value: AppConstants.appName,
+                  isLast: true,
+                ),
+              ],
             ),
           ),
-          ListTile(
-            leading: const Icon(Icons.apps),
-            title: const Text(AppStrings.application),
-            trailing: Text(
-              AppConstants.appName,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.grey500,
-              ),
-            ),
-          ),
+          const SizedBox(height: AppSpacing.xxl),
 
-          const Divider(),
-
-          // ── Logout ───────────────────────────────────────────────
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: OutlinedButton.icon(
-              onPressed: () => _handleLogout(context, ref),
-              icon: const Icon(Icons.logout, color: AppColors.error),
-              label: const Text(
-                AppStrings.logout,
-                style: TextStyle(color: AppColors.error),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.error),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-            ),
+          // ── Logout ──────────────────────────────────
+          PrimaryButton(
+            label: AppStrings.logout,
+            backgroundColor: AppColors.dangerCardBg,
+            foregroundColor: AppColors.dangerCardFg,
+            onTap: () => _handleLogout(context, ref),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.xxl),
         ],
       ),
     );
@@ -192,6 +236,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.elevated,
         title: const Text(AppStrings.logout),
         content: const Text(AppStrings.logoutConfirmation),
         actions: [
@@ -201,8 +246,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style:
-                FilledButton.styleFrom(backgroundColor: AppColors.error),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text(AppStrings.logout),
           ),
         ],
@@ -217,47 +261,56 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
-
   const _SectionHeader({required this.title});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: AppColors.primary,
-          letterSpacing: 0.5,
-        ),
-      ),
+    return Text(
+      title.toUpperCase(),
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: AppColors.primary,
+            letterSpacing: 1.0,
+          ),
     );
   }
 }
 
-class _ThresholdTile extends StatelessWidget {
+class _ThresholdRow extends StatelessWidget {
   final String label;
   final String value;
+  final bool isLast;
 
-  const _ThresholdTile({required this.label, required this.value});
+  const _ThresholdRow({
+    required this.label,
+    required this.value,
+    this.isLast = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      dense: true,
-      title: Text(
-        label,
-        style: const TextStyle(fontSize: 13),
-      ),
-      trailing: Text(
-        value,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: AppColors.grey600,
-        ),
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      decoration: isLast
+          ? null
+          : const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: AppColors.borderColor, width: 0.5),
+              ),
+            ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: theme.textTheme.bodySmall?.copyWith(fontSize: 13)),
+          Text(
+            value,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w500,
+              fontSize: 13,
+            ),
+          ),
+        ],
       ),
     );
   }

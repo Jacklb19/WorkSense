@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
+import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
+import 'package:worksense_app/core/theme/app_radius.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/widgets/ws_card.dart';
+import 'package:worksense_app/shared/widgets/status_badge.dart';
+import 'package:worksense_app/shared/widgets/activity_bar_row.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
-import 'package:worksense_app/shared/widgets/sync_indicator_widget.dart';
 
 class EmployeeDashboardScreen extends ConsumerWidget {
   const EmployeeDashboardScreen({super.key});
@@ -16,84 +22,97 @@ class EmployeeDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final userState = ref.watch(currentUserProvider);
-    final userEmail = userState.valueOrNull?.user?.email ?? AppStrings.employee;
+    final userEmail = userState.valueOrNull?.user?.email ?? 'Employee';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.mySpace),
-        centerTitle: false,
-        actions: [
-          const SyncIndicatorWidget(),
-          const SizedBox(width: 8),
-        ],
-      ),
+      backgroundColor: AppColors.bgBase,
       body: RefreshIndicator(
+        color: AppColors.primary,
+        backgroundColor: AppColors.elevated,
         onRefresh: () async {
           ref.invalidate(employeeAssignedWorkstationProvider);
           ref.invalidate(employeeTodayAnalyticsProvider);
-          // employeeRecentEventsProvider is a stream so it updates automatically
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(AppSpacing.xl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header
+              // ── Header ──────────────────────────────────
               Text(
-                'Hola, $userEmail',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                'My Dashboard',
+                style: theme.textTheme.titleMedium,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xs),
               Text(
-                AppStrings.todaySummary,
+                'Good morning, $userEmail',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.grey500,
+                  color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
 
-              // Section 1: Assigned Workstation
-              const Text(
-                AppStrings.assignedWorkstation,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  color: AppColors.grey600,
-                ),
-              ),
-              const SizedBox(height: 8),
+              // ── Section 1: Assigned Workstation ─────────
               const _AssignedWorkstationSection(),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
 
-              // Section 2: Personal Productivity
-              const Text(
-                AppStrings.myProductivityToday,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+              // ── Section 2: Personal Productivity ────────
+              Text(
+                'MY PRODUCTIVITY TODAY',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: AppColors.textMuted,
                   letterSpacing: 1.2,
-                  color: AppColors.grey600,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               const _PersonalProductivitySection(),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
 
-              // Section 3: Recent Activity Feed
-              const Text(
-                AppStrings.recentActivityLive,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+              // ── Quick Access ────────────────────────────
+              Text(
+                'Quick access',
+                style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                children: [
+                  Expanded(
+                    child: _QuickAccessCard(
+                      emoji: '🕐',
+                      label: 'My Hours',
+                      onTap: () => context.push(AppRoutes.myHours),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: _QuickAccessCard(
+                      emoji: '📊',
+                      label: 'Activity',
+                      onTap: () => context.push(AppRoutes.myActivity),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: _QuickAccessCard(
+                      emoji: '👤',
+                      label: 'Profile',
+                      onTap: () => context.push(AppRoutes.settings),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+
+              // ── Section 3: Recent Activity ──────────────
+              Text(
+                'RECENT ACTIVITY',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: AppColors.textMuted,
                   letterSpacing: 1.2,
-                  color: AppColors.grey600,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               const _RecentActivitySection(),
               const SizedBox(height: 40),
             ],
@@ -104,151 +123,179 @@ class EmployeeDashboardScreen extends ConsumerWidget {
   }
 }
 
-// ── Assigned Workstation ──────────────────────────────────────────────────────
+// ── Quick Access Card ─────────────────────────────────────────────
+class _QuickAccessCard extends StatelessWidget {
+  final String emoji;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickAccessCard({
+    required this.emoji,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: WsCard(
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.lg,
+          horizontal: AppSpacing.md,
+        ),
+        child: Column(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 24)),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Assigned Workstation Section ─────────────────────────────────
 class _AssignedWorkstationSection extends ConsumerWidget {
   const _AssignedWorkstationSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final workstationAsync = ref.watch(employeeAssignedWorkstationProvider);
+    final theme = Theme.of(context);
 
     return workstationAsync.when(
       loading: () => const AppLoadingWidget(message: AppStrings.verifyingWorkstation),
-      error: (e, _) => Card(
-        color: AppColors.error.withValues(alpha: 0.1),
-        child: const Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text(AppStrings.errorLoadingWorkstation),
+      error: (e, _) => WsCard(
+        type: CardType.surface,
+        child: Text(
+          AppStrings.errorLoadingWorkstation,
+          style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.error),
         ),
       ),
       data: (workstation) {
         if (workstation == null) {
-          return const _NoWorkstationCard();
+          return WsCard(
+            child: Row(
+              children: [
+                Icon(Icons.desktop_access_disabled,
+                    color: AppColors.textMuted, size: 32),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppStrings.noAssignedWorkstation,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        AppStrings.noAssignedWorkstationDescription,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
         }
-        return _WorkstationCard(workstation: workstation);
+        return _WorkstationStatusCard(workstation: workstation);
       },
     );
   }
 }
 
-class _NoWorkstationCard extends StatelessWidget {
-  const _NoWorkstationCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: AppColors.grey300),
-      ),
-      child: const Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Icon(Icons.desktop_access_disabled, color: AppColors.grey500, size: 32),
-            SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppStrings.noAssignedWorkstation,
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    AppStrings.noAssignedWorkstationDescription,
-                    style: TextStyle(color: AppColors.grey600, fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _WorkstationCard extends StatelessWidget {
+class _WorkstationStatusCard extends StatelessWidget {
   final WorkstationRecord workstation;
-  const _WorkstationCard({required this.workstation});
+  const _WorkstationStatusCard({required this.workstation});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shadowColor: Colors.black12,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.computer, color: AppColors.primary),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    workstation.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+    final theme = Theme.of(context);
+    return WsCard(
+      type: CardType.accent,
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const StatusBadge(state: ActivityState.trabajando),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  workstation.name,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: AppColors.success,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        AppStrings.monitoringAssigned,
-                        style: TextStyle(color: AppColors.grey600, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+                Text(
+                  AppStrings.monitoringAssigned,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                'Active',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.stateWorking,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppColors.stateWorking,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
-// ── Personal Productivity ───────────────────────────────────────────────────
+// ── Personal Productivity Section ───────────────────────────────
 class _PersonalProductivitySection extends ConsumerWidget {
   const _PersonalProductivitySection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final analyticsAsync = ref.watch(employeeTodayAnalyticsProvider);
+    final theme = Theme.of(context);
 
     return analyticsAsync.when(
       loading: () => const AppLoadingWidget(message: AppStrings.calculatingTime),
-      error: (e, _) => const Text(AppStrings.couldNotLoadMetrics),
+      error: (e, _) => Text(
+        AppStrings.couldNotLoadMetrics,
+        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.error),
+      ),
       data: (analytics) {
         if (analytics == null || !analytics.hasData) {
-          return const Card(
-            elevation: 0,
-            child: Padding(
-              padding: EdgeInsets.all(24.0),
-              child: Center(
-                child: Text(AppStrings.noActivityToday, style: TextStyle(color: AppColors.grey600)),
+          return WsCard(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.xxl),
+                child: Text(
+                  AppStrings.noActivityToday,
+                  style: theme.textTheme.bodySmall,
+                ),
               ),
             ),
           );
@@ -256,49 +303,47 @@ class _PersonalProductivitySection extends ConsumerWidget {
 
         final totalDuration = analytics.totalTrackedTime;
         final workTime = analytics.stateDurations[ActivityState.trabajando] ?? Duration.zero;
+        final idleTime = analytics.stateDurations[ActivityState.inactivo] ?? Duration.zero;
         final distractTime = analytics.stateDurations[ActivityState.distraido] ?? Duration.zero;
         final fatigueTime = analytics.stateDurations[ActivityState.fatiga] ?? Duration.zero;
 
-        // Custom widget to draw simple bars
-        return Card(
-          elevation: 2,
-          shadowColor: Colors.black12,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Tiempo total: ${_formatDuration(totalDuration)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        double pct(Duration d) =>
+            totalDuration.inSeconds > 0
+                ? d.inSeconds / totalDuration.inSeconds
+                : 0.0;
+
+        return WsCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Total: ${_formatDuration(totalDuration)}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(height: 16),
-                _StatBarRow(
-                  label: 'Trabajando',
-                  duration: workTime,
-                  total: totalDuration,
-                  color: AppColors.primary,
-                  icon: Icons.work,
-                ),
-                const SizedBox(height: 12),
-                _StatBarRow(
-                  label: 'Distraído',
-                  duration: distractTime,
-                  total: totalDuration,
-                  color: AppColors.warning,
-                  icon: Icons.search,
-                ),
-                const SizedBox(height: 12),
-                _StatBarRow(
-                  label: 'Fatiga',
-                  duration: fatigueTime,
-                  total: totalDuration,
-                  color: AppColors.error,
-                  icon: Icons.warning_amber_rounded,
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              ActivityBarRow(
+                label: 'Working',
+                color: AppColors.stateWorking,
+                percent: pct(workTime),
+              ),
+              ActivityBarRow(
+                label: 'Idle',
+                color: AppColors.stateInactive,
+                percent: pct(idleTime),
+              ),
+              ActivityBarRow(
+                label: 'Distracted',
+                color: AppColors.stateDistracted,
+                percent: pct(distractTime),
+              ),
+              ActivityBarRow(
+                label: 'Fatigue',
+                color: AppColors.stateFatigue,
+                percent: pct(fatigueTime),
+              ),
+            ],
           ),
         );
       },
@@ -312,124 +357,106 @@ class _PersonalProductivitySection extends ConsumerWidget {
   }
 }
 
-class _StatBarRow extends StatelessWidget {
-  final String label;
-  final Duration duration;
-  final Duration total;
-  final Color color;
-  final IconData icon;
-
-  const _StatBarRow({
-    required this.label,
-    required this.duration,
-    required this.total,
-    required this.color,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final double percentage = total.inSeconds > 0 
-      ? (duration.inSeconds / total.inSeconds)
-      : 0.0;
-      
-    String formatDuration(Duration d) {
-      if (d.inMinutes < 1) return '${d.inSeconds}s';
-      if (d.inHours < 1) return '${d.inMinutes}m';
-      return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
-    }
-
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: color),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 80,
-          child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-        ),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: percentage,
-              backgroundColor: color.withValues(alpha: 0.1),
-              color: color,
-              minHeight: 8,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        SizedBox(
-          width: 45,
-          child: Text(
-            formatDuration(duration),
-            textAlign: TextAlign.right,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-
-// ── Recent Activity Feed ────────────────────────────────────────────────────
+// ── Recent Activity Feed ────────────────────────────────────────
 class _RecentActivitySection extends ConsumerWidget {
   const _RecentActivitySection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final eventsAsync = ref.watch(employeeRecentEventsProvider);
+    final theme = Theme.of(context);
 
     return eventsAsync.when(
       loading: () => const AppLoadingWidget(),
-      error: (e, _) => const Text(AppStrings.errorLoadingHistory),
+      error: (e, _) => Text(
+        AppStrings.errorLoadingHistory,
+        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.error),
+      ),
       data: (events) {
         if (events.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Center(child: Text(AppStrings.noRecentEvents, style: TextStyle(color: AppColors.grey500))),
+          return Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Center(
+              child: Text(
+                AppStrings.noRecentEvents,
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
           );
         }
 
-        return Card(
-          elevation: 2,
-          shadowColor: Colors.black12,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        return WsCard(
+          padding: const EdgeInsets.all(0),
           child: ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: events.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, __) => const Divider(
+              height: 1,
+              color: AppColors.borderColor,
+            ),
             itemBuilder: (context, index) {
               final event = events[index];
-              return ListTile(
-                leading: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: event.state.color,
-                    shape: BoxShape.circle,
-                  ),
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
                 ),
-                title: Text(
-                  event.state.label,
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
-                subtitle: Text(_formatTime(event.timestamp)),
-                trailing: event.identificationMethod != null
-                    ? Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: event.state.color,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: event.state.color.withValues(alpha: 0.4),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            event.state.label,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            _formatTime(event.timestamp),
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (event.identificationMethod != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: AppColors.grey200,
-                          borderRadius: BorderRadius.circular(4),
+                          color: AppColors.elevated,
+                          borderRadius: AppRadius.smAll,
+                          border: Border.all(color: AppColors.borderColor),
                         ),
                         child: Text(
                           event.identificationMethod!,
-                          style: const TextStyle(fontSize: 10, color: AppColors.grey700),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.textMuted,
+                            fontSize: 9,
+                          ),
                         ),
-                      )
-                    : null,
+                      ),
+                  ],
+                ),
               );
             },
           ),

@@ -3,6 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
+import 'package:worksense_app/core/theme/app_radius.dart';
+import 'package:worksense_app/shared/widgets/ws_card.dart';
+import 'package:worksense_app/shared/widgets/app_text_field.dart';
+import 'package:worksense_app/shared/widgets/primary_button.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 
 class EmployeeFormScreen extends ConsumerStatefulWidget {
@@ -23,13 +28,13 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
   final _passwordController = TextEditingController();
   String _selectedRole = 'employee';
   bool _hasListened = false;
+  int _currentStep = 0; // 0=Info, 1=Account, 2=Biometric
 
   bool get _isEditing => widget.employeeId != null;
 
   @override
   void initState() {
     super.initState();
-    // Reset form state when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(employeeFormNotifierProvider.notifier).reset();
     });
@@ -60,6 +65,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
   @override
   Widget build(BuildContext context) {
     final formState = ref.watch(employeeFormNotifierProvider);
+    final theme = Theme.of(context);
 
     // Listen for successful save and navigate back
     ref.listen<EmployeeFormState>(employeeFormNotifierProvider, (_, next) {
@@ -72,7 +78,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                   ? AppStrings.employeeUpdated
                   : AppStrings.employeeAdded,
             ),
-            backgroundColor: AppColors.success,
+            backgroundColor: AppColors.stateWorking,
           ),
         );
         context.pop();
@@ -80,196 +86,282 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? AppStrings.editEmployee : AppStrings.newEmployee),
-      ),
+      backgroundColor: AppColors.bgBase,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Icon header
-                Center(
-                  child: Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.person_outline,
-                      color: AppColors.primary,
-                      size: 36,
+        child: Column(
+          children: [
+            // ── Top Bar ────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.sm,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton.icon(
+                    onPressed: () => context.pop(),
+                    icon: const Icon(Icons.arrow_back_ios, size: 16),
+                    label: const Text('Back'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
                     ),
                   ),
-                ),
-                const SizedBox(height: 32),
-
-                // Name field
-                TextFormField(
-                  controller: _nameController,
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) => _handleSubmit(),
-                  decoration: const InputDecoration(
-                    labelText: AppStrings.nameLabel,
-                    hintText: AppStrings.nameHint,
-                    prefixIcon: Icon(Icons.badge_outlined),
+                  Text(
+                    _isEditing ? 'Edit Employee' : 'New Employee',
+                    style: theme.textTheme.titleMedium,
                   ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return AppStrings.nameRequired;
-                    }
-                    if (value.trim().length < 2) {
-                      return AppStrings.nameMinLength;
-                    }
-                    if (value.trim().length > 100) {
-                      return AppStrings.nameMaxLength;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Last Name field
-                TextFormField(
-                  controller: _lastNameController,
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: AppStrings.lastNameLabel,
-                    hintText: AppStrings.lastNameHint,
-                    prefixIcon: Icon(Icons.badge_outlined),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return AppStrings.lastNameRequired;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Email field
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: AppStrings.emailLabel,
-                    hintText: AppStrings.emailEmployeeHint,
-                    prefixIcon: Icon(Icons.email_outlined),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return AppStrings.emailRequired2;
-                    }
-                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value.trim())) {
-                      return AppStrings.emailInvalid2;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Password field
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: AppStrings.passwordTempLabel,
-                    hintText: AppStrings.passwordTempHint,
-                    prefixIcon: Icon(Icons.lock_outline),
-                  ),
-                  validator: (value) {
-                    if (!_isEditing && (value == null || value.isEmpty)) {
-                      return AppStrings.passwordRequiredNew;
-                    }
-                    if (value != null && value.isNotEmpty && value.length < 6) {
-                      return AppStrings.passwordMinLength;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Role Dropdown
-                DropdownButtonFormField<String>(
-                  value: _selectedRole,
-                  decoration: const InputDecoration(
-                    labelText: AppStrings.roleLabel,
-                    prefixIcon: Icon(Icons.security_outlined),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'employee', child: Text(AppStrings.roleEmployee)),
-                    DropdownMenuItem(value: 'admin', child: Text(AppStrings.roleAdmin)),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() => _selectedRole = val);
-                    }
-                  },
-                ),
-
-                // Error message
-                if (formState.errorMessage != null) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.errorBg,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline,
-                            color: AppColors.error, size: 18),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            formState.errorMessage!,
-                            style:
-                                const TextStyle(color: AppColors.error),
-                          ),
-                        ),
-                      ],
+                  TextButton(
+                    onPressed: formState.isLoading ? null : _handleSubmit,
+                    child: Text(
+                      'Save',
+                      style: TextStyle(
+                        color: formState.isLoading
+                            ? AppColors.textMuted
+                            : AppColors.primary,
+                      ),
                     ),
                   ),
                 ],
-
-                const SizedBox(height: 32),
-
-                // Submit button
-                FilledButton(
-                  onPressed: formState.isLoading ? null : _handleSubmit,
-                  style: FilledButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: formState.isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          _isEditing ? AppStrings.saveChanges : AppStrings.addEmployee,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                ),
-              ],
+              ),
             ),
-          ),
+
+            // ── Step Progress Bar ──────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xl,
+                vertical: AppSpacing.sm,
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: List.generate(3, (i) {
+                      return Expanded(
+                        child: Container(
+                          height: 3,
+                          margin: EdgeInsets.only(
+                            right: i < 2 ? AppSpacing.xs : 0,
+                          ),
+                          decoration: BoxDecoration(
+                            color: i <= _currentStep
+                                ? AppColors.primary
+                                : AppColors.borderColor,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _stepLabel('Info', 0),
+                      _stepLabel('Account', 1),
+                      _stepLabel('Biometric', 2),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Form Content ───────────────────────────
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Name
+                      AppTextField(
+                        label: 'Full Name',
+                        hint: 'John Doe',
+                        controller: _nameController,
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.next,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return AppStrings.nameRequired;
+                          }
+                          if (value.trim().length < 2) {
+                            return AppStrings.nameMinLength;
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+
+                      // Last Name
+                      AppTextField(
+                        label: 'Last Name',
+                        hint: 'Smith',
+                        controller: _lastNameController,
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.next,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return AppStrings.lastNameRequired;
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+
+                      // Email
+                      AppTextField(
+                        label: 'Email',
+                        hint: 'john@company.com',
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return AppStrings.emailRequired2;
+                          }
+                          if (!RegExp(r'^[^@]+@[^@]+\.[^@]+')
+                              .hasMatch(value.trim())) {
+                            return AppStrings.emailInvalid2;
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+
+                      // Password
+                      AppTextField(
+                        label: 'Password',
+                        hint: '••••••••',
+                        obscure: true,
+                        controller: _passwordController,
+                        textInputAction: TextInputAction.next,
+                        validator: (value) {
+                          if (!_isEditing &&
+                              (value == null || value.isEmpty)) {
+                            return AppStrings.passwordRequiredNew;
+                          }
+                          if (value != null &&
+                              value.isNotEmpty &&
+                              value.length < 6) {
+                            return AppStrings.passwordMinLength;
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+
+                      // Role
+                      Text(
+                        'ROLE',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: AppColors.textSecondary,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.borderColor),
+                        ),
+                        child: Row(
+                          children: ['employee', 'admin'].map((role) {
+                            final isSelected = _selectedRole == role;
+                            return Expanded(
+                              child: GestureDetector(
+                                onTap: () =>
+                                    setState(() => _selectedRole = role),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      role == 'employee'
+                                          ? 'Employee'
+                                          : 'Admin',
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                        color: isSelected
+                                            ? AppColors.white
+                                            : AppColors.textSecondary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+
+                      // ── Error ──────────────────────────────
+                      if (formState.errorMessage != null) ...[
+                        const SizedBox(height: AppSpacing.lg),
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          decoration: BoxDecoration(
+                            color: AppColors.errorBg,
+                            borderRadius: AppRadius.mdAll,
+                            border: Border.all(
+                              color: AppColors.error.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline,
+                                  color: AppColors.error, size: 18),
+                              const SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: Text(
+                                  formState.errorMessage!,
+                                  style: const TextStyle(
+                                    color: AppColors.error,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: AppSpacing.x3l),
+
+                      // Submit
+                      PrimaryButton(
+                        label: _isEditing ? 'Save Changes' : 'Add Employee',
+                        loading: formState.isLoading,
+                        onTap: formState.isLoading ? null : _handleSubmit,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _stepLabel(String text, int step) {
+    final isActive = step <= _currentStep;
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: isActive ? AppColors.primary : AppColors.textMuted,
+          ),
     );
   }
 }

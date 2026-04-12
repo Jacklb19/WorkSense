@@ -62,6 +62,9 @@ dependencies:
   # ── Variables de entorno ─────────────────────────────────────
   flutter_dotenv: ^5.2.1
 
+  # ── Tipografía ────────────────────────────────────────────────
+  google_fonts: ^6.2.1
+
   # ── Utilidades generales ─────────────────────────────────────
   intl: ^0.19.0
   uuid: ^4.4.2

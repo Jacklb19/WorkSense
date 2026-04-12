@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
+import 'package:worksense_app/core/theme/app_radius.dart';
+import 'package:worksense_app/shared/widgets/primary_button.dart';
+import 'package:worksense_app/shared/widgets/app_text_field.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -49,38 +53,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: AppColors.bgBase,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 400),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Logo / Brand
-                  _buildLogo(theme),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: AppSpacing.x4l),
 
-                  // Form
+                  // ── Logo / Brand ──────────────────────────────
+                  _buildLogo(theme),
+                  const SizedBox(height: 40),
+
+                  // ── Form ──────────────────────────────────────
                   Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Email field
-                        TextFormField(
+                        // Email
+                        AppTextField(
+                          label: 'Email',
+                          hint: 'jose@empresa.com',
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
-                          autocorrect: false,
-                          decoration: const InputDecoration(
-                            labelText: AppStrings.emailLabel,
-                            hintText: AppStrings.emailHint,
-                            prefixIcon: Icon(Icons.email_outlined),
-                          ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return AppStrings.emailRequired;
@@ -92,29 +94,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.lg),
 
-                        // Password field
-                        TextFormField(
+                        // Password
+                        AppTextField(
+                          label: 'Password',
+                          hint: '••••••••',
+                          obscure: _obscurePassword,
                           controller: _passwordController,
-                          obscureText: _obscurePassword,
                           textInputAction: TextInputAction.done,
                           onFieldSubmitted: (_) => _handleLogin(),
-                          decoration: InputDecoration(
-                            labelText: AppStrings.passwordLabel,
-                            prefixIcon: const Icon(Icons.lock_outlined),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              color: AppColors.textSecondary,
+                              size: 20,
                             ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -126,49 +128,50 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 8),
 
                         // Error message
                         if (loginState.errorMessage != null) ...[
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.md),
                           _buildErrorBanner(loginState.errorMessage!),
                         ],
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: AppSpacing.xxl),
 
                         // Login button
-                        FilledButton(
-                          onPressed:
-                              loginState.isLoading ? null : _handleLogin,
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                        PrimaryButton(
+                          label: 'Sign In',
+                          loading: loginState.isLoading,
+                          onTap: loginState.isLoading ? null : _handleLogin,
+                        ),
+
+                        const SizedBox(height: AppSpacing.lg),
+
+                        // Forgot password
+                        Center(
+                          child: TextButton(
+                            onPressed: () {
+                              // TODO: Forgot password flow
+                            },
+                            child: Text(
+                              'Forgot password?',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.primary,
+                              ),
+                            ),
                           ),
-                          child: loginState.isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text(
-                                  AppStrings.loginButton,
-                                  style: TextStyle(fontSize: 16),
-                                ),
                         ),
                       ],
                     ),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: AppSpacing.x3l),
 
                   // Footer
                   Text(
                     AppStrings.copyright,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.grey500,
+                      color: AppColors.textMuted,
                     ),
                   ),
                 ],
@@ -183,35 +186,51 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget _buildLogo(ThemeData theme) {
     return Column(
       children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Icon(
-            Icons.remove_red_eye_outlined,
-            color: Colors.white,
-            size: 40,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'WorkSense',
-          style: theme.textTheme.headlineLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.primary,
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          AppStrings.subtitle,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.grey600,
-          ),
-          textAlign: TextAlign.center,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Logo box
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Center(
+                child: Text(
+                  'W',
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Brand text
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'WorkSense',
+                  style: theme.textTheme.displayLarge?.copyWith(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  'Workforce Intelligence',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ],
     );
@@ -219,20 +238,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Widget _buildErrorBanner(String message) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
       decoration: BoxDecoration(
         color: AppColors.errorBg,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.error.withOpacity(0.3)),
+        borderRadius: AppRadius.mdAll,
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
           const Icon(Icons.error_outline, color: AppColors.error, size: 18),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.error,
                 fontSize: 13,
               ),

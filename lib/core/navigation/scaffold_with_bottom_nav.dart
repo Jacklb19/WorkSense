@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/navigation/app_bottom_nav_bar.dart';
 import 'package:worksense_app/core/navigation/nav_destinations.dart';
+import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
 class ScaffoldWithBottomNav extends ConsumerWidget {
@@ -66,6 +67,7 @@ class ScaffoldWithBottomNav extends ConsumerWidget {
         }
       },
       child: Scaffold(
+        backgroundColor: AppColors.bgBase,
         body: SafeArea(
           child: navigationShell,
         ),
