@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
@@ -26,16 +25,6 @@ class EmployeeDashboardScreen extends ConsumerWidget {
         actions: [
           const SyncIndicatorWidget(),
           const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.history),
-            tooltip: AppStrings.myGlobalHistory,
-            onPressed: () => context.push('/history'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: AppStrings.settingsTooltip,
-            onPressed: () => context.push('/settings'),
-          ),
         ],
       ),
       body: RefreshIndicator(

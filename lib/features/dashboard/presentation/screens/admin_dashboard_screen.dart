@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
+import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/widgets/workstation_card.dart';
@@ -31,32 +32,14 @@ class AdminDashboardScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.history),
             tooltip: AppStrings.historyTooltip,
-            onPressed: () => context.push('/history'),
+            onPressed: () => context.push(AppRoutes.history),
           ),
           
           // Analytics
           IconButton(
             icon: const Icon(Icons.bar_chart_outlined),
             tooltip: AppStrings.analyticsTooltip,
-            onPressed: () => context.push('/analytics'),
-          ),
-          // Employees
-          IconButton(
-            icon: const Icon(Icons.people_outline),
-            tooltip: AppStrings.employeesTooltip,
-            onPressed: () => context.push('/employees'),
-          ),
-          // Workstations
-          IconButton(
-            icon: const Icon(Icons.computer_outlined),
-            tooltip: AppStrings.workstationsTooltip,
-            onPressed: () => context.push('/workstations'),
-          ),
-          // Settings
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: AppStrings.settingsTooltip,
-            onPressed: () => context.push('/settings'),
+            onPressed: () => context.push(AppRoutes.analytics),
           ),
         ],
       ),

@@ -15,31 +15,22 @@ import 'package:worksense_app/features/workstations/presentation/screens/worksta
 import 'package:worksense_app/features/workstations/presentation/screens/workstations_list_screen.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/home_employee_screen.dart';
+import 'package:worksense_app/core/constants/constants.dart';
+import 'package:worksense_app/core/navigation/scaffold_with_bottom_nav.dart';
 
+final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+final GlobalKey<NavigatorState> _shellNavigatorDashboardKey = GlobalKey<NavigatorState>(debugLabel: 'shellDashboard');
+final GlobalKey<NavigatorState> _shellNavigatorEmployeesKey = GlobalKey<NavigatorState>(debugLabel: 'shellEmployees');
+final GlobalKey<NavigatorState> _shellNavigatorWorkstationsKey = GlobalKey<NavigatorState>(debugLabel: 'shellWorkstations');
+final GlobalKey<NavigatorState> _shellNavigatorHistoryKey = GlobalKey<NavigatorState>(debugLabel: 'shellHistory');
+final GlobalKey<NavigatorState> _shellNavigatorSettingsKey = GlobalKey<NavigatorState>(debugLabel: 'shellSettings');
 
-// Route name constants
-abstract final class AppRoutes {
-  static const login = '/login';
-  static const dashboard = '/dashboard';
-  static const kiosk = '/kiosk/:workstationId';
-  static const history = '/history';
-  static const employees = '/employees';
-  static const employeeNew = '/employees/new';
-  static const settings = '/settings';
-  static const workstations = '/workstations';
-  static const workstationNew = '/workstations/new';
-  static const kioskWaiting = '/kiosk_waiting';
-  static const homeEmployee = '/home-employee';
-  static const myActivity = '/my-activity';
-  static const myHours = '/my-hours';
-  static const analytics = '/analytics';
-  static const analyticsDetail = '/analytics/:employeeId';
-}
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authNotifier = _AuthNotifier(ref);
   return GoRouter(
-    initialLocation: '/dashboard',
+    initialLocation: AppRoutes.dashboard,
+    navigatorKey: _rootNavigatorKey,
     refreshListenable: authNotifier,
     redirect: (context, state) {
       final currentUserState = ref.read(currentUserProvider);
@@ -105,19 +96,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      // Dashboard
-      GoRoute(
-        path: AppRoutes.dashboard,
-        name: 'dashboard',
-        pageBuilder: (context, state) => const NoTransitionPage(
-          child: DashboardScreen(),
-        ),
-      ),
-
       // Kiosk
       GoRoute(
         path: AppRoutes.kiosk,
         name: 'kiosk',
+        parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) {
           final workstationId = state.pathParameters['workstationId'];
           return MaterialPage(
@@ -126,46 +109,124 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // Activity history
-      GoRoute(
-        path: AppRoutes.history,
-        name: 'history',
-        pageBuilder: (context, state) => const MaterialPage(
-          child: ActivityHistoryScreen(),
-        ),
-      ),
-
-      // Employees list
-      GoRoute(
-        path: AppRoutes.employees,
-        name: 'employees',
-        pageBuilder: (context, state) => const MaterialPage(
-          child: EmployeesListScreen(),
-        ),
-      ),
-
-      // Employee form (new)
+      // Employee form (new) - Pushed on root nav to cover everything
       GoRoute(
         path: AppRoutes.employeeNew,
         name: 'employee-new',
+        parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) => const MaterialPage(
           child: EmployeeFormScreen(),
         ),
       ),
 
-      // Workstations
-      GoRoute(
-        path: AppRoutes.workstations,
-        name: 'workstations',
-        pageBuilder: (context, state) => const MaterialPage(
-          child: WorkstationsListScreen(),
-        ),
-      ),
+      // Workstation form (new)
       GoRoute(
         path: AppRoutes.workstationNew,
         name: 'workstation-new',
+        parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) => const MaterialPage(
           child: WorkstationFormScreen(),
+        ),
+      ),
+      
+      // Analytics detail
+      GoRoute(
+        path: AppRoutes.analyticsDetail,
+        name: 'analytics-detail',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final employeeId = state.pathParameters['employeeId']!;
+          return MaterialPage(
+            child: EmployeeDetailAnalyticsScreen(employeeId: employeeId),
+          );
+        },
+      ),
+
+      // Stateful Bottom Nav Shell
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return ScaffoldWithBottomNav(navigationShell: navigationShell);
+        },
+        branches: [
+          // Branch 0: Dashboard (All Roles)
+          StatefulShellBranch(
+            navigatorKey: _shellNavigatorDashboardKey,
+            routes: [
+              GoRoute(
+                path: AppRoutes.dashboard,
+                name: 'dashboard',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: DashboardScreen(),
+                ),
+              ),
+            ],
+          ),
+
+          // Branch 1: Employees (Admin)
+          StatefulShellBranch(
+            navigatorKey: _shellNavigatorEmployeesKey,
+            routes: [
+              GoRoute(
+                path: AppRoutes.employees,
+                name: 'employees',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: EmployeesListScreen(),
+                ),
+              ),
+            ],
+          ),
+
+          // Branch 2: Workstations (Admin)
+          StatefulShellBranch(
+            navigatorKey: _shellNavigatorWorkstationsKey,
+            routes: [
+              GoRoute(
+                path: AppRoutes.workstations,
+                name: 'workstations',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: WorkstationsListScreen(),
+                ),
+              ),
+            ],
+          ),
+
+          // Branch 3: History (Employee)
+          StatefulShellBranch(
+            navigatorKey: _shellNavigatorHistoryKey,
+            routes: [
+              GoRoute(
+                path: AppRoutes.history,
+                name: 'history',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: ActivityHistoryScreen(),
+                ),
+              ),
+            ],
+          ),
+
+          // Branch 4: Settings (All Roles)
+          StatefulShellBranch(
+            navigatorKey: _shellNavigatorSettingsKey,
+            routes: [
+              GoRoute(
+                path: AppRoutes.settings,
+                name: 'settings',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: SettingsScreen(),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+
+      // Other minor screens that don't need Bottom Nav but aren't strictly root only modals:
+      GoRoute(
+        path: AppRoutes.analytics,
+        name: 'analytics',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: AdminAnalyticsScreen(),
         ),
       ),
 
@@ -244,33 +305,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
 
-      // Analytics
-      GoRoute(
-        path: AppRoutes.analytics,
-        name: 'analytics',
-        pageBuilder: (context, state) => const MaterialPage(
-          child: AdminAnalyticsScreen(),
-        ),
-      ),
-      GoRoute(
-        path: AppRoutes.analyticsDetail,
-        name: 'analytics-detail',
-        pageBuilder: (context, state) {
-          final employeeId = state.pathParameters['employeeId']!;
-          return MaterialPage(
-            child: EmployeeDetailAnalyticsScreen(employeeId: employeeId),
-          );
-        },
-      ),
 
-      // Settings
-      GoRoute(
-        path: AppRoutes.settings,
-        name: 'settings',
-        pageBuilder: (context, state) => const MaterialPage(
-          child: SettingsScreen(),
-        ),
-      ),
     ],
     errorPageBuilder: (context, state) => MaterialPage(
       child: _RouteErrorScreen(error: state.error?.message ?? 'Ruta no encontrada'),

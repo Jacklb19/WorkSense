@@ -3,6 +3,14 @@
 abstract final class AppStrings {
   AppStrings._();
 
+  // ── NAVIGATION ────────────────────────────────────────────────────────────
+  static const String navDashboard = 'Dashboard';
+  static const String navEmployees = 'Empleados';
+  static const String navWorkstations = 'Puestos';
+  static const String navSettings = 'Ajustes';
+  static const String navHome = 'Inicio';
+  static const String navActivity = 'Actividad';
+
   // ─────────────────────────────────────────────────────────
   // GENERAL
   // ─────────────────────────────────────────────────────────
