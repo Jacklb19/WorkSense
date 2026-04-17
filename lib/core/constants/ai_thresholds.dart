@@ -101,6 +101,12 @@ abstract final class AiThresholds {
   /// Por debajo → "empleado no identificado".
   static const double minEmbeddingMatchScore = 0.75;
 
+  /// Umbral de distancia euclidiana/coseno para el modelo tflite
+  static const double FACE_MATCH_THRESHOLD = 0.82;
+
+  /// Tiempo mínimo de bloqueo (en minutos) tras múltiples fallos biométricos
+  static const int FACE_MATCH_LOCK_MIN = 5;
+
   /// Número de fotos requeridas para registrar un empleado.
   static const int requiredFacePhotos = 5;
 
