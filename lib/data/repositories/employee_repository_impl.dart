@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'package:drift/drift.dart';
+import 'package:worksense_app/core/utils/biometric_utils.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/domain/repositories/employee_repository.dart';
+import 'package:worksense_app/features/camera_monitor/ai/body_signature.dart';
 import 'sync_repository_impl.dart';
 
 class EmployeeRepositoryImpl implements EmployeeRepository {
@@ -64,12 +67,80 @@ class EmployeeRepositoryImpl implements EmployeeRepository {
     });
   }
 
+  @override
+  Future<void> saveFaceEmbedding(String employeeId, List<double> embedding) async {
+    final jsonEmbedding = BiometricSerializer.serializeEmbedding(embedding);
+
+    await _db.transaction(() async {
+      // 1. Persistencia local
+      await _db.updateEmployeeEmbedding(employeeId, jsonEmbedding);
+
+      // 2. Integración remota (Upsert del embedding)
+      await _syncRepo.enqueue(
+        targetTable: 'employees',
+        operation: 'PATCH',
+        recordId: employeeId,
+        payload: {
+          'face_embedding': jsonEmbedding,
+        },
+      );
+    });
+  }
+
+  @override
+  Future<void> enrollEmployee({
+    required String employeeId,
+    required String workstationId,
+    required List<double> faceEmbedding,
+    required BodySignature bodySignature,
+  }) async {
+    final faceEmbeddingJson = BiometricSerializer.serializeEmbedding(faceEmbedding);
+    final bodySignatureJson = jsonEncode(bodySignature.toJson());
+
+    await _db.transaction(() async {
+      // 1. Guardar perfil en la workstation localmente
+      await _db.saveEmployeeProfile(
+        workstationId: workstationId,
+        employeeId: employeeId,
+        faceEmbeddingJson: faceEmbeddingJson,
+        bodySignatureJson: bodySignatureJson,
+      );
+
+      // 2. Actualizar embedding central del empleado localmente
+      await _db.updateEmployeeEmbedding(employeeId, faceEmbeddingJson);
+
+      // 3. Encolar actualizaciones remotas
+      // 3.1 Actualización del empleado
+      await _syncRepo.enqueue(
+        targetTable: 'employees',
+        operation: 'PATCH',
+        recordId: employeeId,
+        payload: {'face_embedding': faceEmbeddingJson},
+      );
+
+      // 3.2 Actualización de la workstation (opcional, según si el backend lo requiere)
+      await _syncRepo.enqueue(
+        targetTable: 'workstations',
+        operation: 'PATCH',
+        recordId: workstationId,
+        payload: {
+          'assigned_employee_id': employeeId,
+          'face_embedding': faceEmbeddingJson,
+          'body_signature': bodySignatureJson,
+        },
+      );
+    });
+  }
+
   Employee _mapToEntity(EmployeeRecord row) {
     return Employee(
       id: row.id,
       name: row.name,
       companyId: row.companyId,
       createdAt: row.createdAt,
+      faceEmbedding: BiometricSerializer.deserializeEmbedding(row.faceEmbedding),
     );
   }
 }
+
+

@@ -9,8 +9,11 @@
 import 'dart:ui' show Size;
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
+import 'package:camera/camera.dart';
 import 'package:worksense_app/features/camera_monitor/ai/body_signature.dart';
 import 'package:worksense_app/features/camera_monitor/ai/employee_profile.dart';
+import 'package:worksense_app/features/camera_monitor/ai/face_analyzer.dart';
+import 'package:worksense_app/features/camera_monitor/ai/face_embedding_service.dart';
 
 enum SampleResult {
   success,
@@ -73,8 +76,14 @@ class EmployeeProfiler {
 
   late final PoseDetector _poseDetector;
   late final FaceDetector _faceDetector;
+  final FaceAnalyzer _faceAnalyzer;
+  final FaceEmbeddingService _embeddingService;
 
-  EmployeeProfiler() {
+  EmployeeProfiler({
+    required FaceAnalyzer faceAnalyzer,
+    required FaceEmbeddingService embeddingService,
+  })  : _faceAnalyzer = faceAnalyzer,
+        _embeddingService = embeddingService {
     _poseDetector = PoseDetector(
       options: PoseDetectorOptions(mode: PoseDetectionMode.single),
     );
@@ -93,7 +102,7 @@ class EmployeeProfiler {
 
   /// Captura y valida una muestra del frame actual.
   /// Retorna [SampleResult.success] si fue aceptada.
-  Future<SampleResult> addSample(InputImage inputImage) async {
+  Future<SampleResult> addSample(InputImage inputImage, CameraImage cameraImage) async {
     final results = await Future.wait([
       _faceDetector.processImage(inputImage),
       _poseDetector.processImage(inputImage),
@@ -140,8 +149,17 @@ class EmployeeProfiler {
       sig = BodySignature.fromPose(pose);
     }
 
-    // Calcular embedding facial
-    final embedding = _extractFaceEmbedding(face);
+    // Calcular embedding facial real
+    final croppedFace = _faceAnalyzer.cropFaceFromCameraImage(cameraImage, face);
+    if (croppedFace == null) return SampleResult.lowConfidence;
+
+    List<double> embedding;
+    try {
+      embedding = _embeddingService.generateEmbedding(croppedFace);
+    } catch (e) {
+      print('[SCAN] Error extrayendo embedding facial: $e');
+      return SampleResult.invalidSignature;
+    }
 
     _faceEmbeddings.add(embedding);
     // Si no hay firma válida, usamos una previa o zero para no romper el promedio simple,
@@ -242,37 +260,6 @@ class EmployeeProfiler {
     return likelihoods.reduce((a, b) => a + b) / likelihoods.length;
   }
 
-  /// Extrae un vector de 20 floats normalizados por bounding box de los
-  /// landmarks de la cara. Funciona como embedding geométrico sin dependencias externas.
-  List<double> _extractFaceEmbedding(Face face) {
-    final box = face.boundingBox;
-    final w = box.width.clamp(1.0, double.infinity);
-    final h = box.height.clamp(1.0, double.infinity);
-
-    final landmarkOrder = [
-      FaceLandmarkType.leftEye,
-      FaceLandmarkType.rightEye,
-      FaceLandmarkType.noseBase,
-      FaceLandmarkType.leftMouth,
-      FaceLandmarkType.rightMouth,
-      FaceLandmarkType.bottomMouth,
-      FaceLandmarkType.leftEar,
-      FaceLandmarkType.rightEar,
-      FaceLandmarkType.leftCheek,
-      FaceLandmarkType.rightCheek,
-    ];
-
-    final embedding = <double>[];
-    for (final type in landmarkOrder) {
-      final lm = face.landmarks[type];
-      if (lm != null) {
-        embedding.add((lm.position.x - box.left) / w);
-        embedding.add((lm.position.y - box.top) / h);
-      } else {
-        embedding.add(0.0);
-        embedding.add(0.0);
-      }
-    }
-    return embedding;
+    return likelihoods.reduce((a, b) => a + b) / likelihoods.length;
   }
 }

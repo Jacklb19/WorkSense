@@ -9,9 +9,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/data/datasources/local/database.dart';
+import 'package:worksense_app/domain/entities/employee.dart';
+import 'package:worksense_app/domain/repositories/employee_repository.dart';
 import 'package:worksense_app/features/camera_monitor/ai/employee_profiler.dart';
+import 'package:worksense_app/features/camera_monitor/ai/face_analyzer.dart';
+import 'package:worksense_app/features/camera_monitor/ai/face_embedding_service.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
+import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
+
 
 // ── Estado del escaneo ─────────────────────────────────────────────────────────
 
@@ -66,7 +71,8 @@ class EmployeeScanState {
 // ── Notifier ───────────────────────────────────────────────────────────────────
 
 class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
-  final AppDatabase _db;
+  final EmployeeRepository _repository;
+  final FaceEmbeddingService _embeddingService;
   final String workstationId;
   final String employeeId;
 
@@ -88,16 +94,21 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
   };
 
   EmployeeScanNotifier({
-    required AppDatabase db,
+    required EmployeeRepository repository,
+    required FaceEmbeddingService embeddingService,
     required this.workstationId,
     required this.employeeId,
-  })  : _db = db,
+  })  : _repository = repository,
+        _embeddingService = embeddingService,
         super(const EmployeeScanState()) {
-    _profiler = EmployeeProfiler();
+    _profiler = EmployeeProfiler(
+      faceAnalyzer: FaceAnalyzer(),
+      embeddingService: _embeddingService,
+    );
     _liveDetector = FaceDetector(
       options: FaceDetectorOptions(
-        performanceMode: FaceDetectorMode.fast, // Optimizado para stream
-        enableClassification: true,            // Requerido para métricas de confianza
+        performanceMode: FaceDetectorMode.fast,
+        enableClassification: true,
         enableLandmarks: true,
         enableTracking: true,
       ),
@@ -126,6 +137,7 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
 
     try {
       await _cameraController!.initialize();
+      if (_disposed) return;
       state = state.copyWith(cameraReady: true);
       await _cameraController!.startImageStream(_onFrame);
     } catch (e) {
@@ -184,7 +196,6 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
           feedback: 'Asegúrate de que tu cuerpo sea visible',
         );
       } else {
-        // Solo actualizar si no estamos en medio de una captura (para no pisar éxito/error)
         if (!state.isCapturing && (state.frameStatus != _FrameStatus.capturing)) {
           state = state.copyWith(
             frameStatus: _FrameStatus.detected,
@@ -195,29 +206,19 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
     } catch (_) {}
   }
 
-  /// Captura la muestra actual. Llama cuando el usuario presiona el botón.
   Future<void> captureCurrentSample() async {
     if (_disposed) return;
-    print('[SCAN] Iniciando captura...');
-    if (state.isCapturing || _lastFrame == null) {
-      print('[SCAN] Abortando: isCapturing=${state.isCapturing}, lastFrame=${_lastFrame == null}');
-      return;
-    }
-    if (state.frameStatus != _FrameStatus.detected) {
-      print('[SCAN] Abortando: frameStatus=${state.frameStatus}');
-      return;
-    }
+    if (state.isCapturing || _lastFrame == null) return;
+    if (state.frameStatus != _FrameStatus.detected) return;
 
     try {
       state = state.copyWith(
         isCapturing: true,
         frameStatus: _FrameStatus.capturing,
       );
-      print('[SCAN] Antes de captureFrame / addSample');
 
       final inputImage = _buildInputImage(_lastFrame!);
       if (inputImage == null) {
-        print('[SCAN] Error: inputImage es null');
         state = state.copyWith(
           isCapturing: false,
           frameStatus: _FrameStatus.error,
@@ -226,12 +227,9 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
         return;
       }
 
-      print('[SCAN] Procesando muestra con profiler...');
-      final result = await _profiler.addSample(inputImage);
-      print('[SCAN] Resultado captura: $result');
+      final result = await _profiler.addSample(inputImage, _lastFrame!);
 
       if (result == SampleResult.success) {
-        print('[SCAN] Antes de setState (actualizando recuento)');
         final newCompleted = List<bool>.from(state.completedSamples);
         newCompleted[state.currentSampleIndex] = true;
 
@@ -248,9 +246,7 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
               ? 'Escaneo completado'
               : EmployeeProfiler.instructions[nextIndex].text,
         );
-        print('[SCAN] photoCount actualizado: ${state.capturedCount}');
 
-        // Persistir el mensaje de éxito por un momento
         _blockFrameUpdates = true;
         if (!isComplete) {
           await Future<void>.delayed(const Duration(milliseconds: 1500));
@@ -267,15 +263,12 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
           frameStatus: _FrameStatus.error,
           feedback: msg,
         );
-        // Persistir el mensaje de error para que el usuario pueda leerlo
         _blockFrameUpdates = true;
         await Future<void>.delayed(const Duration(milliseconds: 2000));
         _blockFrameUpdates = false;
       }
-    } catch (e, stack) {
+    } catch (e) {
       if (_disposed) return;
-      print('[SCAN] ERROR capturado: $e');
-      print('[SCAN] StackTrace: $stack');
       state = state.copyWith(isCapturing: false, error: e.toString());
     }
   }
@@ -288,11 +281,12 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
         workstationId: workstationId,
       );
 
-      await _db.saveEmployeeProfile(
-        workstationId: workstationId,
+      // Delegar persistencia al repositorio central
+      await _repository.enrollEmployee(
         employeeId: employeeId,
-        faceEmbeddingJson: jsonEncode(profile.faceEmbedding),
-        bodySignatureJson: jsonEncode(profile.bodySignature.toJson()),
+        workstationId: workstationId,
+        faceEmbedding: profile.faceEmbedding,
+        bodySignature: profile.bodySignature,
       );
     } catch (e) {
       if (_disposed) return;
@@ -386,14 +380,17 @@ typedef ScanParams = ({String workstationId, String employeeId});
 final employeeScanProvider = StateNotifierProvider.autoDispose
     .family<EmployeeScanNotifier, EmployeeScanState, ScanParams>(
   (ref, params) {
-    final db = ref.watch(appDatabaseProvider);
+    final repository = ref.watch(employeeRepositoryProvider);
+    final embeddingService = ref.watch(faceEmbeddingServiceProvider);
     return EmployeeScanNotifier(
-      db: db,
+      repository: repository,
+      embeddingService: embeddingService,
       workstationId: params.workstationId,
       employeeId: params.employeeId,
     );
   },
 );
+
 
 // ── Pantalla ───────────────────────────────────────────────────────────────────
 
@@ -427,6 +424,9 @@ class _EmployeeScanScreenState extends ConsumerState<EmployeeScanScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+    // Aseguramos que TFLite esté activo antes o durante el escaneo
+    ref.read(faceEmbeddingServiceProvider).initialize();
 
     _initCamera();
   }

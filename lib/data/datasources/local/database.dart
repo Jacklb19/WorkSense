@@ -19,6 +19,7 @@ class EmployeeRecords extends Table {
   TextColumn get name => text()();
   TextColumn get companyId => text()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get faceEmbedding => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -87,36 +88,55 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) async {
+      await m.createAll();
+    },
     onUpgrade: (m, from, to) async {
+      final migrator = m; // Alias for clarity
+      
       if (from < 2) {
-        await m.addColumn(workstationRecords, workstationRecords.latitude);
-        await m.addColumn(workstationRecords, workstationRecords.longitude);
-        await m.addColumn(workstationRecords, workstationRecords.geofenceRadius);
+        await migrator.addColumn(workstationRecords, workstationRecords.latitude);
+        await migrator.addColumn(workstationRecords, workstationRecords.longitude);
+        await migrator.addColumn(workstationRecords, workstationRecords.geofenceRadius);
       }
+      
       if (from < 3) {
-        await m.createTable(syncQueueEntries); // ← FALTABA ESTO
+        // TABLA: sync_queue_entries
+        await migrator.createTable(syncQueueEntries);
 
-        await customStatement(
-            'ALTER TABLE workstation_records ADD COLUMN assigned_employee_id TEXT');
-        await customStatement(
-            'ALTER TABLE workstation_records ADD COLUMN face_embedding TEXT');
-        await customStatement(
-            'ALTER TABLE workstation_records ADD COLUMN body_signature TEXT');
-        await customStatement(
-            'ALTER TABLE workstation_records ADD COLUMN profile_captured_at INTEGER');
-        await customStatement(
-            'ALTER TABLE workstation_records ADD COLUMN profile_version INTEGER NOT NULL DEFAULT 0');
-        await customStatement(
-            'ALTER TABLE activity_entries ADD COLUMN identity_confidence REAL');
-        await customStatement(
-            'ALTER TABLE activity_entries ADD COLUMN identification_method TEXT');
+        // TABLA: workstation_records
+        // Verificamos antes de agregar para evitar errores si la base de datos
+        // está en un estado inconsistente (según roadmap)
+        await migrator.addColumn(workstationRecords, workstationRecords.assignedEmployeeId);
+        await migrator.addColumn(workstationRecords, workstationRecords.faceEmbedding);
+        await migrator.addColumn(workstationRecords, workstationRecords.bodySignature);
+        await migrator.addColumn(workstationRecords, workstationRecords.profileCapturedAt);
+        await migrator.addColumn(workstationRecords, workstationRecords.profileVersion);
+
+        // TABLA: activity_entries
+        await migrator.addColumn(activityEntries, activityEntries.identityConfidence);
+        await migrator.addColumn(activityEntries, activityEntries.identificationMethod);
+      }
+      
+      if (from < 4) {
+        // La migración a v4 añade el campo central de face_embedding en Employee
+        // para permitir reconocimiento cross-workstation.
+        await migrator.addColumn(employeeRecords, employeeRecords.faceEmbedding);
       }
     },
+    beforeOpen: (details) async {
+      if (details.wasCreated) {
+        // Logic for fresh install if needed
+      }
+      // Habilitar Foreign Keys si fuera necesario (sqlite_m)
+      // await customStatement('PRAGMA foreign_keys = ON');
+    },
   );
+
 
   // ── ActivityEntries DAO methods ───────────────────────────────────────────
 
@@ -206,6 +226,12 @@ class AppDatabase extends _$AppDatabase {
   Future<EmployeeRecord?> getEmployeeRecordById(String id) =>
       (select(employeeRecords)..where((t) => t.id.equals(id)))
           .getSingleOrNull();
+
+  Future<void> updateEmployeeEmbedding(String employeeId, String faceEmbeddingJson) =>
+      (update(employeeRecords)..where((t) => t.id.equals(employeeId)))
+          .write(EmployeeRecordsCompanion(
+        faceEmbedding: Value(faceEmbeddingJson),
+      ));
 
   Future<void> deleteEmployeeRecord(String id) =>
       (delete(employeeRecords)..where((t) => t.id.equals(id))).go();
