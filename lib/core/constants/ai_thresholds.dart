@@ -113,6 +113,9 @@ abstract final class AiThresholds {
   /// Dimensión del vector de embedding facial (MobileFaceNet).
   static const int embeddingDimension = 192;
 
+  /// Intervalo para re-verificar la identidad real (embeddings) en segundos.
+  static const int reidIntervalSeconds = 4;
+
   // ─────────────────────────────────────────────────────────
   // MOBILEFACENET Y RECORTE FACIAL
   // ─────────────────────────────────────────────────────────

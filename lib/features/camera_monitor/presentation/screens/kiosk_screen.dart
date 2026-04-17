@@ -202,27 +202,91 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
                 child: const SizedBox.expand(),
               ),
 
-            // Top AppBar
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: _KioskAppBar(
-                workstationId: kioskState.workstationId,
-                isProcessing: kioskState.isProcessing,
-              ),
-            ),
+            // Info panels and Overlays
+            if (kioskState.sessionStatus == SessionStatus.entryPending)
+              _EntryApprovalOverlay(
+                identityConfidence: kioskState.identityConfidence,
+                onConfirm: ref.read(kioskProvider.notifier).approveEntry,
+                onCancel: ref.read(kioskProvider.notifier).cancelApproval,
+              )
+            else if (kioskState.sessionStatus == SessionStatus.exitPending)
+              _ExitApprovalOverlay(
+                onConfirm: ref.read(kioskProvider.notifier).approveExit,
+                onCancel: ref.read(kioskProvider.notifier).cancelApproval,
+              )
+            else if (kioskState.sessionStatus == SessionStatus.active) ...[
+                // Top AppBar
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: _KioskAppBar(
+                    workstationId: kioskState.workstationId,
+                    isProcessing: kioskState.isProcessing,
+                  ),
+                ),
 
-            // Bottom info panel
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: _BottomInfoPanel(
-                state: kioskState.currentState,
-                confidence: kioskState.confidence,
-                frameCount: kioskState.frameCount,
-                lastEventTime: kioskState.lastEventTime,
+                // Bottom info panel
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: _BottomInfoPanel(
+                    state: kioskState.currentState,
+                    confidence: kioskState.confidence,
+                    frameCount: kioskState.frameCount,
+                    lastEventTime: kioskState.lastEventTime,
+                    onExitRequest: ref.read(kioskProvider.notifier).requestExit,
+                  ),
+                ),
+            ] else ...[
+               // Idle state / Identifying
+               Positioned(
+                 top: 60,
+                 left: 0,
+                 right: 0,
+                 child: _IdentifyingHeader(isProcessing: kioskState.isProcessing),
+               ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _IdentifyingHeader extends StatelessWidget {
+  final bool isProcessing;
+  const _IdentifyingHeader({required this.isProcessing});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.black54,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isProcessing) ...[
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+              ),
+              const SizedBox(width: 12),
+            ],
+            const Text(
+              'RECONOCIENDO ROSTRO...',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
               ),
             ),
           ],
@@ -231,6 +295,121 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
     );
   }
 }
+
+class _EntryApprovalOverlay extends StatelessWidget {
+  final double identityConfidence;
+  final VoidCallback onConfirm;
+  final VoidCallback onCancel;
+
+  const _EntryApprovalOverlay({
+    required this.identityConfidence,
+    required this.onConfirm,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black.withOpacity(0.8),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.face_retouching_natural, size: 80, color: AppColors.primary),
+              const SizedBox(height: 24),
+              const Text(
+                '¡BIENVENIDO!',
+                style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Hemos reconocido tu identidad.',
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+              const SizedBox(height: 48),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: onConfirm,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  icon: const Icon(Icons.login, size: 24),
+                  label: const Text('CONFIRMAR ENTRADA',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: onCancel,
+                child: const Text('CANCELAR', style: TextStyle(color: Colors.white54)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ExitApprovalOverlay extends StatelessWidget {
+  final VoidCallback onConfirm;
+  final VoidCallback onCancel;
+
+  const _ExitApprovalOverlay({
+    required this.onConfirm,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black.withOpacity(0.8),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.logout, size: 80, color: Colors.orange),
+              const SizedBox(height: 24),
+              const Text(
+                '¿FINALIZAR JORNADA?',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 48),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: onConfirm,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  icon: const Icon(Icons.done_all, size: 24),
+                  label: const Text('CONFIRMAR SALIDA',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: onCancel,
+                child: const Text('VOLVER AL TRABAJO', style: TextStyle(color: Colors.white54)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 
 class _LoadingView extends StatelessWidget {
   const _LoadingView();
@@ -456,11 +635,13 @@ class _BottomInfoPanel extends StatelessWidget {
   final double confidence;
   final int frameCount;
   final DateTime? lastEventTime;
+  final VoidCallback onExitRequest;
 
   const _BottomInfoPanel({
     required this.state,
     required this.confidence,
     required this.frameCount,
+    required this.onExitRequest,
     this.lastEventTime,
   });
 
@@ -489,11 +670,24 @@ class _BottomInfoPanel extends StatelessWidget {
                 confidence: confidence,
               ),
             ),
-            const SizedBox(width: 8),
+            const Spacer(),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisSize: MainAxisSize.min,
               children: [
+                SizedBox(
+                  height: 48,
+                  child: FilledButton.icon(
+                    onPressed: onExitRequest,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white12,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: const Icon(Icons.exit_to_app, size: 20),
+                    label: const Text('FINALIZAR', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Text(
                   'Frames: $frameCount',
                   style: const TextStyle(
@@ -524,3 +718,4 @@ class _BottomInfoPanel extends StatelessWidget {
     return '$h:$m:$s';
   }
 }
+
