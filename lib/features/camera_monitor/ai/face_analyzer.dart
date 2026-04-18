@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as img;
 import 'package:camera/camera.dart';
@@ -65,11 +67,16 @@ class FaceAnalyzer {
   }
 
   /// Integración principal desde el ciclo de vida de la cámara en vivo.
-  /// Convierte eficientemente la trama nativa y realiza el recorte del rostro.
-  img.Image? cropFaceFromCameraImage(CameraImage cameraImage, Face face) {
-    final image = _convertCameraImage(cameraImage);
+  /// Convierte eficientemente la trama nativa y realiza el recorte del rostro en background isolate.
+  Future<img.Image?> cropFaceFromCameraImageAsync(CameraImage cameraImage, Face face) async {
+    final image = await _convertCameraImageAsync(cameraImage);
     if (image == null) return null;
     return cropFaceFromImage(image, face);
+  }
+
+  /// (obsoleto, usa la versión Async)
+  img.Image? cropFaceFromCameraImage(CameraImage cameraImage, Face face) {
+    throw UnsupportedError('Use cropFaceFromCameraImageAsync instead');
   }
 
   /// Recorta el rostro detectado de la imagen original usando su BoundingBox.
@@ -104,47 +111,114 @@ class FaceAnalyzer {
 
   // ── Helpers Privados de Conversión ───────────────────────────────────────
 
-  /// Convierte la trama nativa (YUV Android o BGRA iOS) a un objeto Image manipulable.
-  img.Image? _convertCameraImage(CameraImage image) {
+  Future<img.Image?> _convertCameraImageAsync(CameraImage image) async {
     try {
-      if (image.format.group == ImageFormatGroup.yuv420) {
-        return _convertYUV420(image);
-      } else if (image.format.group == ImageFormatGroup.bgra8888) {
-        return _convertBGRA8888(image);
-      }
+      final Map<String, dynamic> data = {
+        'format': image.format.group.name,
+        'width': image.width,
+        'height': image.height,
+        'planes': image.planes.map((p) => {
+          'bytes': p.bytes,
+          'bytesPerRow': p.bytesPerRow,
+          'bytesPerPixel': p.bytesPerPixel,
+        }).toList(),
+      };
+      // Run the heavy loop on a background isolate
+      return await compute(_convertCameraImageTask, data);
     } catch (e) {
-      print('[FaceAnalyzer] Error convirtiendo CameraImage: $e');
+      print('[FaceAnalyzer] Error preparando CameraImage para isolate: $e');
+      return null;
     }
-    return null;
   }
 
-  img.Image _convertBGRA8888(CameraImage image) {
-    return img.Image.fromBytes(
-      width: image.width,
-      height: image.height,
-      bytes: image.planes[0].bytes.buffer,
-      order: img.ChannelOrder.bgra,
-    );
+  static img.Image? _convertCameraImageTask(Map<String, dynamic> data) {
+    try {
+      final format = data['format'] as String;
+      final width = data['width'] as int;
+      final height = data['height'] as int;
+      final planes = data['planes'] as List<dynamic>;
+
+      if (format == 'bgra8888') {
+        return img.Image.fromBytes(
+          width: width,
+          height: height,
+          bytes: (planes[0]['bytes'] as Uint8List).buffer,
+          order: img.ChannelOrder.bgra,
+        );
+      } else if (format == 'nv21') {
+        return _convertNV21(width, height, planes);
+      } else if (format == 'yuv420') {
+        return _convertYUV420(width, height, planes);
+      }
+      return null;
+    } catch (e) {
+      print('[FaceAnalyzer] Error en _convertCameraImageTask: $e');
+      return null;
+    }
   }
 
-  img.Image _convertYUV420(CameraImage image) {
-    final width = image.width;
-    final height = image.height;
-    final uvRowStride = image.planes[1].bytesPerRow;
-    final uvPixelStride = image.planes[1].bytesPerPixel ?? 1;
+  static img.Image _convertNV21(int width, int height, List<dynamic> planes) {
+    final yPlane = planes[0]['bytes'] as Uint8List;
+    
+    Uint8List vuPlane;
+    int yRowStride;
+    int vuRowStride;
+    int vuOffset = 0;
+
+    if (planes.length >= 2) {
+      vuPlane = planes[1]['bytes'] as Uint8List;
+      yRowStride = planes[0]['bytesPerRow'] as int;
+      vuRowStride = planes[1]['bytesPerRow'] as int;
+    } else {
+      // Packed in a single plane
+      vuPlane = yPlane;
+      yRowStride = width;
+      vuRowStride = width;
+      vuOffset = width * height;
+    }
+
+    final img.Image result = img.Image(width: width, height: height);
+
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        final uvIndex = vuOffset + (y ~/ 2) * vuRowStride + (x ~/ 2) * 2;
+        final yIndex = y * yRowStride + x;
+
+        final yp = yPlane[yIndex];
+        // En NV21 el plano V está intercalado antes que U
+        final vp = vuPlane[uvIndex];
+        final up = vuPlane[uvIndex + 1];
+
+        int r = (yp + vp * 1436 / 1024 - 179).round().clamp(0, 255);
+        int g = (yp - up * 46549 / 131072 + 44 - vp * 93604 / 131072 + 91).round().clamp(0, 255);
+        int b = (yp + up * 1814 / 1024 - 227).round().clamp(0, 255);
+
+        result.setPixelRgb(x, y, r, g, b);
+      }
+    }
+    return result;
+  }
+
+  static img.Image _convertYUV420(int width, int height, List<dynamic> planes) {
+    final yPlane = planes[0]['bytes'] as Uint8List;
+    final uPlane = planes[1]['bytes'] as Uint8List;
+    final vPlane = planes[2]['bytes'] as Uint8List;
+
+    final yRowStride = planes[0]['bytesPerRow'] as int;
+    final uvRowStride = planes[1]['bytesPerRow'] as int;
+    final uvPixelStride = planes[1]['bytesPerPixel'] as int? ?? 1;
 
     final img.Image result = img.Image(width: width, height: height);
 
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
         final uvIndex = uvPixelStride * (x ~/ 2) + uvRowStride * (y ~/ 2);
-        final yIndex = y * image.planes[0].bytesPerRow + x;
+        final yIndex = y * yRowStride + x;
 
-        final yp = image.planes[0].bytes[yIndex];
-        final up = image.planes[1].bytes[uvIndex];
-        final vp = image.planes[2].bytes[uvIndex];
+        final yp = yPlane[yIndex];
+        final up = uPlane[uvIndex];
+        final vp = vPlane[uvIndex];
 
-        // Conversión estándar YUV a RGB
         int r = (yp + vp * 1436 / 1024 - 179).round().clamp(0, 255);
         int g = (yp - up * 46549 / 131072 + 44 - vp * 93604 / 131072 + 91).round().clamp(0, 255);
         int b = (yp + up * 1814 / 1024 - 227).round().clamp(0, 255);
@@ -155,3 +229,4 @@ class FaceAnalyzer {
     return result;
   }
 }
+

@@ -33,9 +33,12 @@ class FaceEmbeddingService {
   }
 
   /// Genera y devuelve un embedding espacial de AiThresholds.embeddingDimension dimensiones.
-  List<double> generateEmbedding(img.Image croppedFace) {
+  Future<List<double>> generateEmbedding(img.Image croppedFace) async {
     if (!_isInitialized || _interpreter == null) {
-      throw Exception('FaceEmbeddingService no ha sido inicializado.');
+      await initialize();
+      if (!_isInitialized || _interpreter == null) {
+        throw Exception('El modelo biométrico no pudo ser inicializado o el archivo de TFLite está dañado.');
+      }
     }
 
     // 1. Resize estricto

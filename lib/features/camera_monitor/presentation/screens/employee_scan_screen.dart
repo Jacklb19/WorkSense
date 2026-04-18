@@ -315,6 +315,8 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
         return 'Poca iluminación o distancia incorrecta.';
       case SampleResult.noPose:
         return 'Cuerpo no detectado. Asegúrate de ser visible.';
+      case SampleResult.wrongPosition:
+        return 'Ángulo incorrecto. Sigue la instrucción.';
       case SampleResult.invalidSignature:
         return 'Postura no válida. Quédate quieto.';
     }

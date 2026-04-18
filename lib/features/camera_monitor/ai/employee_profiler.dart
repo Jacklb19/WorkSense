@@ -21,6 +21,7 @@ enum SampleResult {
   multiplePeople,
   lowConfidence,
   noPose,
+  wrongPosition,
   invalidSignature,
 }
 
@@ -143,6 +144,12 @@ class EmployeeProfiler {
       return poses.isEmpty ? SampleResult.noPose : SampleResult.lowConfidence;
     }
 
+    // Validar posicion para la muestra actual
+    final currentIdx = _faceEmbeddings.length;
+    if (!_isPositionCorrectForSample(face, currentIdx)) {
+      return SampleResult.wrongPosition;
+    }
+
     // Calcular BodySignature solo si hay pose válida
     BodySignature? sig;
     if (pose != null) {
@@ -150,12 +157,12 @@ class EmployeeProfiler {
     }
 
     // Calcular embedding facial real
-    final croppedFace = _faceAnalyzer.cropFaceFromCameraImage(cameraImage, face);
+    final croppedFace = await _faceAnalyzer.cropFaceFromCameraImageAsync(cameraImage, face);
     if (croppedFace == null) return SampleResult.lowConfidence;
 
     List<double> embedding;
     try {
-      embedding = _embeddingService.generateEmbedding(croppedFace);
+      embedding = await _embeddingService.generateEmbedding(croppedFace);
     } catch (e) {
       print('[SCAN] Error extrayendo embedding facial: $e');
       return SampleResult.invalidSignature;
@@ -258,5 +265,27 @@ class EmployeeProfiler {
         .map((t) => pose.landmarks[t]?.likelihood ?? 0.0)
         .toList();
     return likelihoods.reduce((a, b) => a + b) / likelihoods.length;
+  }
+
+  bool _isPositionCorrectForSample(Face face, int sampleIndex) {
+    final yaw = face.headEulerAngleY ?? 0.0;
+    final pitch = face.headEulerAngleX ?? 0.0;
+
+    switch (sampleIndex) {
+      case 0: // Frente
+        return yaw.abs() <= 12.0 && pitch.abs() <= 15.0;
+      case 1: // Izquierda (desde la vista en pantalla de selfi invertida o nativa)
+        // Pedimos que giren y detectamos solo que hayan girado lo suficiente (>12 grados)
+        return yaw.abs() > 12.0 && pitch.abs() <= 20.0;
+      case 2: // Derecha
+        return yaw.abs() > 12.0 && pitch.abs() <= 20.0; 
+      case 3: // Abajo
+        // pitch suele ser negativo al mirar abajo o positivo, depende del dispositivo, requerimos abs() alto
+        return yaw.abs() <= 20.0 && pitch.abs() > 10.0;
+      case 4: // Arriba
+        return yaw.abs() <= 20.0 && pitch.abs() > 10.0;
+      default:
+        return true;
+    }
   }
 }
