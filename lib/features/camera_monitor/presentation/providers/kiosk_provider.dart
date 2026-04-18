@@ -203,6 +203,16 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
   CameraController? get cameraController => _cameraController;
 
+  /// Sets the workstation ID for this kiosk session.
+  void setWorkstationId(String id) {
+    state = state.copyWith(workstationId: id);
+  }
+
+  /// Sets an error message to be displayed on screen.
+  void setError(String message) {
+    state = state.copyWith(error: message);
+  }
+
   /// Carga el perfil del empleado desde Drift y arranca la cámara si existe.
   /// Retorna true si hay perfil registrado, false si hay que escanear.
   Future<bool> loadProfileAndInit(

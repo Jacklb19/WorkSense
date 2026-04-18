@@ -397,8 +397,6 @@ final employeeScanProvider = StateNotifierProvider.autoDispose
 class EmployeeScanScreen extends ConsumerStatefulWidget {
   final String workstationId;
   final String employeeId;
-
-  /// Callback al completar el escaneo (navegar a KioskScreen).
   final VoidCallback onComplete;
 
   const EmployeeScanScreen({
@@ -412,22 +410,15 @@ class EmployeeScanScreen extends ConsumerStatefulWidget {
   ConsumerState<EmployeeScanScreen> createState() => _EmployeeScanScreenState();
 }
 
-class _EmployeeScanScreenState extends ConsumerState<EmployeeScanScreen>
-    with WidgetsBindingObserver {
-  ScanParams get _params => (
-        workstationId: widget.workstationId,
-        employeeId: widget.employeeId,
-      );
+class _EmployeeScanScreenState extends ConsumerState<EmployeeScanScreen> with WidgetsBindingObserver {
+  ScanParams get _params => (workstationId: widget.workstationId, employeeId: widget.employeeId);
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-
-    // Aseguramos que TFLite esté activo antes o durante el escaneo
     ref.read(faceEmbeddingServiceProvider).initialize();
-
     _initCamera();
   }
 
@@ -439,28 +430,8 @@ class _EmployeeScanScreenState extends ConsumerState<EmployeeScanScreen>
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.paused) {
-      final notifier = ref.read(employeeScanProvider(_params).notifier);
-      notifier.cameraController?.stopImageStream().catchError((_) {});
-    } else if (state == AppLifecycleState.resumed) {
-      _initCamera();
-    }
-  }
-
-  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    if (mounted) {
-      final notifier = ref.read(employeeScanProvider(_params).notifier);
-      notifier.cameraController?.stopImageStream().catchError((_) {});
-      notifier.cameraController?.dispose();
-    }
-    // Los detectores se cierran en el dispose del notifier que es llamado por Riverpod,
-    // pero aseguramos el llamado aquí si es necesario o dejamos que Riverpod lo maneje.
-    // El notifier.dispose() ya los cierra.
-    
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
@@ -473,14 +444,11 @@ class _EmployeeScanScreenState extends ConsumerState<EmployeeScanScreen>
   @override
   Widget build(BuildContext context) {
     final scanState = ref.watch(employeeScanProvider(_params));
-    final controller =
-        ref.read(employeeScanProvider(_params).notifier).cameraController;
+    final controller = ref.read(employeeScanProvider(_params).notifier).cameraController;
 
-    // Navegar al completar
     ref.listen<EmployeeScanState>(employeeScanProvider(_params), (prev, next) {
-      if (!mounted) return;
       if (next.isComplete && !(prev?.isComplete ?? false)) {
-        Future.delayed(const Duration(milliseconds: 800), () {
+        Future.delayed(const Duration(milliseconds: 1000), () {
           if (mounted) widget.onComplete();
         });
       }
@@ -491,45 +459,38 @@ class _EmployeeScanScreenState extends ConsumerState<EmployeeScanScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Cámara de fondo
           if (controller != null && scanState.cameraReady)
-            CameraPreview(controller)
+            Center(
+              child: CameraPreview(controller),
+            )
           else
-            const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            ),
+            const Center(child: CircularProgressIndicator(color: AppColors.primary)),
 
-          // Recuadro guía
+          // Glassmorphism HUD
+          const _HUDOverlay(),
+
+          // Guide Frame
           _GuideFrame(status: scanState.frameStatus),
 
-          // Panel superior
+          // Top Info
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: _TopBar(
-              sampleIndex: scanState.currentSampleIndex,
+            child: _TopHUD(
+              current: scanState.capturedCount,
               total: EmployeeProfiler.samplesRequired,
             ),
           ),
 
-          // Panel inferior con instrucciones + botón
+          // Bottom Controls
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            child: _BottomPanel(
-              scanState: scanState,
-              onCapture: () async {
-                if (!mounted) return;
-                final notifier = ref.read(employeeScanProvider(_params).notifier);
-                await notifier.captureCurrentSample();
-              },
-              onReset: () {
-                if (mounted) {
-                  ref.read(employeeScanProvider(_params).notifier).resetScan();
-                }
-              },
+            child: _BottomHUD(
+              state: scanState,
+              onCapture: () => ref.read(employeeScanProvider(_params).notifier).captureCurrentSample(),
             ),
           ),
         ],
@@ -538,34 +499,79 @@ class _EmployeeScanScreenState extends ConsumerState<EmployeeScanScreen>
   }
 }
 
-// ── Widgets internos ───────────────────────────────────────────────────────────
+class _HUDOverlay extends StatelessWidget {
+  const _HUDOverlay();
 
-class _TopBar extends StatelessWidget {
-  final int sampleIndex;
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 0.8,
+            colors: [
+              Colors.transparent,
+              Colors.black.withOpacity(0.2),
+              Colors.black.withOpacity(0.6),
+            ],
+            stops: const [0.5, 0.8, 1.0],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TopHUD extends StatelessWidget {
+  final int current;
   final int total;
-
-  const _TopBar({required this.sampleIndex, required this.total});
+  const _TopHUD({required this.current, required this.total});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.black.withOpacity(0.7), Colors.transparent],
+          colors: [Colors.black.withOpacity(0.8), Colors.transparent],
         ),
       ),
       child: SafeArea(
         bottom: false,
-        child: Text(
-          'Captura de Perfil — Muestra ${sampleIndex + 1} de $total',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+        child: Row(
+          children: [
+            IconButton(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.close, color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'ENROLAMIENTO BIOMÉTRICO',
+                  style: TextStyle(
+                    color: AppColors.primaryLight,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2.0,
+                  ),
+                ),
+                Text(
+                  'Muestra $current de $total completada',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -574,115 +580,91 @@ class _TopBar extends StatelessWidget {
 
 class _GuideFrame extends StatelessWidget {
   final _FrameStatus status;
-
   const _GuideFrame({required this.status});
 
   Color get _color {
     switch (status) {
-      case _FrameStatus.searching:
-        return Colors.white54;
-      case _FrameStatus.detected:
-        return Colors.green;
-      case _FrameStatus.error:
-        return Colors.red;
-      case _FrameStatus.capturing:
-        return AppColors.primary;
+      case _FrameStatus.searching: return Colors.white38;
+      case _FrameStatus.detected: return AppColors.feedbackDetected;
+      case _FrameStatus.error: return AppColors.feedbackError;
+      case _FrameStatus.capturing: return AppColors.feedbackCapturing;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final frameW = size.width * 0.65;
-    final frameH = size.height * 0.55;
-    final left = (size.width - frameW) / 2;
-    final top = (size.height - frameH) / 2.4;
+    final frameW = size.width * 0.75;
+    final frameH = size.height * 0.45;
 
-    return Positioned(
-      left: left,
-      top: top,
-      width: frameW,
-      height: frameH,
-      child: CustomPaint(
-        painter: _DashedRectPainter(color: _color),
+    return Center(
+      child: Container(
+        width: frameW,
+        height: frameH,
+        decoration: BoxDecoration(
+          border: Border.all(color: _color.withOpacity(0.5), width: 1),
+          borderRadius: BorderRadius.circular(32),
+        ),
+        child: Stack(
+          children: [
+            _CornerIndicator(color: _color, top: 0, left: 0),
+            _CornerIndicator(color: _color, top: 0, right: 0),
+            _CornerIndicator(color: _color, bottom: 0, left: 0),
+            _CornerIndicator(color: _color, bottom: 0, right: 0),
+            
+            if (status == _FrameStatus.capturing)
+               const Center(
+                 child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryLight),
+               ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _DashedRectPainter extends CustomPainter {
+class _CornerIndicator extends StatelessWidget {
   final Color color;
-  const _DashedRectPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke;
-
-    const cornerLen = 30.0;
-    final corners = [
-      // Top-left
-      [Offset(0, cornerLen), Offset.zero, Offset(cornerLen, 0)],
-      // Top-right
-      [
-        Offset(size.width - cornerLen, 0),
-        Offset(size.width, 0),
-        Offset(size.width, cornerLen)
-      ],
-      // Bottom-left
-      [
-        Offset(0, size.height - cornerLen),
-        Offset(0, size.height),
-        Offset(cornerLen, size.height)
-      ],
-      // Bottom-right
-      [
-        Offset(size.width - cornerLen, size.height),
-        Offset(size.width, size.height),
-        Offset(size.width, size.height - cornerLen)
-      ],
-    ];
-
-    for (final pts in corners) {
-      final path = Path()
-        ..moveTo(pts[0].dx, pts[0].dy)
-        ..lineTo(pts[1].dx, pts[1].dy)
-        ..lineTo(pts[2].dx, pts[2].dy);
-      canvas.drawPath(path, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedRectPainter old) => old.color != color;
-}
-
-class _BottomPanel extends StatelessWidget {
-  final EmployeeScanState scanState;
-  final VoidCallback onCapture;
-  final VoidCallback onReset;
-
-  const _BottomPanel({
-    required this.scanState,
-    required this.onCapture,
-    required this.onReset,
-  });
+  final double? top, bottom, left, right;
+  const _CornerIndicator({required this.color, this.top, this.bottom, this.left, this.right});
 
   @override
   Widget build(BuildContext context) {
-    final instruction = scanState.currentSampleIndex <
-            EmployeeProfiler.instructions.length
-        ? EmployeeProfiler.instructions[scanState.currentSampleIndex]
-        : null;
+    return Positioned(
+      top: top, bottom: bottom, left: left, right: right,
+      child: Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          border: Border(
+            top: top != null ? BorderSide(color: color, width: 4) : BorderSide.none,
+            bottom: bottom != null ? BorderSide(color: color, width: 4) : BorderSide.none,
+            left: left != null ? BorderSide(color: color, width: 4) : BorderSide.none,
+            right: right != null ? BorderSide(color: color, width: 4) : BorderSide.none,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomHUD extends StatelessWidget {
+  final EmployeeScanState state;
+  final VoidCallback onCapture;
+
+  const _BottomHUD({required this.state, required this.onCapture});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool canCapture = state.frameStatus == _FrameStatus.detected && !state.isCapturing;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
-          colors: [Colors.black.withOpacity(0.85), Colors.transparent],
+          colors: [Colors.black.withOpacity(0.9), Colors.transparent],
         ),
       ),
       child: SafeArea(
@@ -690,145 +672,97 @@ class _BottomPanel extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Emoji grande + instrucción
-            if (instruction != null) ...[
-              Text(
-                instruction.text,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-
-            // Barra de progreso
-            LinearProgressIndicator(
-              value: scanState.capturedCount / EmployeeProfiler.samplesRequired,
-              backgroundColor: Colors.white24,
-              color: AppColors.primary,
-              minHeight: 6,
-              borderRadius: BorderRadius.circular(3),
-            ),
-            const SizedBox(height: 8),
-
-            // Checks de muestras
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                EmployeeProfiler.samplesRequired,
-                (i) => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Icon(
-                    scanState.completedSamples[i]
-                        ? Icons.check_circle
-                        : Icons.radio_button_unchecked,
-                    color: scanState.completedSamples[i]
-                        ? Colors.green
-                        : Colors.white38,
-                    size: 22,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Feedback
+            // Instruction
             Text(
-              scanState.feedback,
+              state.feedback.toUpperCase(),
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: _feedbackColor(scanState.frameStatus),
+                color: _getStatusColor(state.frameStatus),
                 fontSize: 13,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 24),
 
-            // Botón capturar
-            if (!scanState.isComplete)
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: scanState.frameStatus == _FrameStatus.detected &&
-                          !scanState.isCapturing
-                      ? onCapture
-                      : null,
-                  icon: scanState.isCapturing
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.camera_alt),
-                  label: Text(
-                    'Capturar posicion ${scanState.currentSampleIndex + 1}',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            // Capture Button
+            if (!state.isComplete)
+              GestureDetector(
+                onTap: canCapture ? onCapture : null,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  height: 80,
+                  width: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: canCapture ? Colors.white : Colors.white24,
+                      width: 4,
+                    ),
+                    color: canCapture ? AppColors.primary.withOpacity(0.2) : Colors.transparent,
                   ),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    backgroundColor: AppColors.primary,
+                  child: Center(
+                    child: Container(
+                      height: 60,
+                      width: 60,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: canCapture ? Colors.white : Colors.white10,
+                      ),
+                      child: state.isCapturing 
+                        ? const Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.primary),
+                          )
+                        : Icon(
+                            Icons.fingerprint, 
+                            color: canCapture ? AppColors.primary : Colors.white24, 
+                            size: 32
+                          ),
+                    ),
                   ),
                 ),
               )
             else
-              Column(
-                children: [
-                  const Text(
-                    'Escaneo completado. Iniciando monitoreo...',
-                    style: TextStyle(
-                      color: Colors.greenAccent,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: onReset,
-                    child: const Text(
-                      'Repetir escaneo',
-                      style: TextStyle(color: Colors.white54),
-                    ),
-                  ),
-                ],
-              ),
+              const Icon(Icons.check_circle, color: AppColors.success, size: 80),
 
-            // Error de guardado
-            if (scanState.error != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                scanState.error!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
-              ),
-              TextButton(
-                onPressed: onReset,
-                child: const Text(
-                  'Intentar de nuevo',
-                  style: TextStyle(color: Colors.white70),
+            const SizedBox(height: 24),
+            // Progress dots
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                EmployeeProfiler.samplesRequired,
+                (i) => Container(
+                  width: 12,
+                  height: 12,
+                  margin: const EdgeInsets.symmetric(horizontal: 6),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: state.completedSamples[i] 
+                      ? AppColors.primaryLight 
+                      : Colors.white10,
+                    border: Border.all(
+                      color: state.currentSampleIndex == i 
+                        ? AppColors.primaryLight 
+                        : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
                 ),
               ),
-            ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Color _feedbackColor(_FrameStatus status) {
+  Color _getStatusColor(_FrameStatus status) {
     switch (status) {
-      case _FrameStatus.detected:
-        return Colors.greenAccent;
-      case _FrameStatus.error:
-        return Colors.redAccent;
-      case _FrameStatus.capturing:
-        return Colors.lightBlueAccent;
-      case _FrameStatus.searching:
-        return Colors.white70;
+      case _FrameStatus.detected: return AppColors.feedbackDetected;
+      case _FrameStatus.error: return AppColors.feedbackError;
+      default: return Colors.white70;
     }
   }
 }
+

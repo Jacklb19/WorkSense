@@ -14,58 +14,52 @@ class MyHoursScreen extends ConsumerWidget {
     final analyticsAsync = ref.watch(employeeTodayAnalyticsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mis Horas de Hoy'),
-      ),
       body: analyticsAsync.when(
         loading: () => const AppLoadingWidget(),
-        error: (error, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-              const SizedBox(height: 16),
-              const Text('Error al cargar analíticas', style: TextStyle(color: AppColors.error)),
-              TextButton(
-                onPressed: () => ref.invalidate(employeeTodayAnalyticsProvider),
-                child: const Text('Reintentar'),
-              ),
-            ],
-          ),
-        ),
+        error: (error, _) => Center(child: Text('Error: $error')),
         data: (analytics) {
-          if (analytics == null || !analytics.hasData) {
-            return const _EmptyHoursView();
-          }
+          if (analytics == null || !analytics.hasData) return const _EmptyHoursView();
 
           return CustomScrollView(
             slivers: [
-              // ── Summary header ────────────────────────────
-              SliverToBoxAdapter(
-                child: _SummaryHeader(analytics: analytics),
+              const SliverAppBar(
+                pinned: true,
+                title: Text('RENDIMIENTO HOY', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                centerTitle: false,
               ),
-
-              // ── State breakdown list ──────────────────────
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Text(
-                    'Distribución de tiempo',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+              SliverPadding(
+                padding: const EdgeInsets.all(24),
+                sliver: SliverToBoxAdapter(
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardDark,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _StatItem(label: 'ACTIVO', value: _fmtDur(analytics.totalTrackedTime), icon: Icons.timer),
+                        _StatItem(label: 'EVENTOS', value: '${analytics.totalEvents}', icon: Icons.bolt),
+                        _StatItem(label: 'PROD.', value: '${(analytics.percentageFor(ActivityState.trabajando) * 100).round()}%', icon: Icons.trending_up, color: Colors.greenAccent),
+                      ],
+                    ),
                   ),
                 ),
               ),
-              SliverList(
-                delegate: SliverChildListDelegate(
-                  _buildStateBreakdown(context, analytics),
+              const SliverPadding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                sliver: SliverToBoxAdapter(
+                  child: Text('DISTRIBUCIÓN DE ACTIVIDAD', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
                 ),
               ),
-
-              // Bottom padding
-              const SliverToBoxAdapter(child: SizedBox(height: 40)),
+              SliverPadding(
+                padding: const EdgeInsets.all(24),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate(_buildStateBreakdown(context, analytics)),
+                ),
+              ),
             ],
           );
         },
@@ -73,72 +67,33 @@ class MyHoursScreen extends ConsumerWidget {
     );
   }
 
-  List<Widget> _buildStateBreakdown(
-    BuildContext context,
-    EmployeeAnalytics analytics,
-  ) {
-    // Sort by duration descending, show all states even if 0
-    final statesWithData = <ActivityState, Duration>{};
-    for (final state in ActivityState.values) {
-      statesWithData[state] =
-          analytics.stateDurations[state] ?? Duration.zero;
-    }
+  List<Widget> _buildStateBreakdown(BuildContext context, EmployeeAnalytics analytics) {
+    final sorted = ActivityState.values.toList()..sort((a,b) => (analytics.stateDurations[b] ?? Duration.zero).compareTo(analytics.stateDurations[a] ?? Duration.zero));
 
-    final sorted = statesWithData.entries.toList()
-      ..sort((a, b) => b.value.inSeconds.compareTo(a.value.inSeconds));
-
-    return sorted.map((entry) {
-      final pct = analytics.percentageFor(entry.key);
+    return sorted.map((state) {
+      final dur = analytics.stateDurations[state] ?? Duration.zero;
+      final pct = analytics.percentageFor(state);
+      if (dur.inSeconds == 0) return const SizedBox.shrink();
 
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: Row(
+        padding: const EdgeInsets.only(bottom: 24),
+        child: Column(
           children: [
-            // State color dot
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                color: entry.key.color,
-                borderRadius: BorderRadius.circular(3),
-              ),
+            Row(
+              children: [
+                Text(state.label.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                const Spacer(),
+                Text(_fmtDur(dur), style: const TextStyle(color: Colors.white38, fontSize: 11)),
+              ],
             ),
-            const SizedBox(width: 12),
-
-            // Label
-            Expanded(
-              flex: 3,
-              child: Text(
-                entry.key.label,
-                style: const TextStyle(fontSize: 13),
-              ),
-            ),
-
-            // Bar
-            Expanded(
-              flex: 5,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(3),
-                child: LinearProgressIndicator(
-                  value: pct,
-                  backgroundColor: AppColors.grey200,
-                  color: entry.key.color,
-                  minHeight: 8,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-
-            // Percentage + duration
-            SizedBox(
-              width: 80,
-              child: Text(
-                '${(pct * 100).round()}% · ${_fmtDur(entry.value)}',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.grey600,
-                ),
-                textAlign: TextAlign.right,
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: pct,
+                minHeight: 6,
+                backgroundColor: Colors.white.withOpacity(0.05),
+                color: state.color,
               ),
             ),
           ],
@@ -148,11 +103,29 @@ class MyHoursScreen extends ConsumerWidget {
   }
 
   String _fmtDur(Duration d) {
-    if (d.inHours > 0) {
-      return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
-    }
-    if (d.inMinutes > 0) return '${d.inMinutes}m';
-    return '${d.inSeconds}s';
+    if (d.inHours > 0) return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
+    return '${d.inMinutes}m ${d.inSeconds.remainder(60)}s';
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color? color;
+  const _StatItem({required this.label, required this.value, required this.icon, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(icon, size: 20, color: color ?? AppColors.primary),
+        const SizedBox(height: 8),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
+      ],
+    );
   }
 }
 
@@ -162,125 +135,36 @@ class _EmptyHoursView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.access_time_outlined,
-            size: 64,
-            color: AppColors.grey300,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Sin registros de hoy',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.grey500,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Los datos analíticos del entorno \nse recopilarán automáticamente cuando inicies tu labor.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.grey400,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          FilledButton.tonal(
-            onPressed: () => ref.invalidate(employeeTodayAnalyticsProvider),
-            child: const Text('Actualizar'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SummaryHeader extends StatelessWidget {
-  final EmployeeAnalytics analytics;
-
-  const _SummaryHeader({required this.analytics});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Card(
-        elevation: 1,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              // Stats row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _StatChip(
-                    icon: Icons.timer_outlined,
-                    label: 'Tiempo total',
-                    value: _fmtDuration(analytics.totalTrackedTime),
-                  ),
-                  _StatChip(
-                    icon: Icons.event_note_outlined,
-                    label: 'Eventos hoy',
-                    value: '${analytics.totalEvents}',
-                  ),
-                  _StatChip(
-                    icon: Icons.trending_up,
-                    label: 'Productividad',
-                    value:
-                        '${(analytics.percentageFor(ActivityState.trabajando) * 100).round()}%',
-                  ),
-                ],
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.access_time_outlined, size: 64, color: Colors.white10),
+            const SizedBox(height: 24),
+            const Text(
+              'SIN DATOS HOY',
+              style: TextStyle(color: Colors.white24, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 2),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Las métricas se generarán automáticamente\ncuando inicies tu jornada laboral.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white12, fontSize: 13, height: 1.5),
+            ),
+            const SizedBox(height: 32),
+            OutlinedButton.icon(
+              onPressed: () => ref.invalidate(employeeTodayAnalyticsProvider),
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('ACTUALIZAR'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white38,
+                side: const BorderSide(color: Colors.white12),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    );
-  }
-
-  String _fmtDuration(Duration d) {
-    if (d.inHours > 0) {
-      return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
-    }
-    return '${d.inMinutes}m';
-  }
-}
-
-class _StatChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _StatChip({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Icon(icon, size: 22, color: AppColors.primary),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 10,
-            color: AppColors.grey500,
-          ),
-        ),
-      ],
     );
   }
 }

@@ -259,7 +259,4 @@ class EmployeeProfiler {
         .toList();
     return likelihoods.reduce((a, b) => a + b) / likelihoods.length;
   }
-
-    return likelihoods.reduce((a, b) => a + b) / likelihoods.length;
-  }
 }

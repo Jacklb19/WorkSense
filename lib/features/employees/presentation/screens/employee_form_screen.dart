@@ -61,18 +61,13 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
   Widget build(BuildContext context) {
     final formState = ref.watch(employeeFormNotifierProvider);
 
-    // Listen for successful save and navigate back
     ref.listen<EmployeeFormState>(employeeFormNotifierProvider, (_, next) {
       if (next.saved && !_hasListened) {
         _hasListened = true;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              _isEditing
-                  ? AppStrings.employeeUpdated
-                  : AppStrings.employeeAdded,
-            ),
-            backgroundColor: AppColors.success,
+            content: Text(_isEditing ? 'Colaborador actualizado' : 'Colaborador registrado'),
+            backgroundColor: Colors.green,
           ),
         );
         context.pop();
@@ -80,195 +75,77 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? AppStrings.editEmployee : AppStrings.newEmployee),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Icon header
-                Center(
-                  child: Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
-                      shape: BoxShape.circle,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            title: Text(_isEditing ? 'Editar Perfil' : 'Nuevo Ingreso'),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            sliver: SliverToBoxAdapter(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text('IDENTIDAD', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(labelText: 'Nombre', prefixIcon: Icon(Icons.person_outline)),
+                      validator: (v) => (v == null || v.isEmpty) ? 'Campo requerido' : null,
                     ),
-                    child: const Icon(
-                      Icons.person_outline,
-                      color: AppColors.primary,
-                      size: 36,
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _lastNameController,
+                      decoration: const InputDecoration(labelText: 'Apellidos', prefixIcon: Icon(Icons.badge_outlined)),
+                      validator: (v) => (v == null || v.isEmpty) ? 'Campo requerido' : null,
                     ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Name field
-                TextFormField(
-                  controller: _nameController,
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) => _handleSubmit(),
-                  decoration: const InputDecoration(
-                    labelText: AppStrings.nameLabel,
-                    hintText: AppStrings.nameHint,
-                    prefixIcon: Icon(Icons.badge_outlined),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return AppStrings.nameRequired;
-                    }
-                    if (value.trim().length < 2) {
-                      return AppStrings.nameMinLength;
-                    }
-                    if (value.trim().length > 100) {
-                      return AppStrings.nameMaxLength;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Last Name field
-                TextFormField(
-                  controller: _lastNameController,
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: AppStrings.lastNameLabel,
-                    hintText: AppStrings.lastNameHint,
-                    prefixIcon: Icon(Icons.badge_outlined),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return AppStrings.lastNameRequired;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Email field
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: AppStrings.emailLabel,
-                    hintText: AppStrings.emailEmployeeHint,
-                    prefixIcon: Icon(Icons.email_outlined),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return AppStrings.emailRequired2;
-                    }
-                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value.trim())) {
-                      return AppStrings.emailInvalid2;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Password field
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: AppStrings.passwordTempLabel,
-                    hintText: AppStrings.passwordTempHint,
-                    prefixIcon: Icon(Icons.lock_outline),
-                  ),
-                  validator: (value) {
-                    if (!_isEditing && (value == null || value.isEmpty)) {
-                      return AppStrings.passwordRequiredNew;
-                    }
-                    if (value != null && value.isNotEmpty && value.length < 6) {
-                      return AppStrings.passwordMinLength;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Role Dropdown
-                DropdownButtonFormField<String>(
-                  value: _selectedRole,
-                  decoration: const InputDecoration(
-                    labelText: AppStrings.roleLabel,
-                    prefixIcon: Icon(Icons.security_outlined),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'employee', child: Text(AppStrings.roleEmployee)),
-                    DropdownMenuItem(value: 'admin', child: Text(AppStrings.roleAdmin)),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() => _selectedRole = val);
-                    }
-                  },
-                ),
-
-                // Error message
-                if (formState.errorMessage != null) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.errorBg,
-                      borderRadius: BorderRadius.circular(8),
+                    const SizedBox(height: 40),
+                    Text('CREDENCIALES', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined)),
+                      validator: (v) => (v == null || !v.contains('@')) ? 'Email inválido' : null,
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline,
-                            color: AppColors.error, size: 18),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            formState.errorMessage!,
-                            style:
-                                const TextStyle(color: AppColors.error),
-                          ),
-                        ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(labelText: 'Contraseña Temporal', prefixIcon: Icon(Icons.lock_outline)),
+                      validator: (v) => (!_isEditing && (v == null || v.length < 6)) ? 'Mínimo 6 caracteres' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: _selectedRole,
+                      decoration: const InputDecoration(labelText: 'Rol', prefixIcon: Icon(Icons.security_outlined)),
+                      items: const [
+                        DropdownMenuItem(value: 'employee', child: Text('Empleado')),
+                        DropdownMenuItem(value: 'admin', child: Text('Administrador')),
                       ],
+                      onChanged: (val) => setState(() => _selectedRole = val!),
                     ),
-                  ),
-                ],
-
-                const SizedBox(height: 32),
-
-                // Submit button
-                FilledButton(
-                  onPressed: formState.isLoading ? null : _handleSubmit,
-                  style: FilledButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: formState.isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          _isEditing ? AppStrings.saveChanges : AppStrings.addEmployee,
-                          style: const TextStyle(fontSize: 16),
-                        ),
+                    const SizedBox(height: 56),
+                    FilledButton(
+                      onPressed: formState.isLoading ? null : _handleSubmit,
+                      style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, 60)),
+                      child: formState.isLoading 
+                        ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
+                        : Text(_isEditing ? 'GUARDAR CAMBIOS' : 'REGISTRAR EMPLEADO'),
+                    ),
+                    if (formState.errorMessage != null) ...[
+                      const SizedBox(height: 16),
+                      Text(formState.errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+                    ],
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

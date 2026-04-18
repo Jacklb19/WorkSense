@@ -18,77 +18,60 @@ class AdminDashboardScreen extends ConsumerWidget {
     final workstationsAsync = ref.watch(workstationsStreamProvider);
     final userState = ref.watch(currentUserProvider);
     final userEmail = userState.valueOrNull?.user?.email;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.adminTitle),
-        centerTitle: false,
-        actions: [
-          // Sync indicator
-          const SyncIndicatorWidget(),
-          const SizedBox(width: 8),
-
-          // History
-          IconButton(
-            icon: const Icon(Icons.history),
-            tooltip: AppStrings.historyTooltip,
-            onPressed: () => context.push(AppRoutes.history),
-          ),
-          
-          // Analytics
-          IconButton(
-            icon: const Icon(Icons.bar_chart_outlined),
-            tooltip: AppStrings.analyticsTooltip,
-            onPressed: () => context.push(AppRoutes.analytics),
-          ),
-        ],
-      ),
       body: workstationsAsync.when(
         loading: () => const AppLoadingWidget(),
         error: (error, _) => _ErrorView(error: error.toString()),
         data: (workstations) {
           if (workstations.isEmpty) {
-            return _EmptyWorkstationsView(
-              userEmail: userEmail,
-            );
+            return _EmptyWorkstationsView(userEmail: userEmail);
           }
 
           return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(workstationsStreamProvider);
-            },
+            onRefresh: () async => ref.invalidate(workstationsStreamProvider),
             child: CustomScrollView(
               slivers: [
+                SliverAppBar(
+                  floating: true,
+                  title: const Text('Comando central', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                  actions: [
+                    const SyncIndicatorWidget(),
+                    IconButton(icon: const Icon(Icons.history), onPressed: () => context.push(AppRoutes.history)),
+                    IconButton(icon: const Icon(Icons.bar_chart_outlined), onPressed: () => context.push(AppRoutes.analytics)),
+                    const SizedBox(width: 8),
+                  ],
+                ),
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  padding: const EdgeInsets.all(24),
                   sliver: SliverToBoxAdapter(
-                    child: _DashboardHeader(
-                      workstationCount: workstations.length,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('ESTACIONES ACTIVAS', style: theme.textTheme.labelMedium?.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                        const SizedBox(height: 8),
+                        Text('Supervisión en tiempo real', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                      ],
                     ),
                   ),
                 ),
                 SliverPadding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   sliver: SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 280,
-                      mainAxisExtent: 160,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
+                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 350,
+                      mainAxisExtent: 180,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
                     ),
                     delegate: SliverChildBuilderDelegate(
-                      (context, index) => WorkstationCard(
-                        workstation: workstations[index],
-                      ),
+                      (context, index) => WorkstationCard(workstation: workstations[index]),
                       childCount: workstations.length,
                     ),
                   ),
                 ),
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: 80),
-                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 100)),
               ],
             ),
           );
@@ -100,10 +83,8 @@ class AdminDashboardScreen extends ConsumerWidget {
           final firstId = items.isNotEmpty ? items.first.id : 'default';
           context.push('/kiosk/$firstId');
         },
-        icon: const Icon(Icons.camera_alt_outlined),
-        label: const Text(AppStrings.startKiosk),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        icon: const Icon(Icons.sensors),
+        label: const Text('MODO KIOSCO'),
       ),
     );
   }
