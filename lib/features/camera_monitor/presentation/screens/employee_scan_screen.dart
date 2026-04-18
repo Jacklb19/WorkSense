@@ -197,13 +197,33 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
         );
       } else {
         if (!state.isCapturing && (state.frameStatus != _FrameStatus.capturing)) {
-          state = state.copyWith(
-            frameStatus: _FrameStatus.detected,
-            feedback: 'Posicion correcta',
-          );
+          final isCorrectPos = _profiler.isPositionStateCorrect(faces.first);
+          
+          if (isCorrectPos) {
+            state = state.copyWith(
+              frameStatus: _FrameStatus.detected,
+              feedback: 'Posición correcta',
+            );
+          } else {
+            state = state.copyWith(
+              frameStatus: _FrameStatus.searching,
+              feedback: _getGuidanceMessage(state.currentSampleIndex),
+            );
+          }
         }
       }
     } catch (_) {}
+  }
+
+  String _getGuidanceMessage(int index) {
+    switch (index) {
+      case 0: return 'Mira directo a la cámara';
+      case 1: return 'Gira la cabeza a la izquierda';
+      case 2: return 'Gira la cabeza a la derecha';
+      case 3: return 'Mira hacia abajo';
+      case 4: return 'Mira hacia arriba';
+      default: return 'Ajusta tu posición';
+    }
   }
 
   Future<void> captureCurrentSample() async {

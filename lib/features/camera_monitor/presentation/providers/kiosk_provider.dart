@@ -378,9 +378,9 @@ class KioskNotifier extends StateNotifier<KioskState> {
         for (final face in allFaces) {
           // Generamos el embedding para el matcher si no hay lock o toca reid
           if (shouldReid) {
-            final cropped = _faceAnalyzer.cropFaceFromCameraImage(image, face);
+            final cropped = await _faceAnalyzer.cropFaceFromCameraImageAsync(image, face);
             if (cropped != null) {
-              final emb = _embeddingService.generateEmbedding(cropped);
+              final emb = await _embeddingService.generateEmbedding(cropped);
               embeddingsMap[face.trackingId ?? allFaces.indexOf(face)] = emb;
               _lastReidTime = now;
             }

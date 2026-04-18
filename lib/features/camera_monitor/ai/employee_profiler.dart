@@ -267,23 +267,26 @@ class EmployeeProfiler {
     return likelihoods.reduce((a, b) => a + b) / likelihoods.length;
   }
 
+  /// Verifica si la posición actual de la cara es válida para la muestra que toca procesar.
+  bool isPositionStateCorrect(Face face) {
+    return _isPositionCorrectForSample(face, _faceEmbeddings.length);
+  }
+
   bool _isPositionCorrectForSample(Face face, int sampleIndex) {
     final yaw = face.headEulerAngleY ?? 0.0;
     final pitch = face.headEulerAngleX ?? 0.0;
 
     switch (sampleIndex) {
-      case 0: // Frente
-        return yaw.abs() <= 12.0 && pitch.abs() <= 15.0;
-      case 1: // Izquierda (desde la vista en pantalla de selfi invertida o nativa)
-        // Pedimos que giren y detectamos solo que hayan girado lo suficiente (>12 grados)
-        return yaw.abs() > 12.0 && pitch.abs() <= 20.0;
-      case 2: // Derecha
-        return yaw.abs() > 12.0 && pitch.abs() <= 20.0; 
-      case 3: // Abajo
-        // pitch suele ser negativo al mirar abajo o positivo, depende del dispositivo, requerimos abs() alto
-        return yaw.abs() <= 20.0 && pitch.abs() > 10.0;
-      case 4: // Arriba
-        return yaw.abs() <= 20.0 && pitch.abs() > 10.0;
+      case 0: // Frente (Estricto)
+        return yaw.abs() <= 10.0 && pitch.abs() <= 12.0;
+      case 1: // Izquierda (Yaw negativo usualmente)
+        return yaw < -12.0 && pitch.abs() <= 20.0;
+      case 2: // Derecha (Yaw positivo usualmente)
+        return yaw > 12.0 && pitch.abs() <= 20.0; 
+      case 3: // Abajo (Pitch dependiente del dispositivo, usualmente negativo)
+        return yaw.abs() <= 20.0 && pitch > 10.0;
+      case 4: // Arriba (Pitch positivo)
+        return yaw.abs() <= 20.0 && pitch < -10.0;
       default:
         return true;
     }
