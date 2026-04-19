@@ -60,12 +60,13 @@ final routerProvider = Provider<GoRouter>((ref) {
 
         // Si acaban de hacer login o están en la raíz, los mandamos a su home
         if (loc == AppRoutes.login || loc == '/') {
+          if (role == AppRole.cameraMonitor) return AppRoutes.kioskWaiting;
           return AppRoutes.dashboard;
         }
 
         switch (role) {
           case AppRole.cameraMonitor:
-            if (!loc.startsWith('/kiosk') && loc != AppRoutes.login) {
+            if (!loc.startsWith('/kiosk') && loc != AppRoutes.entrance && loc != AppRoutes.login) {
               return AppRoutes.kioskWaiting;
             }
             break;

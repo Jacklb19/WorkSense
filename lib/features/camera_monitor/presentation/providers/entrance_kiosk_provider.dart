@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui' show Size;
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
@@ -120,16 +121,33 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   }
 
   Future<void> _loadRegistry() async {
-    final employees = await _db.getAllEmployeeRecords();
+    // Los face_embeddings viven en workstations. (Cada empleado con perfil biométrico activo
+    // tiene su rostro guardado en la tabla workstations como assigned_employee_id)
+    final workstations = await _db.getAllWorkstationRecords();
     int count = 0;
-    for (var emp in employees) {
-      if (emp.faceEmbedding != null) {
-        final emb = BiometricSerializer.deserializeEmbedding(emp.faceEmbedding);
-        if (emb != null) {
-           _employeeRegistry[emp.id] = emb;
-           count++;
+    
+    _employeeRegistry.clear();
+    for (var w in workstations) {
+      if (w.assignedEmployeeId != null && w.faceEmbedding != null) {
+        try {
+          // Attempt to decode string into list of doubles
+          List<dynamic> jsonList = jsonDecode(w.faceEmbedding!);
+          List<double> embedding = jsonList.map((e) => (e as num).toDouble()).toList();
+          if (embedding.isNotEmpty) {
+             _employeeRegistry[w.assignedEmployeeId!] = embedding;
+             count++;
+          }
+        } catch (e) {
+          debugPrint('[ENTRANCE] Error decoding embedding for ${w.assignedEmployeeId}: $e');
         }
       }
+    }
+    
+    // Forzar actualización visual si no hay perfiles
+    if (count == 0) {
+      state = state.copyWith(statusMessage: 'Advertencia: 0 perfiles locales en memoria.');
+    } else {
+      state = state.copyWith(statusMessage: 'Recepción activa ($count perfiles cargados).');
     }
     debugPrint('[ENTRANCE] Cargados $count perfiles faciales en memoria.');
   }
@@ -161,7 +179,14 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
       if (inputImage == null) return;
 
       final faces = await _faceDetector.processImage(inputImage);
-      if (faces.isEmpty || _disposed) return;
+      if (faces.isEmpty || _disposed) {
+        if (state.statusMessage != 'Recepción activa' && state.statusMessage.startsWith('Detectando')) {
+           state = state.copyWith(statusMessage: 'Recepción activa');
+        }
+        return;
+      }
+
+      state = state.copyWith(statusMessage: 'Detectando rostro...');
 
       // Solo evaluamos la cara más grande/cercana
       final largestFace = faces.reduce((a, b) => 
@@ -172,6 +197,11 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
       final incomingEmb = await _embeddingService.generateEmbedding(cropped);
       
+      if (_employeeRegistry.isEmpty) {
+        state = state.copyWith(statusMessage: 'No hay empleados en BD. Sincroniza app o crea empleados.');
+        return;
+      }
+
       // Compare with registry
       String? bestMatchId;
       double maxSim = 0.0;
@@ -186,6 +216,8 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
       if (maxSim >= AiThresholds.minEmbeddingMatchScore && bestMatchId != null) {
          await _triggerEntrance(bestMatchId);
+      } else {
+         state = state.copyWith(statusMessage: 'Rostro desconocido (Sim: ${(maxSim*100).toStringAsFixed(1)}%)');
       }
     } catch (e) {
       debugPrint('[ENTRANCE] Error: $e');

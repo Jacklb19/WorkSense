@@ -27,9 +27,12 @@ final currentUserProvider = StreamProvider<CurrentUser>((ref) {
       return const CurrentUser(user: null, role: AppRole.employee, companyId: null);
     }
 
-    final metadata = user.userMetadata ?? {};
-    final rawRole = metadata['role']?.toString().toUpperCase();
-    var companyId = metadata['company_id']?.toString();
+    final userMeta = user.userMetadata ?? {};
+    final appMeta = user.appMetadata ?? {};
+    
+    // El rol puede venir del backend (app_meta_data) o del signup (user_meta_data)
+    final rawRole = (appMeta['role']?.toString() ?? userMeta['role']?.toString())?.toUpperCase();
+    var companyId = (appMeta['company_id']?.toString() ?? userMeta['company_id']?.toString());
     if (companyId == 'default' || companyId == '') {
       companyId = null;
     }

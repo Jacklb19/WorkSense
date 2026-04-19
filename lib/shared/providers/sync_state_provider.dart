@@ -3,6 +3,7 @@ import 'package:worksense_app/data/datasources/remote/supabase_datasource.dart';
 import 'package:worksense_app/data/repositories/sync_repository_impl.dart';
 import 'package:worksense_app/shared/domain/usecases/process_sync_queue_use_case.dart';
 import 'package:worksense_app/shared/providers/connectivity_provider.dart';
+import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
 
 // ── Providers ────────────────────────────────────────────────────────────────
@@ -15,7 +16,8 @@ final syncRepositoryProvider = Provider<SyncRepositoryImpl>((ref) {
 final processSyncQueueProvider = Provider<ProcessSyncQueueUseCase>((ref) {
   final syncRepo = ref.watch(syncRepositoryProvider);
   final remote = ref.watch(supabaseDataSourceProvider);
-  return ProcessSyncQueueUseCase(syncRepo, remote);
+  final db = ref.watch(appDatabaseProvider);
+  return ProcessSyncQueueUseCase(syncRepo, remote, db);
 });
 
 final supabaseDataSourceProvider = Provider<SupabaseDataSource>((ref) {
@@ -32,6 +34,15 @@ final syncNotifierProvider =
   // Auto-sync al recuperar conexión
   ref.listen<bool>(isOnlineProvider, (previous, isOnline) {
     if (isOnline && (previous == null || !previous)) {
+      notifier.sync();
+    }
+  });
+
+  // Auto-sync al iniciar sesión
+  ref.listen<AsyncValue<CurrentUser>>(currentUserProvider, (previous, next) {
+    final wasLoggedOut = previous?.valueOrNull?.user == null;
+    final isNowLoggedIn = next.valueOrNull?.user != null;
+    if (wasLoggedOut && isNowLoggedIn) {
       notifier.sync();
     }
   });

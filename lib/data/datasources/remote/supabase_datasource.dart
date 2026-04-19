@@ -24,6 +24,18 @@ class SupabaseDataSource {
     }
   }
 
+  Future<void> patch(String table, String id, Map<String, dynamic> data) async {
+    try {
+      await _client.from(table).update(data).eq('id', id);
+    } on PostgrestException catch (e) {
+      throw SyncException(
+        'Error parcheando en $table: ${e.message} (code: ${e.code})',
+      );
+    } catch (e) {
+      throw SyncException('Error inesperado en $table patch: $e');
+    }
+  }
+
   // MÃ©todos especÃficos (usan el genÃ©rico internamente)
   Future<void> insertEmployee(Map<String, dynamic> data) =>
       upsert('employees', data);
@@ -69,24 +81,34 @@ class SupabaseDataSource {
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchAllEmployees(String companyId) async {
+  String? get currentCompanyId {
+    final user = _client.auth.currentUser;
+    if (user == null) return null;
+    final meta = user.appMetadata ?? {};
+    final userMeta = user.userMetadata ?? {};
+    return (meta['company_id']?.toString() ?? userMeta['company_id']?.toString());
+  }
+
+  Future<List<Map<String, dynamic>>> fetchAllEmployees(String? companyId) async {
     try {
-      final response = await _client
-          .from('employees')
-          .select()
-          .eq('company_id', companyId);
+      var query = _client.from('employees').select();
+      if (companyId != null && companyId != 'default') {
+        query = query.eq('company_id', companyId);
+      }
+      final response = await query;
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       throw SyncException('Error obteniendo empleados: $e');
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchAllWorkstations(String companyId) async {
+  Future<List<Map<String, dynamic>>> fetchAllWorkstations(String? companyId) async {
     try {
-      final response = await _client
-          .from('workstations')
-          .select()
-          .eq('company_id', companyId);
+      var query = _client.from('workstations').select();
+      if (companyId != null && companyId != 'default') {
+        query = query.eq('company_id', companyId);
+      }
+      final response = await query;
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       throw SyncException('Error obteniendo workstations: $e');

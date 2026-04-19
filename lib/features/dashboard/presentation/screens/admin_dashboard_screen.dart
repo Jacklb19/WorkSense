@@ -21,61 +21,66 @@ class AdminDashboardScreen extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: workstationsAsync.when(
-        loading: () => const AppLoadingWidget(),
-        error: (error, _) => _ErrorView(error: error.toString()),
-        data: (workstations) {
-          if (workstations.isEmpty) {
-            return _EmptyWorkstationsView(userEmail: userEmail);
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(workstationsStreamProvider),
-            child: CustomScrollView(
-              slivers: [
-                SliverAppBar(
-                  floating: true,
-                  title: const Text('Comando central', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                  actions: [
-                    const SyncIndicatorWidget(),
-                    IconButton(icon: const Icon(Icons.history), onPressed: () => context.push(AppRoutes.history)),
-                    IconButton(icon: const Icon(Icons.bar_chart_outlined), onPressed: () => context.push(AppRoutes.analytics)),
-                    const SizedBox(width: 8),
-                  ],
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.all(24),
-                  sliver: SliverToBoxAdapter(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('ESTACIONES ACTIVAS', style: theme.textTheme.labelMedium?.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-                        const SizedBox(height: 8),
-                        Text('Supervisión en tiempo real', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-                      ],
-                    ),
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  sliver: SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 350,
-                      mainAxisExtent: 180,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) => WorkstationCard(workstation: workstations[index]),
-                      childCount: workstations.length,
-                    ),
-                  ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+      body: RefreshIndicator(
+        onRefresh: () async => ref.invalidate(workstationsStreamProvider),
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              floating: true,
+              title: const Text('Comando central', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+              actions: [
+                const SyncIndicatorWidget(),
+                IconButton(icon: const Icon(Icons.history), onPressed: () => context.push(AppRoutes.history)),
+                IconButton(icon: const Icon(Icons.bar_chart_outlined), onPressed: () => context.push(AppRoutes.analytics)),
+                const SizedBox(width: 8),
               ],
             ),
-          );
-        },
+            
+            workstationsAsync.when(
+              loading: () => const SliverFillRemaining(child: AppLoadingWidget()),
+              error: (error, _) => SliverFillRemaining(child: _ErrorView(error: error.toString())),
+              data: (workstations) {
+                if (workstations.isEmpty) {
+                  return SliverFillRemaining(child: _EmptyWorkstationsView(userEmail: userEmail));
+                }
+
+                return SliverMainAxisGroup(
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.all(24),
+                      sliver: SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('ESTACIONES ACTIVAS', style: theme.textTheme.labelMedium?.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                            const SizedBox(height: 8),
+                            Text('Supervisión en tiempo real', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      sliver: SliverGrid(
+                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 350,
+                          mainAxisExtent: 180,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) => WorkstationCard(workstation: workstations[index]),
+                          childCount: workstations.length,
+                        ),
+                      ),
+                    ),
+                    const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
       ),
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,

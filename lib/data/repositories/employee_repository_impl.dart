@@ -75,15 +75,8 @@ class EmployeeRepositoryImpl implements EmployeeRepository {
       // 1. Persistencia local
       await _db.updateEmployeeEmbedding(employeeId, jsonEmbedding);
 
-      // 2. Integración remota (Upsert del embedding)
-      await _syncRepo.enqueue(
-        targetTable: 'employees',
-        operation: 'PATCH',
-        recordId: employeeId,
-        payload: {
-          'face_embedding': jsonEmbedding,
-        },
-      );
+      // (Nota: No se sincroniza face_embedding hacia la tabla 'employees' en Supabase
+      // porque esta base de datos centralizada guarda los embeddings en 'workstations'.)
     });
   }
 
@@ -110,15 +103,7 @@ class EmployeeRepositoryImpl implements EmployeeRepository {
       await _db.updateEmployeeEmbedding(employeeId, faceEmbeddingJson);
 
       // 3. Encolar actualizaciones remotas
-      // 3.1 Actualización del empleado
-      await _syncRepo.enqueue(
-        targetTable: 'employees',
-        operation: 'PATCH',
-        recordId: employeeId,
-        payload: {'face_embedding': faceEmbeddingJson},
-      );
-
-      // 3.2 Actualización de la workstation (opcional, según si el backend lo requiere)
+      // 3.1 Actualización de la workstation en Supabase con los biométricos
       await _syncRepo.enqueue(
         targetTable: 'workstations',
         operation: 'PATCH',
