@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,7 @@ import 'package:worksense_app/features/camera_monitor/presentation/widgets/activ
 import 'package:worksense_app/features/camera_monitor/presentation/widgets/camera_preview_widget.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/widgets/state_badge_widget.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/employee_scan_screen.dart';
+import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 
 class KioskScreen extends ConsumerStatefulWidget {
   final String? workstationId;
@@ -22,6 +24,8 @@ class KioskScreen extends ConsumerStatefulWidget {
 }
 
 class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingObserver {
+  Timer? _syncTimer;
+  
   @override
   void initState() {
     super.initState();
@@ -35,6 +39,13 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
     }
 
     _initCamera();
+    
+    // Periodic sync: push activity events to Supabase every 30 seconds
+    _syncTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) {
+        ref.read(syncNotifierProvider.notifier).sync();
+      }
+    });
   }
 
   Future<void> _initCamera() async {
@@ -54,9 +65,14 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
 
   @override
   void dispose() {
+    _syncTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     try {
       ref.read(kioskProvider.notifier).stopCamera();
+    } catch (_) {}
+    // Trigger one final sync before leaving
+    try {
+      ref.read(syncNotifierProvider.notifier).sync();
     } catch (_) {}
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp, DeviceOrientation.portraitDown,

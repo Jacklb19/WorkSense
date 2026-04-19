@@ -433,18 +433,69 @@ class KioskNotifier extends StateNotifier<KioskState> {
       }
 
       // When no embeddings were generated (reid cooldown during active session)
-      // and faces ARE visible, maintain current session state — don't run the finder
-      // with empty data, which would falsely report absent.
+      // and faces ARE visible, skip identity check but STILL run activity classification.
       if (embeddingsMap.isEmpty && allFaces.isNotEmpty && state.sessionStatus == SessionStatus.active) {
-        // Faces detected but we're in reid cooldown — just do activity classification
-        // without re-running identity check
         _consecutiveAbsentFrames = 0; // reset, person is clearly visible
+        
+        // Pick the largest face for activity analysis
+        final largestFace = allFaces.reduce((a, b) =>
+          (a.boundingBox.width * a.boundingBox.height) > (b.boundingBox.width * b.boundingBox.height) ? a : b);
+        
+        // Find closest pose to the largest face
+        Pose? closestPose;
+        if (allPoses.isNotEmpty) {
+          final faceCenterX = largestFace.boundingBox.center.dx;
+          final faceCenterY = largestFace.boundingBox.center.dy;
+          double minDist = double.infinity;
+          for (final pose in allPoses) {
+            final nose = pose.landmarks[PoseLandmarkType.nose];
+            if (nose != null) {
+              final dx = nose.x - faceCenterX;
+              final dy = nose.y - faceCenterY;
+              final dist = dx * dx + dy * dy;
+              if (dist < minDist) {
+                minDist = dist;
+                closestPose = pose;
+              }
+            }
+          }
+        }
+        
+        // Run activity classification (face angles, pose, hands movement)
+        final faceResult = _faceAnalyzer.analyzeSingle(largestFace);
+        final poseResult = _poseAnalyzer.analyzeSingle(closestPose);
+        
+        if (poseResult.handsMoving) _lastMovementTime = now;
+        final isInactive = now.difference(_lastMovementTime).inSeconds >=
+            AiThresholds.inactivityThresholdSeconds;
+        
+        final aiResult = _classifier.classify(
+          pose: poseResult,
+          face: faceResult,
+          isInactive: isInactive,
+        );
+        
+        final previousActivityState = state.currentState;
+        
         state = state.copyWith(
+          currentState: aiResult.state,
+          confidence: aiResult.confidence,
           isProcessing: false,
-          poses: allPoses,
-          faces: allFaces,
+          poses: closestPose != null ? [closestPose] : const [],
+          faces: [largestFace],
           imageSize: imgSize,
         );
+        
+        // Save events during active session
+        final stateChanged = aiResult.state != previousActivityState;
+        final saveIntervalElapsed = now.difference(_lastSaveTime) >= _saveInterval;
+        if (stateChanged || saveIntervalElapsed) {
+          _saveEvent(aiResult, now,
+              identityConfidence: state.identityConfidence,
+              identificationMethod: state.identificationMethod ?? 'TRACKING');
+          _lastSaveTime = now;
+        }
+        
         return;
       }
 
