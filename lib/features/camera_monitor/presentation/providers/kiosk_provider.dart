@@ -13,6 +13,7 @@ import 'package:uuid/uuid.dart';
 import 'package:worksense_app/core/constants/ai_thresholds.dart';
 import 'package:worksense_app/core/utils/biometric_utils.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:worksense_app/data/repositories/activity_repository_impl.dart';
 import 'package:worksense_app/domain/entities/activity_event.dart';
@@ -76,6 +77,9 @@ class KioskState {
   final double identityConfidence;
   final String? assignedEmployeeId;
   final DateTime? sessionStartTime;
+  
+  // Sentinel Mode
+  final String workstationStatus;
 
   const KioskState({
     this.currentState = ActivityState.noIdentificado,
@@ -96,6 +100,7 @@ class KioskState {
     this.identityConfidence = 0.0,
     this.assignedEmployeeId,
     this.sessionStartTime,
+    this.workstationStatus = 'IDLE',
   });
 
   KioskState copyWith({
@@ -117,6 +122,7 @@ class KioskState {
     double? identityConfidence,
     String? assignedEmployeeId,
     DateTime? sessionStartTime,
+    String? workstationStatus,
   }) {
     return KioskState(
       currentState: currentState ?? this.currentState,
@@ -137,6 +143,7 @@ class KioskState {
       identityConfidence: identityConfidence ?? this.identityConfidence,
       assignedEmployeeId: assignedEmployeeId ?? this.assignedEmployeeId,
       sessionStartTime: sessionStartTime ?? this.sessionStartTime,
+      workstationStatus: workstationStatus ?? this.workstationStatus,
     );
   }
 }
@@ -164,6 +171,8 @@ class KioskNotifier extends StateNotifier<KioskState> {
   DateTime _lastSaveTime = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _lastReidTime = DateTime.fromMillisecondsSinceEpoch(0);
   int _adaptationsCount = 0;
+  
+  StreamSubscription? _remoteSub;
 
   static const Duration _analysisInterval = Duration(milliseconds: 600);
   static const Duration _saveInterval = Duration(
@@ -254,7 +263,10 @@ class KioskNotifier extends StateNotifier<KioskState> {
           sessionStatus: SessionStatus.idle,
         );
 
-        await initializeCamera(cameras);
+        _listenRemoteStatus(workstationId);
+
+        // Ya no iniciamos cámara de inmediato, lo maneja el Listener de Realtime
+        // Si quieres forzar inicio manual para test: if(state.workstationStatus == 'ACTIVE') await initializeCamera(cameras);
         return true;
       }
     }
@@ -265,7 +277,40 @@ class KioskNotifier extends StateNotifier<KioskState> {
       assignedEmployeeId: assignedId,
       currentState: ActivityState.noIdentificado,
     );
+    
+    _listenRemoteStatus(workstationId);
     return false;
+  }
+  
+  void _listenRemoteStatus(String workstationId) {
+    _remoteSub?.cancel();
+    _remoteSub = Supabase.instance.client
+        .from('workstations')
+        .stream(primaryKey: ['id'])
+        .eq('id', workstationId)
+        .listen((events) async {
+      if (events.isEmpty) return;
+      final data = events.first;
+      final status = data['status'] as String? ?? 'IDLE';
+      
+      final bool isRunning = _cameraController != null && state.cameraInitialized;
+
+      if (status == 'ACTIVE' && !isRunning) {
+        debugPrint('[REALTIME] Activating camera for $workstationId');
+        final cameras = await availableCameras();
+        await initializeCamera(cameras);
+      } else if (status == 'IDLE' && isRunning) {
+        debugPrint('[REALTIME] Deactivating camera for $workstationId');
+        await stopCamera();
+      } else if (status == 'BREAK' && isRunning) {
+        debugPrint('[REALTIME] Pausing camera for break');
+        await stopCamera();
+      }
+      
+      if (!_disposed) state = state.copyWith(workstationStatus: status);
+    }, onError: (e) {
+      debugPrint('[REALTIME Error] $e');
+    });
   }
 
   Future<void> initializeCamera(List<CameraDescription> cameras) async {
@@ -640,6 +685,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
     });
     _poseAnalyzer.reset();
     _classifier.reset();
+    _remoteSub?.cancel();
     super.dispose();
   }
 }

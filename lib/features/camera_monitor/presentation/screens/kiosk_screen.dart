@@ -87,14 +87,16 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
           children: [
             if (kioskState.error != null)
               CameraErrorWidget(message: kioskState.error!, onRetry: _initCamera)
-            else if (controller != null && kioskState.cameraInitialized)
-              CameraPreviewWidget(controller: controller)
             else if (!kioskState.isEmployeeScanned)
               _NoProfileView(
                 workstationId: kioskState.workstationId,
                 assignedEmployeeId: kioskState.assignedEmployeeId,
                 onScanComplete: _initCamera,
               )
+            else if (kioskState.workstationStatus != 'ACTIVE')
+              _WaitingStandbyView(status: kioskState.workstationStatus)
+            else if (controller != null && kioskState.cameraInitialized)
+              CameraPreviewWidget(controller: controller)
             else
               const _LoadingView(),
 
@@ -154,7 +156,7 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
                     onExit: ref.read(kioskProvider.notifier).requestExit,
                   ),
                 ),
-            ] else ...[
+            ] else if (kioskState.workstationStatus == 'ACTIVE') ...[
                Positioned(top: 64, left: 0, right: 0,
                  child: _IdentifyingHUD(isProcessing: kioskState.isProcessing),
                ),
@@ -368,5 +370,50 @@ Future<bool> _showExitConfirmation(BuildContext context) async {
       ],
     ),
   ) ?? false;
+}
+
+class _WaitingStandbyView extends StatelessWidget {
+  final String status;
+
+  const _WaitingStandbyView({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    bool isBreak = status == 'BREAK';
+    return Container(
+      color: Colors.black,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isBreak ? Icons.free_breakfast : Icons.bedtime, 
+              size: 80, 
+              color: isBreak ? Colors.orange : AppColors.primary
+            ),
+            const SizedBox(height: 32),
+            Text(
+              isBreak ? 'EN PAUSA' : 'EN ESPERA',
+              style: const TextStyle(
+                color: Colors.white, 
+                fontSize: 24, 
+                fontWeight: FontWeight.w900, 
+                letterSpacing: 2
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isBreak 
+                ? 'El monitoreo está pausado por descanso.' 
+                : 'Esperando escaneo en el Kiosco de Entrada...',
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
+            ),
+            const SizedBox(height: 64),
+            const CircularProgressIndicator(color: Colors.white24),
+          ],
+        ),
+      ),
+    );
+  }
 }
 

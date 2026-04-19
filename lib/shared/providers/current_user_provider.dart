@@ -29,7 +29,10 @@ final currentUserProvider = StreamProvider<CurrentUser>((ref) {
 
     final metadata = user.userMetadata ?? {};
     final rawRole = metadata['role']?.toString().toUpperCase();
-    final companyId = metadata['company_id']?.toString();
+    var companyId = metadata['company_id']?.toString();
+    if (companyId == 'default' || companyId == '') {
+      companyId = null;
+    }
 
     AppRole role;
     switch (rawRole) {

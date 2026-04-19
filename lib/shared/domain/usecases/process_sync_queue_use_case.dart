@@ -30,6 +30,12 @@ class ProcessSyncQueueUseCase {
         await _syncRepo.delete(entry.id); // limpia la cola al sincronizar
         success++;
       } on SyncException catch (e) {
+        // Si es un error de sintaxis de UUID (22P02) o violacion de FK (23503), desechamos el mensaje
+        // para no bloquear la cola infinitamente.
+        if (e.message.contains('22P02') || e.message.contains('violates foreign key constraint')) {
+          debugPrint('[Sync] Desechando mensaje corrupto: ${e.message}');
+          await _syncRepo.delete(entry.id);
+        }
         errors.add('Entry ${entry.id} (${entry.targetTable }): ${e.message}');
         debugPrint('[Sync Error] $e');
       } catch (e) {

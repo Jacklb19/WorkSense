@@ -41,6 +41,9 @@ class WorkstationRecords extends Table {
   DateTimeColumn get profileCapturedAt => dateTime().nullable()();
   IntColumn get profileVersion =>
       integer().withDefault(const Constant(0))();
+  
+  // Kiosk / Realtime status
+  TextColumn get status => text().withDefault(const Constant('IDLE'))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -88,7 +91,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -126,6 +129,11 @@ class AppDatabase extends _$AppDatabase {
         // La migración a v4 añade el campo central de face_embedding en Employee
         // para permitir reconocimiento cross-workstation.
         await migrator.addColumn(employeeRecords, employeeRecords.faceEmbedding);
+      }
+      
+      if (from < 5) {
+        // Migración a v5: añadir status a workstations para realtime monitoring
+        await migrator.addColumn(workstationRecords, workstationRecords.status);
       }
     },
     beforeOpen: (details) async {
