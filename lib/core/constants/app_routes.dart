@@ -16,4 +16,5 @@ class AppRoutes {
   static const myHours = '/my-hours';
   static const analytics = '/analytics';
   static const analyticsDetail = '/analytics/:employeeId';
+  static const entrance = '/entrance';
 }

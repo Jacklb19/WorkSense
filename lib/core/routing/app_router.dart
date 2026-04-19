@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:worksense_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/kiosk_screen.dart';
+import 'package:worksense_app/features/camera_monitor/presentation/screens/entrance_kiosk_screen.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/kiosk_waiting_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/activity_history_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/admin_analytics_screen.dart';
@@ -111,6 +112,16 @@ final routerProvider = Provider<GoRouter>((ref) {
             child: KioskScreen(workstationId: workstationId),
           );
         },
+      ),
+
+      // Entrance Kiosk
+      GoRoute(
+        path: AppRoutes.entrance,
+        name: 'entrance',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: EntranceKioskScreen(),
+        ),
       ),
 
       // Employee form (new) - Pushed on root nav to cover everything

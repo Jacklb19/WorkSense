@@ -77,14 +77,29 @@ class AdminDashboardScreen extends ConsumerWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          final items = workstationsAsync.valueOrNull ?? [];
-          final firstId = items.isNotEmpty ? items.first.id : 'default';
-          context.push('/kiosk/$firstId');
-        },
-        icon: const Icon(Icons.sensors),
-        label: const Text('MODO KIOSCO'),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.extended(
+            heroTag: 'kiosk_btn',
+            onPressed: () {
+              final items = workstationsAsync.valueOrNull ?? [];
+              final firstId = items.isNotEmpty ? items.first.id : 'default';
+              context.push('/kiosk/$firstId');
+            },
+            icon: const Icon(Icons.desktop_windows),
+            label: const Text('MONITOR PUESTO'),
+          ),
+          const SizedBox(height: 16),
+          FloatingActionButton.extended(
+            heroTag: 'entrance_btn',
+            onPressed: () => context.push(AppRoutes.entrance),
+            icon: const Icon(Icons.meeting_room),
+            label: const Text('KIOSCO RECEPCIÓN'),
+            backgroundColor: AppColors.primary,
+          ),
+        ],
       ),
     );
   }
