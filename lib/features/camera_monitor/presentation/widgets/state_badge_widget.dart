@@ -50,6 +50,7 @@ class StateBadgeWidget extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               '${(confidence! * 100).toStringAsFixed(0)}%',
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: fontSize - 1,
                 color: state.color.withOpacity(0.7),

@@ -235,10 +235,16 @@ class _KioskTopHUD extends StatelessWidget {
             const SizedBox(width: 8),
             const Text('WORKSENSE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
             const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.2), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.primary.withOpacity(0.5))),
-              child: Text(workstationId, style: const TextStyle(color: AppColors.primaryLight, fontSize: 10, fontWeight: FontWeight.w700)),
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.2), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.primary.withOpacity(0.5))),
+                child: Text(
+                  workstationId.length > 8 ? '${workstationId.substring(0, 8)}…' : workstationId,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: AppColors.primaryLight, fontSize: 10, fontWeight: FontWeight.w700),
+                ),
+              ),
             ),
           ],
         ),
