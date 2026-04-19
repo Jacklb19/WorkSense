@@ -9,12 +9,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:worksense_app/core/constants/ai_thresholds.dart';
-import 'package:worksense_app/core/utils/biometric_utils.dart';
+
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/features/camera_monitor/ai/employee_profile.dart';
 import 'package:worksense_app/features/camera_monitor/ai/face_analyzer.dart';
 import 'package:worksense_app/features/camera_monitor/ai/face_embedding_service.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
+
+/// Describes the current phase of the entrance kiosk flow.
+enum KioskPhase {
+  /// Initial boot / loading registry
+  initializing,
+  /// Camera active, scanning faces
+  scanning,
+  /// Face recognized – showing welcome overlay
+  welcome,
+  /// Cooldown after welcome before re-enabling scanning
+  cooldown,
+}
 
 class EntranceKioskState {
   final bool isReady;
@@ -22,6 +34,9 @@ class EntranceKioskState {
   final bool isProcessing;
   final String statusMessage;
   final String? lastMatchedEmployeeId;
+  final String? matchedEmployeeName;
+  final String? matchedWorkstationName;
+  final KioskPhase phase;
 
   const EntranceKioskState({
     this.isReady = false,
@@ -29,6 +44,9 @@ class EntranceKioskState {
     this.isProcessing = false,
     this.statusMessage = 'Escaneando...',
     this.lastMatchedEmployeeId,
+    this.matchedEmployeeName,
+    this.matchedWorkstationName,
+    this.phase = KioskPhase.initializing,
   });
 
   EntranceKioskState copyWith({
@@ -37,6 +55,9 @@ class EntranceKioskState {
     bool? isProcessing,
     String? statusMessage,
     String? lastMatchedEmployeeId,
+    String? matchedEmployeeName,
+    String? matchedWorkstationName,
+    KioskPhase? phase,
   }) {
     return EntranceKioskState(
       isReady: isReady ?? this.isReady,
@@ -44,6 +65,9 @@ class EntranceKioskState {
       isProcessing: isProcessing ?? this.isProcessing,
       statusMessage: statusMessage ?? this.statusMessage,
       lastMatchedEmployeeId: lastMatchedEmployeeId, // deliberately allow null reset
+      matchedEmployeeName: matchedEmployeeName,
+      matchedWorkstationName: matchedWorkstationName,
+      phase: phase ?? this.phase,
     );
   }
 }
@@ -68,11 +92,15 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
     DeviceOrientation.landscapeRight: 270,
   };
 
-  // Cached registry
+  // Cached registry: employeeId -> embedding
   final Map<String, List<double>> _employeeRegistry = {};
+  // Cached names: employeeId -> employee name
+  final Map<String, String> _employeeNames = {};
+  // Cached workstation names: employeeId -> workstation name
+  final Map<String, String> _workstationNames = {};
   
-  // Timer to clear status message
-  Timer? _clearMessageTimer;
+  // Timers for phase transitions
+  Timer? _phaseTimer;
 
   EntranceKioskNotifier(this._db, this._embeddingService) : super(const EntranceKioskState()) {
     _faceDetector = FaceDetector(
@@ -88,7 +116,10 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   CameraController? get cameraController => _cameraController;
 
   Future<void> initialize(List<CameraDescription> cameras) async {
-    state = const EntranceKioskState(statusMessage: 'Cargando base de datos biométrica...');
+    state = const EntranceKioskState(
+      statusMessage: 'Cargando base de datos biométrica...',
+      phase: KioskPhase.initializing,
+    );
     
     // 1. Load Embeddings
     await _embeddingService.initialize();
@@ -114,7 +145,11 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
     try {
       await _cameraController!.initialize();
       if (_disposed) return;
-      state = state.copyWith(isReady: true, statusMessage: 'Recepción Activa');
+      state = state.copyWith(
+        isReady: true,
+        statusMessage: 'Recepción Activa',
+        phase: KioskPhase.scanning,
+      );
       _startImageStream();
     } catch (e) {
       state = state.copyWith(error: 'Camera initialization failed: $e');
@@ -123,12 +158,17 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
   Future<void> _loadRegistry() async {
     _employeeRegistry.clear();
+    _employeeNames.clear();
+    _workstationNames.clear();
     int count = 0;
 
-    // 1. Intentar cargar desde la BD local
+    // 1. Load employee names from local DB
+    await _loadEmployeeNames();
+
+    // 2. Intentar cargar desde la BD local
     count = await _loadFromLocalDb();
 
-    // 2. Si no hay nada local, descargar directo de Supabase (fallback para CAMERA_MONITOR)
+    // 3. Si no hay nada local, descargar directo de Supabase (fallback para CAMERA_MONITOR)
     if (count == 0) {
       debugPrint('[ENTRANCE] BD local vacía. Descargando workstations de Supabase...');
       state = state.copyWith(statusMessage: 'Descargando perfiles de la nube...');
@@ -160,11 +200,25 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
               List<double> embedding = jsonList.map((e) => (e as num).toDouble()).toList();
               if (embedding.isNotEmpty) {
                 _employeeRegistry[w['assigned_employee_id']] = embedding;
+                _workstationNames[w['assigned_employee_id']] = w['name'] ?? 'Estación';
                 count++;
               }
             } catch (e) {
               debugPrint('[ENTRANCE] Error decoding remote embedding: $e');
             }
+          }
+        }
+
+        // Also try to load employee names from Supabase if not in local DB
+        if (_employeeNames.isEmpty) {
+          try {
+            final empResponse = await client.from('employees').select('id, name');
+            final remoteEmployees = List<Map<String, dynamic>>.from(empResponse);
+            for (var emp in remoteEmployees) {
+              _employeeNames[emp['id']] = emp['name'] ?? 'Empleado';
+            }
+          } catch (e) {
+            debugPrint('[ENTRANCE] Error downloading employee names: $e');
           }
         }
       } catch (e) {
@@ -181,6 +235,17 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
     debugPrint('[ENTRANCE] Cargados $count perfiles faciales en memoria.');
   }
 
+  Future<void> _loadEmployeeNames() async {
+    try {
+      final employees = await _db.getAllEmployeeRecords();
+      for (var emp in employees) {
+        _employeeNames[emp.id] = emp.name;
+      }
+    } catch (e) {
+      debugPrint('[ENTRANCE] Error loading employee names: $e');
+    }
+  }
+
   Future<int> _loadFromLocalDb() async {
     final workstations = await _db.getAllWorkstationRecords();
     int count = 0;
@@ -192,6 +257,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
           List<double> embedding = jsonList.map((e) => (e as num).toDouble()).toList();
           if (embedding.isNotEmpty) {
              _employeeRegistry[w.assignedEmployeeId!] = embedding;
+             _workstationNames[w.assignedEmployeeId!] = w.name;
              count++;
           }
         } catch (e) {
@@ -205,6 +271,8 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   void _startImageStream() {
     _cameraController?.startImageStream((image) {
       if (_disposed || _isAnalyzing) return;
+      // Only process frames during scanning phase
+      if (state.phase != KioskPhase.scanning) return;
       
       final now = DateTime.now();
       if (now.difference(_lastAnalysisTime) < _analysisInterval) return;
@@ -222,7 +290,8 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   }
 
   Future<void> _processFrame(CameraImage image) async {
-    if (state.lastMatchedEmployeeId != null) return; // Wait until ready
+    // Double-check we're still in scanning phase
+    if (state.phase != KioskPhase.scanning) return;
     
     try {
       final inputImage = _buildInputImage(image);
@@ -230,8 +299,9 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
       final faces = await _faceDetector.processImage(inputImage);
       if (faces.isEmpty || _disposed) {
-        if (state.statusMessage != 'Recepción activa' && state.statusMessage.startsWith('Detectando')) {
-           state = state.copyWith(statusMessage: 'Recepción activa');
+        // Only update message if we were previously detecting
+        if (state.statusMessage.startsWith('Detectando')) {
+           state = state.copyWith(statusMessage: 'Recepción Activa');
         }
         return;
       }
@@ -275,10 +345,23 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   }
 
   Future<void> _triggerEntrance(String employeeId) async {
-    state = state.copyWith(
-       lastMatchedEmployeeId: employeeId,
-       statusMessage: '¡Bienvenido! Activando tu estación de trabajo...',
+    // Immediately transition to welcome phase to stop all further processing
+    final employeeName = _employeeNames[employeeId] ?? 'Empleado';
+    final workstationName = _workstationNames[employeeId] ?? 'Estación de Trabajo';
+    
+    state = EntranceKioskState(
+      isReady: true,
+      phase: KioskPhase.welcome,
+      lastMatchedEmployeeId: employeeId,
+      matchedEmployeeName: employeeName,
+      matchedWorkstationName: workstationName,
+      statusMessage: '¡Bienvenido, $employeeName!',
     );
+
+    // Stop the camera stream to prevent unnecessary processing
+    try {
+      await _cameraController?.stopImageStream();
+    } catch (_) {}
 
     try {
       // Registrar en Supabase - Realtime activará la estación remotamente!
@@ -286,30 +369,38 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
           .from('workstations')
           .update({'status': 'ACTIVE', 'last_employee_id': employeeId})
           .eq('assigned_employee_id', employeeId);
-      
-      // Opcional: Insertar un ActivityEvent de Entry si quisieras loguearlo aquí
           
-      // Feedback visual
-      state = state.copyWith(statusMessage: 'Estación Activada.');
-      
-      // Volver a estado de recepción en 5 segundos
-      _clearMessageTimer?.cancel();
-      _clearMessageTimer = Timer(const Duration(seconds: 4), () {
-        if (!_disposed) {
-          state = state.copyWith(
-            lastMatchedEmployeeId: null, 
-            statusMessage: 'Recepción Activa'
-          );
-        }
-      });
-
+      debugPrint('[ENTRANCE] ✅ Estación activada para $employeeName ($employeeId)');
     } catch (e) {
       debugPrint('[ENTRANCE] Supabase trigger error: $e');
-      state = state.copyWith(
-        lastMatchedEmployeeId: null, 
-        statusMessage: 'Error al conectar con la estación.'
-      );
+      // Still show welcome even if Supabase fails
     }
+
+    // After 5 seconds: transition to cooldown, then back to scanning
+    _phaseTimer?.cancel();
+    _phaseTimer = Timer(const Duration(seconds: 5), () {
+      if (_disposed) return;
+      
+      // Cooldown phase: brief transition before re-enabling scanner
+      state = const EntranceKioskState(
+        isReady: true,
+        phase: KioskPhase.cooldown,
+        statusMessage: 'Preparando escáner...',
+      );
+
+      // Restart camera stream
+      _startImageStream();
+
+      // After 2 seconds of cooldown, return to scanning
+      _phaseTimer = Timer(const Duration(seconds: 2), () {
+        if (_disposed) return;
+        state = const EntranceKioskState(
+          isReady: true,
+          phase: KioskPhase.scanning,
+          statusMessage: 'Recepción Activa',
+        );
+      });
+    });
   }
 
   InputImage? _buildInputImage(CameraImage image) {
@@ -346,7 +437,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
   void stopCamera() {
     _disposed = true;
-    _clearMessageTimer?.cancel();
+    _phaseTimer?.cancel();
     final controller = _cameraController;
     _cameraController = null;
     controller?.stopImageStream().catchError((_) {});
