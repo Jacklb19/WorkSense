@@ -171,6 +171,10 @@ class KioskNotifier extends StateNotifier<KioskState> {
   DateTime _lastSaveTime = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _lastReidTime = DateTime.fromMillisecondsSinceEpoch(0);
   int _adaptationsCount = 0;
+  int _consecutiveAbsentFrames = 0;
+  
+  /// Number of consecutive absent frames required to cancel entryPending/exitPending.
+  static const int _absentFramesToCancel = 8;
   
   StreamSubscription? _remoteSub;
 
@@ -408,29 +412,40 @@ class KioskNotifier extends StateNotifier<KioskState> {
       }
 
       // ── Generación de Embeddings Inteligente ────────────────────────────────
-      // Para optimizar, solo generamos embeddings reales si:
-      // a) No tenemos lock de tracking actual.
-      // b) Estamos en un intervalo de re-identificación (para asegurar estabilidad).
+      // Strategy:
+      //  - When IDLE or ENTRY_PENDING: generate embeddings EVERY frame (need to find/confirm employee)
+      //  - When ACTIVE: only generate embeddings on reid intervals (save CPU, already confirmed)
       final Map<int, List<double>> embeddingsMap = {};
+      final bool needsIdentification = state.sessionStatus == SessionStatus.idle || 
+                                       state.sessionStatus == SessionStatus.entryPending;
       final shouldReid = now.difference(_lastReidTime) >= _reidInterval;
+      final bool shouldGenerateEmbeddings = needsIdentification || shouldReid;
       
-      if (allFaces.isNotEmpty && (_finder!.profile.employeeId != null)) {
-        // Encontrar la cara más prominente o la que ya tenemos lock
-        Face? targetFace;
-        // Si hay una cara que coincide con el trackingId actual, priorizarla
-        // (Este trackingId es interno de ML Kit)
-        
+      if (allFaces.isNotEmpty && (_finder!.profile.employeeId != null) && shouldGenerateEmbeddings) {
         for (final face in allFaces) {
-          // Generamos el embedding para el matcher si no hay lock o toca reid
-          if (shouldReid) {
-            final cropped = await _faceAnalyzer.cropFaceFromCameraImageAsync(image, face);
-            if (cropped != null) {
-              final emb = await _embeddingService.generateEmbedding(cropped);
-              embeddingsMap[face.trackingId ?? allFaces.indexOf(face)] = emb;
-              _lastReidTime = now;
-            }
+          final cropped = await _faceAnalyzer.cropFaceFromCameraImageAsync(image, face);
+          if (cropped != null) {
+            final emb = await _embeddingService.generateEmbedding(cropped);
+            embeddingsMap[face.trackingId ?? allFaces.indexOf(face)] = emb;
+            _lastReidTime = now;
           }
         }
+      }
+
+      // When no embeddings were generated (reid cooldown during active session)
+      // and faces ARE visible, maintain current session state — don't run the finder
+      // with empty data, which would falsely report absent.
+      if (embeddingsMap.isEmpty && allFaces.isNotEmpty && state.sessionStatus == SessionStatus.active) {
+        // Faces detected but we're in reid cooldown — just do activity classification
+        // without re-running identity check
+        _consecutiveAbsentFrames = 0; // reset, person is clearly visible
+        state = state.copyWith(
+          isProcessing: false,
+          poses: allPoses,
+          faces: allFaces,
+          imageSize: imgSize,
+        );
+        return;
       }
 
       // Buscar al empleado en el frame con embeddings reales
@@ -447,6 +462,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
           _handleAbsent(findResult, imgSize);
           
         case FindStatus.found:
+          _consecutiveAbsentFrames = 0;
           _handleFound(findResult, allFaces, allPoses, imgSize, now);
       }
     } catch (e) {
@@ -456,11 +472,16 @@ class KioskNotifier extends StateNotifier<KioskState> {
   }
 
   void _handleAbsent(FindResult findResult, Size imgSize) {
-    // Si la persona desaparece en medio de una aprobación, cancelamos la aprobación tras unos frames
+    _consecutiveAbsentFrames++;
+    
+    // Only cancel entryPending/exitPending after several consecutive absent frames.
+    // This prevents a single bad frame from destroying the welcome overlay.
     SessionStatus nextStatus = state.sessionStatus;
-    if (state.sessionStatus == SessionStatus.entryPending ||
-        state.sessionStatus == SessionStatus.exitPending) {
+    if ((state.sessionStatus == SessionStatus.entryPending ||
+        state.sessionStatus == SessionStatus.exitPending) &&
+        _consecutiveAbsentFrames >= _absentFramesToCancel) {
       nextStatus = SessionStatus.idle;
+      debugPrint('[MONITOR] Cancelled pending after $_consecutiveAbsentFrames absent frames.');
     }
 
     state = state.copyWith(
