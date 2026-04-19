@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ui' show Size;
+import 'package:drift/drift.dart' as drift;
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show DeviceOrientation;
@@ -121,16 +122,72 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   }
 
   Future<void> _loadRegistry() async {
-    // Los face_embeddings viven en workstations. (Cada empleado con perfil biométrico activo
-    // tiene su rostro guardado en la tabla workstations como assigned_employee_id)
+    _employeeRegistry.clear();
+    int count = 0;
+
+    // 1. Intentar cargar desde la BD local
+    count = await _loadFromLocalDb();
+
+    // 2. Si no hay nada local, descargar directo de Supabase (fallback para CAMERA_MONITOR)
+    if (count == 0) {
+      debugPrint('[ENTRANCE] BD local vacía. Descargando workstations de Supabase...');
+      state = state.copyWith(statusMessage: 'Descargando perfiles de la nube...');
+      try {
+        final client = Supabase.instance.client;
+        final response = await client.from('workstations').select();
+        final remoteWorkstations = List<Map<String, dynamic>>.from(response);
+        
+        debugPrint('[ENTRANCE] Recibidos ${remoteWorkstations.length} workstations de Supabase.');
+        
+        for (var w in remoteWorkstations) {
+          // Guardar en BD local para futuras consultas
+          await _db.insertWorkstationRecord(WorkstationRecordsCompanion(
+            id: drift.Value(w['id']),
+            name: drift.Value(w['name'] ?? 'Sin nombre'),
+            companyId: drift.Value(w['company_id']),
+            deviceId: drift.Value(w['device_id']),
+            assignedEmployeeId: drift.Value(w['assigned_employee_id']),
+            faceEmbedding: drift.Value(w['face_embedding']?.toString()),
+            bodySignature: drift.Value(w['body_signature']?.toString()),
+            status: drift.Value(w['status'] ?? 'IDLE'),
+          ));
+          
+          // Cargar embedding directamente en memoria
+          if (w['assigned_employee_id'] != null && w['face_embedding'] != null) {
+            try {
+              final embStr = w['face_embedding'].toString();
+              List<dynamic> jsonList = jsonDecode(embStr);
+              List<double> embedding = jsonList.map((e) => (e as num).toDouble()).toList();
+              if (embedding.isNotEmpty) {
+                _employeeRegistry[w['assigned_employee_id']] = embedding;
+                count++;
+              }
+            } catch (e) {
+              debugPrint('[ENTRANCE] Error decoding remote embedding: $e');
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('[ENTRANCE] Error descargando de Supabase: $e');
+      }
+    }
+
+    // Actualizar UI
+    if (count == 0) {
+      state = state.copyWith(statusMessage: 'Advertencia: 0 perfiles con biométricos.');
+    } else {
+      state = state.copyWith(statusMessage: 'Recepción activa ($count perfiles cargados).');
+    }
+    debugPrint('[ENTRANCE] Cargados $count perfiles faciales en memoria.');
+  }
+
+  Future<int> _loadFromLocalDb() async {
     final workstations = await _db.getAllWorkstationRecords();
     int count = 0;
     
-    _employeeRegistry.clear();
     for (var w in workstations) {
       if (w.assignedEmployeeId != null && w.faceEmbedding != null) {
         try {
-          // Attempt to decode string into list of doubles
           List<dynamic> jsonList = jsonDecode(w.faceEmbedding!);
           List<double> embedding = jsonList.map((e) => (e as num).toDouble()).toList();
           if (embedding.isNotEmpty) {
@@ -142,14 +199,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
         }
       }
     }
-    
-    // Forzar actualización visual si no hay perfiles
-    if (count == 0) {
-      state = state.copyWith(statusMessage: 'Advertencia: 0 perfiles locales en memoria.');
-    } else {
-      state = state.copyWith(statusMessage: 'Recepción activa ($count perfiles cargados).');
-    }
-    debugPrint('[ENTRANCE] Cargados $count perfiles faciales en memoria.');
+    return count;
   }
 
   void _startImageStream() {
