@@ -257,22 +257,26 @@ class _KioskBottomHUD extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       decoration: BoxDecoration(
         gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [Colors.black.withOpacity(0.8), Colors.transparent]),
       ),
       child: SafeArea(
         top: false,
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(child: StateBadgeWidget(state: state, confidence: confidence, showConfidence: true)),
-            const SizedBox(width: 16),
+            StateBadgeWidget(state: state, confidence: confidence, showConfidence: true),
+            const SizedBox(height: 12),
             SizedBox(
-              height: 48,
+              width: double.infinity,
+              height: 44,
               child: FilledButton.icon(
                 onPressed: onExit,
-                style: FilledButton.styleFrom(backgroundColor: Colors.white10),
-                icon: const Icon(Icons.power_settings_new, size: 20),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white10,
+                ),
+                icon: const Icon(Icons.power_settings_new, size: 18),
                 label: const Text('SALIR', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
               ),
             ),
