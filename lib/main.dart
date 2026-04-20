@@ -10,7 +10,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Cargar variables de entorno
-  await dotenv.load();
+  await dotenv.load(fileName: '.env', mergeWith: Platform.environment);
 
   // Fail-Fast: Validación de entorno al inicio
   final supabaseUrl = dotenv.env['SUPABASE_URL'];
