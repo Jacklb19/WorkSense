@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
+import 'package:worksense_app/features/dashboard/presentation/providers/admin_analytics_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/widgets/employee_dashboard_card.dart';
+import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
+import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
 import 'package:worksense_app/shared/widgets/sync_indicator_widget.dart';
-import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -22,24 +24,40 @@ class AdminDashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(adminEmployeesProvider),
+        onRefresh: () async {
+          await ref.read(syncNotifierProvider.notifier).sync();
+          ref.invalidate(adminEmployeesProvider);
+          ref.invalidate(employeeAnalyticsProvider);
+          ref.invalidate(employeeDetailProvider);
+          ref.invalidate(employeeAttendanceProvider);
+        },
         child: CustomScrollView(
           slivers: [
             SliverAppBar(
               floating: true,
-              title: const Text('Comando central', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+              title: const Text(
+                'Comando central',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                ),
+              ),
               actions: const [
                 SyncIndicatorWidget(),
                 SizedBox(width: 16),
               ],
             ),
-            
             employeesAsync.when(
-              loading: () => const SliverFillRemaining(child: AppLoadingWidget()),
-              error: (error, _) => SliverFillRemaining(child: _ErrorView(error: error.toString())),
+              loading: () =>
+                  const SliverFillRemaining(child: AppLoadingWidget()),
+              error: (error, _) => SliverFillRemaining(
+                child: _ErrorView(error: error.toString()),
+              ),
               data: (employees) {
                 if (employees.isEmpty) {
-                  return SliverFillRemaining(child: _EmptyEmployeesView(userEmail: userEmail));
+                  return SliverFillRemaining(
+                    child: _EmptyEmployeesView(userEmail: userEmail),
+                  );
                 }
 
                 return SliverMainAxisGroup(
@@ -50,9 +68,21 @@ class AdminDashboardScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('COLABORADORES', style: theme.textTheme.labelMedium?.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                            Text(
+                              'COLABORADORES',
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
                             const SizedBox(height: 8),
-                            Text('Tus trabajadores', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                            Text(
+                              'Tus trabajadores',
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -60,14 +90,16 @@ class AdminDashboardScreen extends ConsumerWidget {
                     SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       sliver: SliverGrid(
-                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
                           maxCrossAxisExtent: 350,
                           mainAxisExtent: 180,
                           mainAxisSpacing: 16,
                           crossAxisSpacing: 16,
                         ),
                         delegate: SliverChildBuilderDelegate(
-                          (context, index) => EmployeeDashboardCard(employee: employees[index]),
+                          (context, index) =>
+                              EmployeeDashboardCard(employee: employees[index]),
                           childCount: employees.length,
                         ),
                       ),
@@ -97,7 +129,7 @@ class AdminDashboardScreen extends ConsumerWidget {
             heroTag: 'entrance_btn',
             onPressed: () => context.push(AppRoutes.entrance),
             icon: const Icon(Icons.meeting_room),
-            label: const Text('KIOSCO RECEPCIÓN'),
+            label: const Text('KIOSCO RECEPCION'),
             backgroundColor: AppColors.primary,
           ),
         ],

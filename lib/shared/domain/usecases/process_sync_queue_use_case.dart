@@ -17,15 +17,21 @@ class ProcessSyncQueueUseCase {
     int success = 0;
     final List<String> errors = [];
 
+    if (pending.isNotEmpty) {
+      debugPrint('[Sync PUSH] Iniciando procesamiento de ${pending.length} ítems pendientes...');
+    }
+
     for (final entry in pending) {
       try {
         final payload = jsonDecode(entry.payload) as Map<String, dynamic>;
 
         switch (entry.operation) {
           case 'UPSERT':
+          case 'INSERT':
             await _remote.upsert(entry.targetTable , payload);
             break;
           case 'PATCH':
+          case 'UPDATE':
             await _remote.patch(entry.targetTable , entry.recordId, payload);
             break;
           case 'DELETE':
@@ -47,6 +53,10 @@ class ProcessSyncQueueUseCase {
         errors.add('Unexpected error on entry ${entry.id}: $e');
         debugPrint('[Sync Unexpected Error] $e');
       }
+    }
+
+    if (pending.isNotEmpty) {
+      debugPrint('[Sync PUSH] Finalizado. Éxito: $success, Errores: ${errors.length}');
     }
 
     // PULL PHASE: Bajar datos desde Supabase para actualizar la BD Local (Emulator lo necesita)

@@ -50,7 +50,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
 
       await _syncRepo.enqueue(
         targetTable: 'attendance_logs',
-        operation: 'INSERT',
+        operation: 'UPSERT',
         recordId: logId,
         payload: payload,
       );
@@ -86,7 +86,7 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
 
       await _syncRepo.enqueue(
         targetTable: 'attendance_logs',
-        operation: 'UPDATE', // Upsert if supported, or Update since it was inserted
+        operation: 'PATCH',
         recordId: openLog.id,
         payload: payload,
       );

@@ -399,6 +399,9 @@ class AppDatabase extends _$AppDatabase {
         ..orderBy([(t) => OrderingTerm.desc(t.shiftDate)]))
       .get();
 
+  Stream<List<AttendanceLogData>> watchAttendanceLogs() =>
+      select(attendanceLogs).watch();
+
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'worksense_db');
   }

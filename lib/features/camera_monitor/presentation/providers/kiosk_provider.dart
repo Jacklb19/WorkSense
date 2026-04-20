@@ -37,13 +37,18 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
   return db;
 });
 
+// ── Repository Provider ────────────────────────────────────────────────────────
+final activityRepositoryProvider = Provider<ActivityRepositoryImpl>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  final syncRepo = ref.watch(syncRepositoryProvider);
+  return ActivityRepositoryImpl(db, syncRepo);
+});
+
 // ── Save Use Case Provider ─────────────────────────────────────────────────────
 
 final saveActivityEventUseCaseProvider =
     Provider<SaveActivityEventUseCase>((ref) {
-  final db = ref.watch(appDatabaseProvider);
-  final syncRepo = ref.watch(syncRepositoryProvider);
-  final repo = ActivityRepositoryImpl(db, syncRepo);
+  final repo = ref.watch(activityRepositoryProvider);
   return SaveActivityEventUseCase(repo);
 });
 

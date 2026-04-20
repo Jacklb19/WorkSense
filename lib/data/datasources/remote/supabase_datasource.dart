@@ -49,6 +49,67 @@ class SupabaseDataSource {
   Future<void> insertActivityEvent(Map<String, dynamic> data) =>
       upsert('activity_events', data);
 
+  /// Fetches activity events from Supabase for a specific employee within a date range.
+  Future<List<Map<String, dynamic>>> fetchActivityEventsForEmployee(
+    String employeeId, {
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    try {
+      final response = await _client
+          .from('activity_events')
+          .select()
+          .eq('employee_id', employeeId)
+          .gte('timestamp', from.toUtc().toIso8601String())
+          .lte('timestamp', to.toUtc().toIso8601String())
+          .order('timestamp', ascending: true)
+          .limit(2000);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      throw SyncException('Error obteniendo activity_events: $e');
+    }
+  }
+
+  /// Fetches all activity events from Supabase within a date range (for all employees).
+  Future<List<Map<String, dynamic>>> fetchActivityEventsByDateRange({
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    try {
+      final response = await _client
+          .from('activity_events')
+          .select()
+          .not('employee_id', 'is', null)
+          .gte('timestamp', from.toUtc().toIso8601String())
+          .lte('timestamp', to.toUtc().toIso8601String())
+          .order('timestamp', ascending: true)
+          .limit(5000);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      throw SyncException('Error obteniendo activity_events: $e');
+    }
+  }
+
+  /// Fetches attendance logs from Supabase for a specific employee within a date range.
+  Future<List<Map<String, dynamic>>> fetchAttendanceLogsForEmployee(
+    String employeeId, {
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    try {
+      final response = await _client
+          .from('attendance_logs')
+          .select()
+          .eq('employee_id', employeeId)
+          .gte('shift_date', from.toUtc().toIso8601String().split('T').first)
+          .lte('shift_date', to.toUtc().toIso8601String().split('T').first)
+          .order('clock_in_time', ascending: true);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      throw SyncException('Error obteniendo attendance_logs: $e');
+    }
+  }
+
   // Authentication & Admin Methods
   Future<Map<String, dynamic>> createEmployeeWithAuth(Map<String, dynamic> data) async {
     try {
