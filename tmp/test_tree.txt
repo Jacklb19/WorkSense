@@ -1,0 +1,30 @@
+Listado de rutas de carpetas para el volumen Windows-SSD
+El número de serie del volumen es 0669-5096
+C:\USERS\JOSEL\ANDROIDSTUDIOPROJECTS\WORK_SENSE\TEST
+|   widget_test.dart
+|   
++---integration
+|       .gitkeep
+|       
++---unit
+|   +---core
+|   |       .gitkeep
+|   |       
+|   \---features
+|       +---ai_pipeline
+|       |       .gitkeep
+|       |       
+|       +---auth
+|       |       .gitkeep
+|       |       
+|       \---employees
+|               .gitkeep
+|               
+\---widget
+    \---features
+        +---camera_monitor
+        |       .gitkeep
+        |       
+        \---dashboard
+                .gitkeep
+                

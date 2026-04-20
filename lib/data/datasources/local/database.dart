@@ -1,0 +1,408 @@
+import 'package:drift/drift.dart';
+import 'package:drift_flutter/drift_flutter.dart';
+
+part 'database.g.dart';
+
+// ─── Table Definitions ────────────────────────────────────────────────────────
+
+class CompanyRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class EmployeeRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get companyId => text()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get faceEmbedding => text().nullable()();
+  TextColumn get shiftId => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('ShiftRecordData')
+class ShiftRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get companyId => text()();
+  TextColumn get name => text()();
+  IntColumn get startHour => integer()();
+  IntColumn get startMinute => integer()();
+  IntColumn get endHour => integer()();
+  IntColumn get endMinute => integer()();
+  IntColumn get breakStartHour => integer().nullable()();
+  IntColumn get breakStartMinute => integer().nullable()();
+  IntColumn get breakEndHour => integer().nullable()();
+  IntColumn get breakEndMinute => integer().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('AttendanceLogData')
+class AttendanceLogs extends Table {
+  TextColumn get id => text()();
+  TextColumn get employeeId => text()();
+  TextColumn get workstationId => text().nullable()();
+  TextColumn get companyId => text()();
+  DateTimeColumn get shiftDate => dateTime()();
+  DateTimeColumn get clockInTime => dateTime()();
+  DateTimeColumn get clockOutTime => dateTime().nullable()();
+  TextColumn get status => text().withDefault(const Constant('ON_TIME'))();
+  BoolColumn get synced => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class WorkstationRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get companyId => text()();
+  TextColumn get deviceId => text().nullable()();
+  RealColumn get latitude => real().nullable()();
+  RealColumn get longitude => real().nullable()();
+  RealColumn get geofenceRadius => real().nullable()();
+
+  // Perfil biométrico del empleado asignado
+  TextColumn get assignedEmployeeId => text().nullable()();
+  TextColumn get faceEmbedding => text().nullable()();
+  TextColumn get bodySignature => text().nullable()();
+  DateTimeColumn get profileCapturedAt => dateTime().nullable()();
+  IntColumn get profileVersion =>
+      integer().withDefault(const Constant(0))();
+  
+  // Kiosk / Realtime status
+  TextColumn get status => text().withDefault(const Constant('IDLE'))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class ActivityEntries extends Table {
+  TextColumn get id => text()();
+  TextColumn get employeeId => text().nullable()();
+  TextColumn get workstationId => text()();
+  TextColumn get state => text()();
+  RealColumn get confidence => real()();
+  DateTimeColumn get timestamp => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get synced => boolean().withDefault(const Constant(false))();
+
+  // Re-identificación
+  RealColumn get identityConfidence => real().nullable()();
+  TextColumn get identificationMethod => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class SyncQueueEntries extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get targetTable => text()();
+  TextColumn get operation => text()();
+  TextColumn get payload => text()();
+  TextColumn get recordId => text()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
+}
+
+// ─── Database ─────────────────────────────────────────────────────────────────
+
+@DriftDatabase(
+  tables: [
+    CompanyRecords,
+    EmployeeRecords,
+    WorkstationRecords,
+    ActivityEntries,
+    SyncQueueEntries,
+    ShiftRecords,
+    AttendanceLogs,
+  ],
+)
+class AppDatabase extends _$AppDatabase {
+  AppDatabase() : super(_openConnection());
+
+  @override
+  int get schemaVersion => 7;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) async {
+      await m.createAll();
+    },
+    onUpgrade: (m, from, to) async {
+      final migrator = m; // Alias for clarity
+      
+      if (from < 2) {
+        await migrator.addColumn(workstationRecords, workstationRecords.latitude);
+        await migrator.addColumn(workstationRecords, workstationRecords.longitude);
+        await migrator.addColumn(workstationRecords, workstationRecords.geofenceRadius);
+      }
+      
+      if (from < 3) {
+        // TABLA: sync_queue_entries
+        await migrator.createTable(syncQueueEntries);
+
+        // TABLA: workstation_records
+        // Verificamos antes de agregar para evitar errores si la base de datos
+        // está en un estado inconsistente (según roadmap)
+        await migrator.addColumn(workstationRecords, workstationRecords.assignedEmployeeId);
+        await migrator.addColumn(workstationRecords, workstationRecords.faceEmbedding);
+        await migrator.addColumn(workstationRecords, workstationRecords.bodySignature);
+        await migrator.addColumn(workstationRecords, workstationRecords.profileCapturedAt);
+        await migrator.addColumn(workstationRecords, workstationRecords.profileVersion);
+
+        // TABLA: activity_entries
+        await migrator.addColumn(activityEntries, activityEntries.identityConfidence);
+        await migrator.addColumn(activityEntries, activityEntries.identificationMethod);
+      }
+      
+      if (from < 4) {
+        // La migración a v4 añade el campo central de face_embedding en Employee
+        // para permitir reconocimiento cross-workstation.
+        await migrator.addColumn(employeeRecords, employeeRecords.faceEmbedding);
+      }
+      
+      if (from < 5) {
+        // Migración a v5: añadir status a workstations para realtime monitoring
+        await migrator.addColumn(workstationRecords, workstationRecords.status);
+      }
+      
+      if (from < 6) {
+        // Migración a v6: Asistencia y Turnos
+        await migrator.addColumn(employeeRecords, employeeRecords.shiftId);
+        await migrator.createTable(shiftRecords);
+        await migrator.createTable(attendanceLogs);
+      }
+
+      if (from < 7) {
+        // Migración a v7: Almuerzo / Receso en turnos
+        await migrator.addColumn(shiftRecords, shiftRecords.breakStartHour);
+        await migrator.addColumn(shiftRecords, shiftRecords.breakStartMinute);
+        await migrator.addColumn(shiftRecords, shiftRecords.breakEndHour);
+        await migrator.addColumn(shiftRecords, shiftRecords.breakEndMinute);
+      }
+    },
+    beforeOpen: (details) async {
+      if (details.wasCreated) {
+        // Logic for fresh install if needed
+      }
+      // Habilitar Foreign Keys si fuera necesario (sqlite_m)
+      // await customStatement('PRAGMA foreign_keys = ON');
+    },
+  );
+
+
+  // ── ActivityEntries DAO methods ───────────────────────────────────────────
+
+  Future<void> insertActivityEntry(ActivityEntriesCompanion entry) =>
+      into(activityEntries).insert(entry);
+
+  Future<List<ActivityEntry>> getRecentActivityEntries(int limit) =>
+      (select(activityEntries)
+            ..orderBy([(t) => OrderingTerm.desc(t.timestamp)])
+            ..limit(limit))
+          .get();
+
+  Stream<List<ActivityEntry>> watchRecentActivityEntries() =>
+      (select(activityEntries)
+            ..orderBy([(t) => OrderingTerm.desc(t.timestamp)])
+            ..limit(50))
+          .watch();
+
+  Future<List<ActivityEntry>> getPendingSyncEntries() =>
+      (select(activityEntries)..where((t) => t.synced.equals(false))).get();
+
+  Future<void> markActivityEntryAsSynced(String entryId) =>
+      (update(activityEntries)..where((t) => t.id.equals(entryId)))
+          .write(const ActivityEntriesCompanion(synced: Value(true)));
+
+  Future<ActivityEntry?> getLastEntryForWorkstation(String workstationId) =>
+      (select(activityEntries)
+            ..where((t) => t.workstationId.equals(workstationId))
+            ..orderBy([(t) => OrderingTerm.desc(t.timestamp)])
+            ..limit(1))
+          .getSingleOrNull();
+
+  // ── Analytics queries ─────────────────────────────────────────────────────
+
+  Future<List<ActivityEntry>> getActivityEntriesForEmployee(
+    String employeeId, {
+    DateTime? from,
+    DateTime? to,
+    int limit = 500,
+  }) =>
+      (select(activityEntries)
+            ..where((t) {
+              var predicate = t.employeeId.equals(employeeId);
+              if (from != null) predicate = predicate & t.timestamp.isBiggerOrEqualValue(from);
+              if (to != null) predicate = predicate & t.timestamp.isSmallerOrEqualValue(to);
+              return predicate;
+            })
+            ..orderBy([(t) => OrderingTerm.desc(t.timestamp)])
+            ..limit(limit))
+          .get();
+
+  Stream<List<ActivityEntry>> watchActivityEntriesForEmployee(
+    String employeeId, {
+    int limit = 10,
+  }) =>
+      (select(activityEntries)
+            ..where((t) => t.employeeId.equals(employeeId))
+            ..orderBy([(t) => OrderingTerm.desc(t.timestamp)])
+            ..limit(limit))
+          .watch();
+
+  Future<List<ActivityEntry>> getAllActivityEntriesByDateRange({
+    required DateTime from,
+    required DateTime to,
+    int limit = 2000,
+  }) =>
+      (select(activityEntries)
+            ..where((t) =>
+                t.employeeId.isNotNull() &
+                t.timestamp.isBiggerOrEqualValue(from) &
+                t.timestamp.isSmallerOrEqualValue(to))
+            ..orderBy([(t) => OrderingTerm.desc(t.timestamp)])
+            ..limit(limit))
+          .get();
+
+  // ── EmployeeRecords DAO methods ───────────────────────────────────────────
+
+  Future<void> insertEmployeeRecord(EmployeeRecordsCompanion record) =>
+      into(employeeRecords).insert(record, mode: InsertMode.insertOrReplace);
+
+  Future<List<EmployeeRecord>> getAllEmployeeRecords() =>
+      select(employeeRecords).get();
+
+  Stream<List<EmployeeRecord>> watchAllEmployeeRecords() =>
+      select(employeeRecords).watch();
+
+  Future<EmployeeRecord?> getEmployeeRecordById(String id) =>
+      (select(employeeRecords)..where((t) => t.id.equals(id)))
+          .getSingleOrNull();
+
+  Future<void> updateEmployeeEmbedding(String employeeId, String faceEmbeddingJson) =>
+      (update(employeeRecords)..where((t) => t.id.equals(employeeId)))
+          .write(EmployeeRecordsCompanion(
+        faceEmbedding: Value(faceEmbeddingJson),
+      ));
+
+  Future<void> deleteEmployeeRecord(String id) =>
+      (delete(employeeRecords)..where((t) => t.id.equals(id))).go();
+
+  // ── WorkstationRecords DAO methods ────────────────────────────────────────
+
+  Future<List<WorkstationRecord>> getAllWorkstationRecords() =>
+      select(workstationRecords).get();
+
+  Stream<List<WorkstationRecord>> watchAllWorkstationRecords() =>
+      select(workstationRecords).watch();
+
+  Future<void> insertWorkstationRecord(WorkstationRecordsCompanion record) =>
+      into(workstationRecords).insert(record, mode: InsertMode.insertOrReplace);
+
+  Future<WorkstationRecord?> getWorkstationById(String id) =>
+      (select(workstationRecords)..where((t) => t.id.equals(id)))
+          .getSingleOrNull();
+
+  Future<void> saveEmployeeProfile({
+    required String workstationId,
+    required String employeeId,
+    required String faceEmbeddingJson,
+    required String bodySignatureJson,
+  }) =>
+      (update(workstationRecords)..where((t) => t.id.equals(workstationId)))
+          .write(WorkstationRecordsCompanion(
+        assignedEmployeeId: Value(employeeId),
+        faceEmbedding: Value(faceEmbeddingJson),
+        bodySignature: Value(bodySignatureJson),
+        profileCapturedAt: Value(DateTime.now()),
+        profileVersion: const Value(1),
+      ));
+
+  Future<void> clearEmployeeProfile(String workstationId) =>
+      (update(workstationRecords)..where((t) => t.id.equals(workstationId)))
+          .write(const WorkstationRecordsCompanion(
+        assignedEmployeeId: Value(null),
+        faceEmbedding: Value(null),
+        bodySignature: Value(null),
+        profileCapturedAt: Value(null),
+        profileVersion: Value(0),
+      ));
+
+  // ── SyncQueueEntries methods ──────────────────────────────────────────────
+
+  Future<void> insertSyncQueueEntry(SyncQueueEntriesCompanion entry) =>
+      into(syncQueueEntries).insert(entry);
+
+  Future<List<SyncQueueEntry>> getPendingSyncQueueEntries() =>
+      select(syncQueueEntries).get();
+
+  Future<void> deleteSyncQueueEntry(int id) =>
+      (delete(syncQueueEntries)..where((t) => t.id.equals(id))).go();
+
+  // ── ShiftRecords DAO methods ──────────────────────────────────────────────
+
+  Future<void> insertShiftRecord(ShiftRecordsCompanion record) =>
+      into(shiftRecords).insert(record, mode: InsertMode.insertOrReplace);
+
+  Future<ShiftRecordData?> getShiftById(String id) =>
+      (select(shiftRecords)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  Future<List<ShiftRecordData>> getShiftsByCompany(String companyId) =>
+      (select(shiftRecords)..where((t) => t.companyId.equals(companyId))).get();
+
+  // ── AttendanceLogs DAO methods ────────────────────────────────────────────
+
+  Future<void> insertAttendanceLog(AttendanceLogsCompanion log) =>
+      into(attendanceLogs).insert(log, mode: InsertMode.insertOrReplace);
+
+  Future<void> updateAttendanceLog(AttendanceLogsCompanion log) =>
+      (update(attendanceLogs)..where((t) => t.id.equals(log.id.value))).write(log);
+
+  Future<AttendanceLogData?> getOpenAttendanceLogForEmployee(String employeeId, DateTime today) =>
+      (select(attendanceLogs)
+        ..where((t) => 
+          t.employeeId.equals(employeeId) & 
+          t.clockOutTime.isNull() &
+          // Comparar solo la fecha truncada si se puede, o al menos que el clockIn sea reciente.
+          // En SQLite, date/time logic es más compleja, pero asumimos que shiftDate mapea al día.
+          t.shiftDate.equals(today)
+        )
+        ..orderBy([(t) => OrderingTerm.desc(t.clockInTime)])
+        ..limit(1))
+      .getSingleOrNull();
+
+  Future<List<AttendanceLogData>> getEmployeeLogsForDate(String employeeId, DateTime date) =>
+      (select(attendanceLogs)
+        ..where((t) => 
+          t.employeeId.equals(employeeId) & 
+          t.shiftDate.equals(date)
+        )
+        ..orderBy([(t) => OrderingTerm.asc(t.clockInTime)]))
+      .get();
+
+  Future<List<AttendanceLogData>> getEmployeeAttendanceLogs(String employeeId, DateTime start, DateTime end) =>
+      (select(attendanceLogs)
+        ..where((t) => 
+          t.employeeId.equals(employeeId) & 
+          t.shiftDate.isBiggerOrEqualValue(start) &
+          t.shiftDate.isSmallerOrEqualValue(end)
+        )
+        ..orderBy([(t) => OrderingTerm.desc(t.shiftDate)]))
+      .get();
+
+  Stream<List<AttendanceLogData>> watchAttendanceLogs() =>
+      select(attendanceLogs).watch();
+
+  static QueryExecutor _openConnection() {
+    return driftDatabase(name: 'worksense_db');
+  }
+}

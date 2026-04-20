@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
 
 Future<void> main() async {
@@ -11,11 +12,25 @@ Future<void> main() async {
   // Cargar variables de entorno
   await dotenv.load(fileName: '.env', mergeWith: Platform.environment);
 
+  // Fail-Fast: Validación de entorno al inicio
+  final supabaseUrl = dotenv.env['SUPABASE_URL'];
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
+  
+  if (supabaseUrl == null || supabaseUrl.isEmpty) {
+    throw Exception('🔥 Startup Error: SUPABASE_URL is missing from .env');
+  }
+  if (supabaseAnonKey == null || supabaseAnonKey.isEmpty) {
+    throw Exception('🔥 Startup Error: SUPABASE_ANON_KEY is missing from .env');
+  }
+
   // Inicializar Supabase
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL'] ?? '',
-    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
   );
+
+  // Restaurar sesión al arrancar
+  final session = Supabase.instance.client.auth.currentSession;
 
   runApp(
     const ProviderScope(
@@ -24,21 +39,19 @@ Future<void> main() async {
   );
 }
 
-class WorkSenseApp extends StatelessWidget {
+class WorkSenseApp extends ConsumerWidget {
   const WorkSenseApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'WorkSense',
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+
+    return MaterialApp.router(
+      title: 'WorkSense', // Documented exception: app title kept here, handled locally.
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      home: const Scaffold(
-        body: Center(
-          child: Text('WorkSense — cimientos listos ✅'),
-        ),
-      ),
+      routerConfig: router,
     );
   }
 }

@@ -1,0 +1,276 @@
+Listado de rutas de carpetas para el volumen Windows-SSD
+El número de serie del volumen es 0669-5096
+C:\USERS\JOSEL\ANDROIDSTUDIOPROJECTS\WORK_SENSE\LIB
+|   main.dart
+|   
++---core
+|   +---constants
+|   |       ai_thresholds.dart
+|   |       app_constants.dart
+|   |       app_dimensions.dart
+|   |       app_durations.dart
+|   |       app_routes.dart
+|   |       app_strings.dart
+|   |       constants.dart
+|   |       
+|   +---errors
+|   |       .gitkeep
+|   |       
+|   +---extensions
+|   |       .gitkeep
+|   |       
+|   +---navigation
+|   |       app_bottom_nav_bar.dart
+|   |       nav_destination.dart
+|   |       nav_destinations.dart
+|   |       scaffold_with_bottom_nav.dart
+|   |       
+|   +---network
+|   |       .gitkeep
+|   |       
+|   +---routing
+|   |       app_router.dart
+|   |       
+|   +---theme
+|   |       .gitkeep
+|   |       app_colors.dart
+|   |       app_text_styles.dart
+|   |       app_theme.dart
+|   |       
+|   \---utils
+|           .gitkeep
+|           
++---data
+|   +---datasources
+|   |   +---local
+|   |   |       .gitkeep
+|   |   |       database.dart
+|   |   |       database.g.dart
+|   |   |       
+|   |   \---remote
+|   |           .gitkeep
+|   |           supabase_datasource.dart
+|   |           
+|   +---mappers
+|   |       .gitkeep
+|   |       
+|   +---models
+|   |   +---local
+|   |   |       .gitkeep
+|   |   |       
+|   |   \---remote
+|   |           .gitkeep
+|   |           
+|   \---repositories
+|           .gitkeep
+|           activity_repository_impl.dart
+|           auth_repository_impl.dart
+|           employee_repository_impl.dart
+|           sync_repository_impl.dart
+|           workstation_repository_impl.dart
+|           
++---domain
+|   +---entities
+|   |       .gitkeep
+|   |       activity_event.dart
+|   |       activity_state.dart
+|   |       company.dart
+|   |       employee.dart
+|   |       workstation.dart
+|   |       
+|   \---repositories
+|           .gitkeep
+|           activity_repository.dart
+|           auth_repository.dart
+|           employee_repository.dart
+|           workstation_repository.dart
+|           
++---features
+|   +---ai_pipeline
+|   |   +---activity_classifier
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---embedding_engine
+|   |   |       .gitkeep
+|   |   |       
+|   |   +---face_analyzer
+|   |   |       .gitkeep
+|   |   |       
+|   |   \---pose_analyzer
+|   |           .gitkeep
+|   |           
+|   +---alerts
+|   |   +---data
+|   |   |   +---datasources
+|   |   |   |       .gitkeep
+|   |   |   |       
+|   |   |   +---models
+|   |   |   |       .gitkeep
+|   |   |   |       
+|   |   |   \---repositories
+|   |   |           .gitkeep
+|   |   |           
+|   |   +---domain
+|   |   |   \---usecases
+|   |   |           .gitkeep
+|   |   |           
+|   |   \---presentation
+|   |       +---providers
+|   |       |       .gitkeep
+|   |       |       alerts_provider.dart
+|   |       |       
+|   |       +---screens
+|   |       |       .gitkeep
+|   |       |       
+|   |       \---widgets
+|   |               .gitkeep
+|   |               
+|   +---auth
+|   |   +---domain
+|   |   |   \---usecases
+|   |   |           sign_in_use_case.dart
+|   |   |           sign_out_use_case.dart
+|   |   |           
+|   |   \---presentation
+|   |       +---providers
+|   |       |       auth_provider.dart
+|   |       |       
+|   |       \---screens
+|   |               login_screen.dart
+|   |               
+|   +---camera_monitor
+|   |   +---ai
+|   |   |       activity_classifier.dart
+|   |   |       ai_result.dart
+|   |   |       body_signature.dart
+|   |   |       employee_finder.dart
+|   |   |       employee_profile.dart
+|   |   |       employee_profiler.dart
+|   |   |       face_analyzer.dart
+|   |   |       pose_analyzer.dart
+|   |   |       
+|   |   +---domain
+|   |   |   \---usecases
+|   |   |           save_activity_event_use_case.dart
+|   |   |           
+|   |   \---presentation
+|   |       +---providers
+|   |       |       kiosk_provider.dart
+|   |       |       
+|   |       +---screens
+|   |       |       employee_scan_screen.dart
+|   |       |       kiosk_screen.dart
+|   |       |       
+|   |       \---widgets
+|   |               activity_overlay_painter.dart
+|   |               camera_preview_widget.dart
+|   |               state_badge_widget.dart
+|   |               
+|   +---dashboard
+|   |   +---domain
+|   |   |   +---entities
+|   |   |   |       employee_analytics.dart
+|   |   |   |       
+|   |   |   \---usecases
+|   |   |           get_recent_events_use_case.dart
+|   |   |           
+|   |   \---presentation
+|   |       +---providers
+|   |       |       admin_analytics_provider.dart
+|   |       |       dashboard_provider.dart
+|   |       |       employee_dashboard_provider.dart
+|   |       |       
+|   |       +---screens
+|   |       |       activity_history_screen.dart
+|   |       |       admin_analytics_screen.dart
+|   |       |       admin_dashboard_screen.dart
+|   |       |       dashboard_screen.dart
+|   |       |       employee_dashboard_screen.dart
+|   |       |       employee_detail_analytics_screen.dart
+|   |       |       home_employee_screen.dart
+|   |       |       
+|   |       \---widgets
+|   |               activity_event_tile.dart
+|   |               workstation_card.dart
+|   |               
+|   +---employees
+|   |   \---presentation
+|   |       +---providers
+|   |       |       employees_provider.dart
+|   |       |       
+|   |       \---screens
+|   |               employees_list_screen.dart
+|   |               employee_form_screen.dart
+|   |               
+|   +---settings
+|   |   \---presentation
+|   |       +---providers
+|   |       |       .gitkeep
+|   |       |       
+|   |       +---screens
+|   |       |       .gitkeep
+|   |       |       settings_screen.dart
+|   |       |       
+|   |       \---widgets
+|   |               .gitkeep
+|   |               
+|   \---workstations
+|       +---data
+|       |   +---datasources
+|       |   |       .gitkeep
+|       |   |       
+|       |   +---models
+|       |   |       .gitkeep
+|       |   |       
+|       |   \---repositories
+|       |           .gitkeep
+|       |           
+|       +---domain
+|       |   +---entities
+|       |   |       .gitkeep
+|       |   |       
+|       |   \---usecases
+|       |           .gitkeep
+|       |           delete_workstation_use_case.dart
+|       |           get_workstations_use_case.dart
+|       |           save_workstation_use_case.dart
+|       |           
+|       \---presentation
+|           +---providers
+|           |       .gitkeep
+|           |       workstations_provider.dart
+|           |       
+|           +---screens
+|           |       .gitkeep
+|           |       workstations_list_screen.dart
+|           |       workstation_form_screen.dart
+|           |       
+|           \---widgets
+|                   .gitkeep
+|                   
+\---shared
+    +---domain
+    |   \---usecases
+    |           process_sync_queue_use_case.dart
+    |           sync_events_use_case.dart
+    |           
+    +---extensions
+    |       .gitkeep
+    |       
+    +---providers
+    |       .gitkeep
+    |       auth_provider.dart
+    |       connectivity_provider.dart
+    |       current_user_provider.dart
+    |       sync_state_provider.dart
+    |       
+    +---services
+    |       .gitkeep
+    |       
+    \---widgets
+            .gitkeep
+            async_value_widget.dart
+            error_widget.dart
+            loading_widget.dart
+            sync_indicator_widget.dart
+            
