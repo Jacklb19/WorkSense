@@ -23,6 +23,7 @@ class WorkstationRepositoryImpl implements WorkstationRepository {
         longitude: Value(workstation.longitude),
         geofenceRadius: Value(workstation.geofenceRadius),
         assignedEmployeeId: Value(workstation.assignedEmployeeId),
+        status: Value(workstation.status),
       ));
 
       // 2. Encolar para sincronizaciÃ³n
@@ -68,6 +69,7 @@ class WorkstationRepositoryImpl implements WorkstationRepository {
       longitude: row.longitude,
       geofenceRadius: row.geofenceRadius,
       assignedEmployeeId: row.assignedEmployeeId,
+      status: row.status,
     );
   }
 }

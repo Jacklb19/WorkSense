@@ -7,6 +7,7 @@ class AppRoutes {
   static const history = '/history';
   static const employees = '/employees';
   static const employeeNew = '/employees/new';
+  static const employeeEdit = '/employees/edit/:employeeId';
   static const settings = '/settings';
   static const workstations = '/workstations';
   static const workstationNew = '/workstations/new';
@@ -16,4 +17,7 @@ class AppRoutes {
   static const myHours = '/my-hours';
   static const analytics = '/analytics';
   static const analyticsDetail = '/analytics/:employeeId';
+  static const entrance = '/entrance';
+  static const shifts = '/shifts';
+  static const shiftNew = '/shifts/new';
 }

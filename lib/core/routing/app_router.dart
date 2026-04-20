@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:worksense_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/kiosk_screen.dart';
+import 'package:worksense_app/features/camera_monitor/presentation/screens/entrance_kiosk_screen.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/kiosk_waiting_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/activity_history_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/admin_analytics_screen.dart';
@@ -13,6 +14,8 @@ import 'package:worksense_app/features/dashboard/presentation/screens/my_activit
 import 'package:worksense_app/features/dashboard/presentation/screens/my_hours_screen.dart';
 import 'package:worksense_app/features/employees/presentation/screens/employee_form_screen.dart';
 import 'package:worksense_app/features/employees/presentation/screens/employees_list_screen.dart';
+import 'package:worksense_app/features/dashboard/presentation/screens/shifts_list_screen.dart';
+import 'package:worksense_app/features/dashboard/presentation/screens/shift_form_screen.dart';
 import 'package:worksense_app/features/settings/presentation/screens/settings_screen.dart';
 import 'package:worksense_app/features/workstations/presentation/screens/workstation_form_screen.dart';
 import 'package:worksense_app/features/workstations/presentation/screens/workstations_list_screen.dart';
@@ -28,6 +31,7 @@ final GlobalKey<NavigatorState> _shellNavigatorEmployeesKey = GlobalKey<Navigato
 final GlobalKey<NavigatorState> _shellNavigatorWorkstationsKey = GlobalKey<NavigatorState>(debugLabel: 'shellWorkstations');
 final GlobalKey<NavigatorState> _shellNavigatorHistoryKey = GlobalKey<NavigatorState>(debugLabel: 'shellHistory');
 final GlobalKey<NavigatorState> _shellNavigatorSettingsKey = GlobalKey<NavigatorState>(debugLabel: 'shellSettings');
+final GlobalKey<NavigatorState> _shellNavigatorShiftsKey = GlobalKey<NavigatorState>(debugLabel: 'shellShifts');
 
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -59,12 +63,13 @@ final routerProvider = Provider<GoRouter>((ref) {
 
         // Si acaban de hacer login o están en la raíz, los mandamos a su home
         if (loc == AppRoutes.login || loc == '/') {
+          if (role == AppRole.cameraMonitor) return AppRoutes.kioskWaiting;
           return AppRoutes.dashboard;
         }
 
         switch (role) {
           case AppRole.cameraMonitor:
-            if (!loc.startsWith('/kiosk') && loc != AppRoutes.login) {
+            if (!loc.startsWith('/kiosk') && loc != AppRoutes.entrance && loc != AppRoutes.login) {
               return AppRoutes.kioskWaiting;
             }
             break;
@@ -113,6 +118,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // Entrance Kiosk
+      GoRoute(
+        path: AppRoutes.entrance,
+        name: 'entrance',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: EntranceKioskScreen(),
+        ),
+      ),
+
       // Employee form (new) - Pushed on root nav to cover everything
       GoRoute(
         path: AppRoutes.employeeNew,
@@ -123,6 +138,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
+      // Employee form (edit)
+      GoRoute(
+        path: AppRoutes.employeeEdit,
+        name: 'employee-edit',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final employeeId = state.pathParameters['employeeId']!;
+          return MaterialPage(
+            child: EmployeeFormScreen(employeeId: employeeId),
+          );
+        },
+      ),
+
       // Workstation form (new)
       GoRoute(
         path: AppRoutes.workstationNew,
@@ -130,6 +158,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) => const MaterialPage(
           child: WorkstationFormScreen(),
+        ),
+      ),
+      // Shift form (new)
+      GoRoute(
+        path: AppRoutes.shiftNew,
+        name: 'shift-new',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: ShiftFormScreen(),
         ),
       ),
       
@@ -217,6 +254,20 @@ final routerProvider = Provider<GoRouter>((ref) {
                 name: 'settings',
                 pageBuilder: (context, state) => const NoTransitionPage(
                   child: SettingsScreen(),
+                ),
+              ),
+            ],
+          ),
+
+          // Branch 5: Shifts (Admin)
+          StatefulShellBranch(
+            navigatorKey: _shellNavigatorShiftsKey,
+            routes: [
+              GoRoute(
+                path: AppRoutes.shifts,
+                name: 'shifts',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: ShiftsListScreen(),
                 ),
               ),
             ],

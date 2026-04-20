@@ -21,88 +21,79 @@ class WorkstationCard extends ConsumerWidget {
         ref.watch(lastEventByWorkstationProvider(workstation.id));
     final theme = Theme.of(context);
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => context.push('/kiosk/${workstation.id}'),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header row
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: () => context.push('/kiosk/${workstation.id}'),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.sensors, color: AppColors.primary, size: 20),
                     ),
-                    child: const Icon(
-                      Icons.monitor_outlined,
-                      color: AppColors.primary,
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          workstation.name,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        workstation.name.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
                         ),
-                        if (workstation.deviceId != null)
-                          Text(
-                            workstation.deviceId!,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.grey500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                      ],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-
-              const Spacer(),
-
-              // State badge
-              if (lastEvent != null) ...[
-                StateBadgeWidget(
-                  state: lastEvent.state,
-                  confidence: lastEvent.confidence,
-                  showConfidence: true,
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  _formatTimestamp(lastEvent.timestamp),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.grey500,
+                const Spacer(),
+                if (lastEvent != null) ...[
+                  StateBadgeWidget(
+                    state: lastEvent.state,
+                    confidence: lastEvent.confidence,
+                    showConfidence: true,
                   ),
-                ),
-              ] else
-                Text(
-                  'Sin datos recientes',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.grey400,
-                    fontStyle: FontStyle.italic,
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(Icons.access_time, size: 12, color: Colors.white38),
+                      const SizedBox(width: 4),
+                      Text(
+                        _formatTimestamp(lastEvent.timestamp),
+                        style: const TextStyle(color: Colors.white38, fontSize: 10),
+                      ),
+                    ],
                   ),
-                ),
-            ],
+                ] else
+                  const Text(
+                    'SIN ACTIVIDAD RECIENTE',
+                    style: TextStyle(color: Colors.white24, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

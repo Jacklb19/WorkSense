@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,8 +11,8 @@ import 'package:worksense_app/features/camera_monitor/presentation/providers/kio
 import 'package:worksense_app/features/camera_monitor/presentation/widgets/activity_overlay_painter.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/widgets/camera_preview_widget.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/widgets/state_badge_widget.dart';
-import 'package:worksense_app/features/alerts/presentation/providers/alerts_provider.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/employee_scan_screen.dart';
+import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 
 class KioskScreen extends ConsumerStatefulWidget {
   final String? workstationId;
@@ -22,44 +23,36 @@ class KioskScreen extends ConsumerStatefulWidget {
   ConsumerState<KioskScreen> createState() => _KioskScreenState();
 }
 
-class _KioskScreenState extends ConsumerState<KioskScreen>
-    with WidgetsBindingObserver {
-  bool _cameraStarted = false;
-
+class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingObserver {
+  Timer? _syncTimer;
+  
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-    // Kiosk en portrait — la cámara apunta a la persona frente al dispositivo
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
-
-    // Set workstation if provided
     if (widget.workstationId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref
-            .read(kioskProvider.notifier)
-            .setWorkstationId(widget.workstationId!);
+        ref.read(kioskProvider.notifier).setWorkstationId(widget.workstationId!);
       });
     }
 
     _initCamera();
+    
+    // Periodic sync: push activity events to Supabase every 30 seconds
+    _syncTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) {
+        ref.read(syncNotifierProvider.notifier).sync();
+      }
+    });
   }
 
   Future<void> _initCamera() async {
-    final status = await [
-      Permission.camera,
-      Permission.locationWhenInUse,
-    ].request();
+    final status = await [Permission.camera, Permission.locationWhenInUse].request();
 
     if (status[Permission.camera] != PermissionStatus.granted) {
-      if (mounted) {
-        ref.read(kioskProvider.notifier).setError(
-              'Permiso de cámara denegado. Actívalo en configuración.',
-            );
-      }
+      if (mounted) ref.read(kioskProvider.notifier).setError('Permiso de cámara denegado.');
       return;
     }
 
@@ -67,98 +60,36 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
     if (!mounted) return;
 
     final workstationId = ref.read(kioskProvider).workstationId;
-    final hasProfile = await ref
-        .read(kioskProvider.notifier)
-        .loadProfileAndInit(cameras, workstationId);
-
-    if (!mounted) return;
-
-    if (!hasProfile) {
-      // Sin perfil → mostrar pantalla de escaneo
-      // El equipo de routing se encarga de la navegación desde aquí.
-      // Por ahora marcamos la cámara como no iniciada y dejamos el estado noIdentificado.
-      setState(() => _cameraStarted = false);
-    } else {
-      setState(() => _cameraStarted = true);
-    }
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState appState) {
-    final controller = ref.read(kioskProvider.notifier).cameraController;
-    if (controller == null || !controller.value.isInitialized) return;
-
-    if (appState == AppLifecycleState.inactive) {
-      controller.stopImageStream().catchError((_) {});
-    } else if (appState == AppLifecycleState.resumed) {
-      if (!controller.value.isStreamingImages) {
-        _initCamera();
-      }
-    }
+    await ref.read(kioskProvider.notifier).loadProfileAndInit(cameras, workstationId);
   }
 
   @override
   void dispose() {
+    _syncTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
-
-    // Forzar detención de cámara antes de que Riverpod haga dispose del notifier
     try {
       ref.read(kioskProvider.notifier).stopCamera();
     } catch (_) {}
-
+    // Trigger one final sync before leaving
+    try {
+      ref.read(syncNotifierProvider.notifier).sync();
+    } catch (_) {}
     SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]); // Restaurar todas las orientaciones al salir
+      DeviceOrientation.portraitUp, DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight,
+    ]);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Escuchar alertas MVP en pantalla
-    ref.listen<AlertMessage?>(alertsProvider, (previous, current) {
-      if (current != null) {
-        if (!context.mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: current.backgroundColor,
-            content: Row(
-              children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.white),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    current.text,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            duration: const Duration(seconds: 5),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-
-        // Limpiamos la alerta inmediatamente para permitir futuras notificaciones
-        ref.read(alertsProvider.notifier).clearAlert();
-      }
-    });
-
     final kioskState = ref.watch(kioskProvider);
     final controller = ref.read(kioskProvider.notifier).cameraController;
 
     return PopScope(
-      canPop: false, // Bloquear back del sistema completamente
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return; // Ya se procesó, ignorar
-
+        if (didPop) return;
         final confirmed = await _showExitConfirmation(context);
         if (confirmed && context.mounted) {
           await ref.read(kioskProvider.notifier).stopCamera();
@@ -170,24 +101,21 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
         body: Stack(
           fit: StackFit.expand,
           children: [
-            // Camera preview
             if (kioskState.error != null)
-              CameraErrorWidget(
-                message: kioskState.error!,
-                onRetry: _initCamera,
-              )
-            else if (controller != null && kioskState.cameraInitialized)
-              CameraPreviewWidget(controller: controller)
+              CameraErrorWidget(message: kioskState.error!, onRetry: _initCamera)
             else if (!kioskState.isEmployeeScanned)
               _NoProfileView(
                 workstationId: kioskState.workstationId,
                 assignedEmployeeId: kioskState.assignedEmployeeId,
                 onScanComplete: _initCamera,
               )
+            else if (kioskState.workstationStatus != 'ACTIVE')
+              _WaitingStandbyView(status: kioskState.workstationStatus)
+            else if (controller != null && kioskState.cameraInitialized)
+              CameraPreviewWidget(controller: controller)
             else
               const _LoadingView(),
 
-            // AI overlay
             if (kioskState.cameraInitialized)
               CustomPaint(
                 painter: ActivityOverlayPainter(
@@ -202,30 +130,212 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
                 child: const SizedBox.expand(),
               ),
 
-            // Top AppBar
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: _KioskAppBar(
-                workstationId: kioskState.workstationId,
-                isProcessing: kioskState.isProcessing,
-              ),
-            ),
+            // OVERLAYS
+            if (kioskState.sessionStatus == SessionStatus.entryPending)
+              _SessionActionOverlay(
+                title: 'BIENVENIDO',
+                subtitle: 'Rostro reconocido con éxito',
+                icon: Icons.face_retouching_natural,
+                color: AppColors.primary,
+                actionLabel: 'INICIAR SESIÓN',
+                onConfirm: ref.read(kioskProvider.notifier).approveEntry,
+                onCancel: ref.read(kioskProvider.notifier).cancelApproval,
+              )
+            else if (kioskState.sessionStatus == SessionStatus.exitPending)
+              _SessionActionOverlay(
+                title: '¿FINALIZAR?',
+                subtitle: 'Confirmar cierre de jornada',
+                icon: Icons.logout,
+                color: Colors.orange,
+                actionLabel: 'CERRAR SESIÓN',
+                onConfirm: ref.read(kioskProvider.notifier).approveExit,
+                onCancel: ref.read(kioskProvider.notifier).cancelApproval,
+              )
+            else if (kioskState.sessionStatus == SessionStatus.active) ...[
+                Positioned(top: 0, left: 0, right: 0, 
+                  child: _KioskTopHUD(
+                    workstationId: kioskState.workstationId,
+                    isProcessing: kioskState.isProcessing,
+                    onBack: () async {
+                      final ok = await _showExitConfirmation(context);
+                      if (ok && context.mounted) {
+                        await ref.read(kioskProvider.notifier).stopCamera();
+                        if (context.mounted) context.pop();
+                      }
+                    },
+                  ),
+                ),
+                Positioned(bottom: 0, left: 0, right: 0,
+                  child: _KioskBottomHUD(
+                    state: kioskState.currentState,
+                    confidence: kioskState.confidence,
+                    onExit: ref.read(kioskProvider.notifier).requestExit,
+                  ),
+                ),
+            ] else if (kioskState.workstationStatus == 'ACTIVE') ...[
+               Positioned(top: 64, left: 0, right: 0,
+                 child: _IdentifyingHUD(isProcessing: kioskState.isProcessing),
+               ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-            // Bottom info panel
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: _BottomInfoPanel(
-                state: kioskState.currentState,
-                confidence: kioskState.confidence,
-                frameCount: kioskState.frameCount,
-                lastEventTime: kioskState.lastEventTime,
+class _IdentifyingHUD extends StatelessWidget {
+  final bool isProcessing;
+  const _IdentifyingHUD({required this.isProcessing});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.overlayBadgeBg,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isProcessing) ...[
+               const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryLight)),
+               const SizedBox(width: 12),
+            ],
+            const Text('SCANNER ACTIVO', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _KioskTopHUD extends StatelessWidget {
+  final String workstationId;
+  final bool isProcessing;
+  final VoidCallback onBack;
+
+  const _KioskTopHUD({required this.workstationId, required this.isProcessing, required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withOpacity(0.8), Colors.transparent]),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          children: [
+            IconButton(onPressed: onBack, icon: const Icon(Icons.close, color: Colors.white70)),
+            const SizedBox(width: 8),
+            const Text('WORKSENSE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
+            const Spacer(),
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.2), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.primary.withOpacity(0.5))),
+                child: Text(
+                  workstationId.length > 8 ? '${workstationId.substring(0, 8)}…' : workstationId,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: AppColors.primaryLight, fontSize: 10, fontWeight: FontWeight.w700),
+                ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _KioskBottomHUD extends StatelessWidget {
+  final ActivityState state;
+  final double confidence;
+  final VoidCallback onExit;
+
+  const _KioskBottomHUD({required this.state, required this.confidence, required this.onExit});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [Colors.black.withOpacity(0.8), Colors.transparent]),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            StateBadgeWidget(state: state, confidence: confidence, showConfidence: true),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: FilledButton.icon(
+                onPressed: onExit,
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white10,
+                ),
+                icon: const Icon(Icons.power_settings_new, size: 18),
+                label: const Text('SALIR', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SessionActionOverlay extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final String actionLabel;
+  final VoidCallback onConfirm;
+  final VoidCallback onCancel;
+
+  const _SessionActionOverlay({
+    required this.title, required this.subtitle, required this.icon,
+    required this.color, required this.actionLabel, required this.onConfirm, required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black.withOpacity(0.9),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle, border: Border.all(color: color.withOpacity(0.3), width: 2)),
+                child: Icon(icon, size: 64, color: color),
+              ),
+              const SizedBox(height: 32),
+              Text(title, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 2)),
+              const SizedBox(height: 12),
+              Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 16)),
+              const SizedBox(height: 56),
+              FilledButton(
+                onPressed: onConfirm,
+                style: FilledButton.styleFrom(backgroundColor: color, minimumSize: const Size(double.infinity, 64)),
+                child: Text(actionLabel, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              ),
+              const SizedBox(height: 16),
+              TextButton(onPressed: onCancel, child: const Text('CANCELAR', style: TextStyle(color: Colors.white38))),
+            ],
+          ),
         ),
       ),
     );
@@ -234,107 +344,39 @@ class _KioskScreenState extends ConsumerState<KioskScreen>
 
 class _LoadingView extends StatelessWidget {
   const _LoadingView();
+  @override
+  Widget build(BuildContext context) => Container(color: Colors.black, child: const Center(child: CircularProgressIndicator(color: AppColors.primary)));
+}
+
+class _NoProfileView extends StatelessWidget {
+  final String workstationId;
+  final String? assignedEmployeeId;
+  final VoidCallback onScanComplete;
+
+  const _NoProfileView({required this.workstationId, required this.assignedEmployeeId, required this.onScanComplete});
 
   @override
   Widget build(BuildContext context) {
+    final hasEmployee = assignedEmployeeId != null;
     return Container(
       color: Colors.black,
-      child: const Center(
+      padding: const EdgeInsets.all(40),
+      child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: AppColors.primary),
-            SizedBox(height: 16),
-            Text(
-              'Iniciando monitoreo...',
-              style: TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _KioskAppBar extends ConsumerWidget {
-  final String workstationId;
-  final bool isProcessing;
-
-  const _KioskAppBar({
-    required this.workstationId,
-    required this.isProcessing,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.black.withOpacity(0.7),
-            Colors.transparent,
-          ],
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          children: [
-            const Text(
-              'WorkSense',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
+            Icon(hasEmployee ? Icons.face : Icons.person_off, size: 80, color: hasEmployee ? AppColors.primary : Colors.white24),
+            const SizedBox(height: 32),
+            Text(hasEmployee ? 'ENROLAMIENTO PENDIENTE' : 'SIN ASIGNACIÓN', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+            const SizedBox(height: 16),
+            Text(hasEmployee ? 'Se requiere una captura facial inicial para habilitar el reconocimiento en tiempo real.' : 'No hay un empleado asignado a este puesto de trabajo.', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white60, fontSize: 14)),
+            const SizedBox(height: 48),
+            if (hasEmployee)
+              FilledButton.icon(
+                icon: const Icon(Icons.camera_alt),
+                label: const Text('EMPEZAR CAPTURA'),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EmployeeScanScreen(workstationId: workstationId, employeeId: assignedEmployeeId!, onComplete: () { Navigator.pop(context); onScanComplete(); }))),
               ),
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: AppColors.primary, width: 1),
-                ),
-                child: Text(
-                  workstationId,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            if (isProcessing)
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white54,
-                ),
-              ),
-            const SizedBox(width: 4),
-            IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white70),
-              onPressed: () async {
-                final confirmed = await _showExitConfirmation(context);
-                if (confirmed && context.mounted) {
-                  await ref.read(kioskProvider.notifier).stopCamera();
-                  if (context.mounted) {
-                    context.pop();
-                  }
-                }
-              },
-              tooltip: 'Volver al dashboard',
-            ),
           ],
         ),
       ),
@@ -344,106 +386,56 @@ class _KioskAppBar extends ConsumerWidget {
 
 Future<bool> _showExitConfirmation(BuildContext context) async {
   return await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Salir del modo kiosco'),
-          content: const Text('¿Deseas cerrar sesión y salir del monitoreo?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Salir'),
-            ),
-          ],
-        ),
-      ) ??
-      false;
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('SALIR DEL SISTEMA'),
+      content: const Text('¿Está seguro que desea cerrar la sesión del monitor?'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCELAR')),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('SALIR')),
+      ],
+    ),
+  ) ?? false;
 }
 
-// ── Vista cuando no hay perfil biométrico registrado ──────────────────────────
+class _WaitingStandbyView extends StatelessWidget {
+  final String status;
 
-class _NoProfileView extends StatelessWidget {
-  final String workstationId;
-  final String? assignedEmployeeId;
-  final VoidCallback onScanComplete;
-
-  const _NoProfileView({
-    required this.workstationId,
-    required this.assignedEmployeeId,
-    required this.onScanComplete,
-  });
+  const _WaitingStandbyView({required this.status});
 
   @override
   Widget build(BuildContext context) {
-    final hasEmployee = assignedEmployeeId != null;
-
+    bool isBreak = status == 'BREAK';
     return Container(
       color: Colors.black,
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: SafeArea(
+      child: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              hasEmployee ? Icons.face_retouching_natural : Icons.person_off,
-              size: 72,
-              color: hasEmployee ? AppColors.primary : Colors.grey,
+              isBreak ? Icons.free_breakfast : Icons.bedtime, 
+              size: 80, 
+              color: isBreak ? Colors.orange : AppColors.primary
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             Text(
-              hasEmployee
-                  ? 'Empleado sin perfil biométrico'
-                  : 'Estación sin empleado asignado',
-              textAlign: TextAlign.center,
+              isBreak ? 'EN PAUSA' : 'EN ESPERA',
               style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+                color: Colors.white, 
+                fontSize: 24, 
+                fontWeight: FontWeight.w900, 
+                letterSpacing: 2
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Text(
-              hasEmployee
-                  ? 'Escanea al empleado para que la cámara pueda reconocerlo y seguirlo.'
-                  : 'Asigna un empleado a esta estación desde el panel de administración.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white60, fontSize: 14),
+              isBreak 
+                ? 'El monitoreo está pausado por descanso.' 
+                : 'Esperando escaneo en el Kiosco de Entrada...',
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
             ),
-            const SizedBox(height: 40),
-            if (hasEmployee)
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  icon: const Icon(Icons.camera_alt, size: 22),
-                  label: const Text(
-                    'Escanear empleado',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => EmployeeScanScreen(
-                        workstationId: workstationId,
-                        employeeId: assignedEmployeeId!,
-                        onComplete: () {
-                          Navigator.pop(context);
-                          onScanComplete();
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+            const SizedBox(height: 64),
+            const CircularProgressIndicator(color: Colors.white24),
           ],
         ),
       ),
@@ -451,76 +443,3 @@ class _NoProfileView extends StatelessWidget {
   }
 }
 
-class _BottomInfoPanel extends StatelessWidget {
-  final ActivityState state;
-  final double confidence;
-  final int frameCount;
-  final DateTime? lastEventTime;
-
-  const _BottomInfoPanel({
-    required this.state,
-    required this.confidence,
-    required this.frameCount,
-    this.lastEventTime,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          colors: [
-            Colors.black.withOpacity(0.7),
-            Colors.transparent,
-          ],
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Flexible(
-              child: KioskStateBadge(
-                state: state,
-                confidence: confidence,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Frames: $frameCount',
-                  style: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 10,
-                  ),
-                ),
-                if (lastEventTime != null)
-                  Text(
-                    'Último evento: ${_formatTime(lastEventTime!)}',
-                    style: const TextStyle(
-                      color: Colors.white38,
-                      fontSize: 10,
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatTime(DateTime dt) {
-    final h = dt.hour.toString().padLeft(2, '0');
-    final m = dt.minute.toString().padLeft(2, '0');
-    final s = dt.second.toString().padLeft(2, '0');
-    return '$h:$m:$s';
-  }
-}

@@ -19,6 +19,43 @@ class EmployeeRecords extends Table {
   TextColumn get name => text()();
   TextColumn get companyId => text()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get faceEmbedding => text().nullable()();
+  TextColumn get shiftId => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('ShiftRecordData')
+class ShiftRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get companyId => text()();
+  TextColumn get name => text()();
+  IntColumn get startHour => integer()();
+  IntColumn get startMinute => integer()();
+  IntColumn get endHour => integer()();
+  IntColumn get endMinute => integer()();
+  IntColumn get breakStartHour => integer().nullable()();
+  IntColumn get breakStartMinute => integer().nullable()();
+  IntColumn get breakEndHour => integer().nullable()();
+  IntColumn get breakEndMinute => integer().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('AttendanceLogData')
+class AttendanceLogs extends Table {
+  TextColumn get id => text()();
+  TextColumn get employeeId => text()();
+  TextColumn get workstationId => text().nullable()();
+  TextColumn get companyId => text()();
+  DateTimeColumn get shiftDate => dateTime()();
+  DateTimeColumn get clockInTime => dateTime()();
+  DateTimeColumn get clockOutTime => dateTime().nullable()();
+  TextColumn get status => text().withDefault(const Constant('ON_TIME'))();
+  BoolColumn get synced => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -40,6 +77,9 @@ class WorkstationRecords extends Table {
   DateTimeColumn get profileCapturedAt => dateTime().nullable()();
   IntColumn get profileVersion =>
       integer().withDefault(const Constant(0))();
+  
+  // Kiosk / Realtime status
+  TextColumn get status => text().withDefault(const Constant('IDLE'))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -81,42 +121,83 @@ class SyncQueueEntries extends Table {
     WorkstationRecords,
     ActivityEntries,
     SyncQueueEntries,
+    ShiftRecords,
+    AttendanceLogs,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) async {
+      await m.createAll();
+    },
     onUpgrade: (m, from, to) async {
+      final migrator = m; // Alias for clarity
+      
       if (from < 2) {
-        await m.addColumn(workstationRecords, workstationRecords.latitude);
-        await m.addColumn(workstationRecords, workstationRecords.longitude);
-        await m.addColumn(workstationRecords, workstationRecords.geofenceRadius);
+        await migrator.addColumn(workstationRecords, workstationRecords.latitude);
+        await migrator.addColumn(workstationRecords, workstationRecords.longitude);
+        await migrator.addColumn(workstationRecords, workstationRecords.geofenceRadius);
       }
+      
       if (from < 3) {
-        await m.createTable(syncQueueEntries); // ← FALTABA ESTO
+        // TABLA: sync_queue_entries
+        await migrator.createTable(syncQueueEntries);
 
-        await customStatement(
-            'ALTER TABLE workstation_records ADD COLUMN assigned_employee_id TEXT');
-        await customStatement(
-            'ALTER TABLE workstation_records ADD COLUMN face_embedding TEXT');
-        await customStatement(
-            'ALTER TABLE workstation_records ADD COLUMN body_signature TEXT');
-        await customStatement(
-            'ALTER TABLE workstation_records ADD COLUMN profile_captured_at INTEGER');
-        await customStatement(
-            'ALTER TABLE workstation_records ADD COLUMN profile_version INTEGER NOT NULL DEFAULT 0');
-        await customStatement(
-            'ALTER TABLE activity_entries ADD COLUMN identity_confidence REAL');
-        await customStatement(
-            'ALTER TABLE activity_entries ADD COLUMN identification_method TEXT');
+        // TABLA: workstation_records
+        // Verificamos antes de agregar para evitar errores si la base de datos
+        // está en un estado inconsistente (según roadmap)
+        await migrator.addColumn(workstationRecords, workstationRecords.assignedEmployeeId);
+        await migrator.addColumn(workstationRecords, workstationRecords.faceEmbedding);
+        await migrator.addColumn(workstationRecords, workstationRecords.bodySignature);
+        await migrator.addColumn(workstationRecords, workstationRecords.profileCapturedAt);
+        await migrator.addColumn(workstationRecords, workstationRecords.profileVersion);
+
+        // TABLA: activity_entries
+        await migrator.addColumn(activityEntries, activityEntries.identityConfidence);
+        await migrator.addColumn(activityEntries, activityEntries.identificationMethod);
+      }
+      
+      if (from < 4) {
+        // La migración a v4 añade el campo central de face_embedding en Employee
+        // para permitir reconocimiento cross-workstation.
+        await migrator.addColumn(employeeRecords, employeeRecords.faceEmbedding);
+      }
+      
+      if (from < 5) {
+        // Migración a v5: añadir status a workstations para realtime monitoring
+        await migrator.addColumn(workstationRecords, workstationRecords.status);
+      }
+      
+      if (from < 6) {
+        // Migración a v6: Asistencia y Turnos
+        await migrator.addColumn(employeeRecords, employeeRecords.shiftId);
+        await migrator.createTable(shiftRecords);
+        await migrator.createTable(attendanceLogs);
+      }
+
+      if (from < 7) {
+        // Migración a v7: Almuerzo / Receso en turnos
+        await migrator.addColumn(shiftRecords, shiftRecords.breakStartHour);
+        await migrator.addColumn(shiftRecords, shiftRecords.breakStartMinute);
+        await migrator.addColumn(shiftRecords, shiftRecords.breakEndHour);
+        await migrator.addColumn(shiftRecords, shiftRecords.breakEndMinute);
       }
     },
+    beforeOpen: (details) async {
+      if (details.wasCreated) {
+        // Logic for fresh install if needed
+      }
+      // Habilitar Foreign Keys si fuera necesario (sqlite_m)
+      // await customStatement('PRAGMA foreign_keys = ON');
+    },
   );
+
 
   // ── ActivityEntries DAO methods ───────────────────────────────────────────
 
@@ -207,6 +288,12 @@ class AppDatabase extends _$AppDatabase {
       (select(employeeRecords)..where((t) => t.id.equals(id)))
           .getSingleOrNull();
 
+  Future<void> updateEmployeeEmbedding(String employeeId, String faceEmbeddingJson) =>
+      (update(employeeRecords)..where((t) => t.id.equals(employeeId)))
+          .write(EmployeeRecordsCompanion(
+        faceEmbedding: Value(faceEmbeddingJson),
+      ));
+
   Future<void> deleteEmployeeRecord(String id) =>
       (delete(employeeRecords)..where((t) => t.id.equals(id))).go();
 
@@ -260,6 +347,60 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteSyncQueueEntry(int id) =>
       (delete(syncQueueEntries)..where((t) => t.id.equals(id))).go();
+
+  // ── ShiftRecords DAO methods ──────────────────────────────────────────────
+
+  Future<void> insertShiftRecord(ShiftRecordsCompanion record) =>
+      into(shiftRecords).insert(record, mode: InsertMode.insertOrReplace);
+
+  Future<ShiftRecordData?> getShiftById(String id) =>
+      (select(shiftRecords)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  Future<List<ShiftRecordData>> getShiftsByCompany(String companyId) =>
+      (select(shiftRecords)..where((t) => t.companyId.equals(companyId))).get();
+
+  // ── AttendanceLogs DAO methods ────────────────────────────────────────────
+
+  Future<void> insertAttendanceLog(AttendanceLogsCompanion log) =>
+      into(attendanceLogs).insert(log, mode: InsertMode.insertOrReplace);
+
+  Future<void> updateAttendanceLog(AttendanceLogsCompanion log) =>
+      (update(attendanceLogs)..where((t) => t.id.equals(log.id.value))).write(log);
+
+  Future<AttendanceLogData?> getOpenAttendanceLogForEmployee(String employeeId, DateTime today) =>
+      (select(attendanceLogs)
+        ..where((t) => 
+          t.employeeId.equals(employeeId) & 
+          t.clockOutTime.isNull() &
+          // Comparar solo la fecha truncada si se puede, o al menos que el clockIn sea reciente.
+          // En SQLite, date/time logic es más compleja, pero asumimos que shiftDate mapea al día.
+          t.shiftDate.equals(today)
+        )
+        ..orderBy([(t) => OrderingTerm.desc(t.clockInTime)])
+        ..limit(1))
+      .getSingleOrNull();
+
+  Future<List<AttendanceLogData>> getEmployeeLogsForDate(String employeeId, DateTime date) =>
+      (select(attendanceLogs)
+        ..where((t) => 
+          t.employeeId.equals(employeeId) & 
+          t.shiftDate.equals(date)
+        )
+        ..orderBy([(t) => OrderingTerm.asc(t.clockInTime)]))
+      .get();
+
+  Future<List<AttendanceLogData>> getEmployeeAttendanceLogs(String employeeId, DateTime start, DateTime end) =>
+      (select(attendanceLogs)
+        ..where((t) => 
+          t.employeeId.equals(employeeId) & 
+          t.shiftDate.isBiggerOrEqualValue(start) &
+          t.shiftDate.isSmallerOrEqualValue(end)
+        )
+        ..orderBy([(t) => OrderingTerm.desc(t.shiftDate)]))
+      .get();
+
+  Stream<List<AttendanceLogData>> watchAttendanceLogs() =>
+      select(attendanceLogs).watch();
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'worksense_db');

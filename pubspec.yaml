@@ -14,9 +14,9 @@ dependencies:
   go_router: ^14.0.0
 
   # ── Estado (Riverpod) ────────────────────────────────────────
-  flutter_riverpod: ^2.5.1
-  riverpod_annotation: ^2.3.5
-  hooks_riverpod: ^2.5.1
+  flutter_riverpod: any
+  riverpod_annotation: any
+  hooks_riverpod: any
 
   # ── Base de datos remota (Supabase) ──────────────────────────
   supabase_flutter: ^2.5.0
@@ -33,6 +33,7 @@ dependencies:
   google_mlkit_pose_detection: ^0.13.0
   google_mlkit_face_detection: ^0.12.0
   google_mlkit_commons: ^0.9.0
+  tflite_flutter: ^0.12.1
 
   # ── Geolocalizacion ──────────────────────────────────────────
   geolocator: ^12.0.0
@@ -70,6 +71,7 @@ dependencies:
   collection: ^1.18.0
   rxdart: ^0.28.0
   logger: ^2.4.0
+  image: ^4.8.0
 
 dev_dependencies:
   flutter_test:
@@ -78,7 +80,7 @@ dev_dependencies:
   # ── Generacion de codigo ─────────────────────────────────────
   build_runner: ^2.4.11
   drift_dev: ^2.19.1
-  freezed: ^2.5.7
+  freezed: any
   json_serializable: ^6.8.0
 
   # ── Testing ──────────────────────────────────────────────────
@@ -87,9 +89,7 @@ dev_dependencies:
 
   # ── Linting ──────────────────────────────────────────────────
   flutter_lints: ^4.0.0
-  riverpod_generator: ^2.6.4
-  custom_lint: ^0.7.0
-  riverpod_lint: ^2.6.4
+  riverpod_generator: any
 
 flutter:
   uses-material-design: true
@@ -99,11 +99,9 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/fonts/
+    - assets/models/
 
   # fonts:
-  #   - family: Inter
-  #     fonts:
-  #       - asset: assets/fonts/Inter-Regular.ttf
   #       - asset: assets/fonts/Inter-Medium.ttf
   #         weight: 500
   #       - asset: assets/fonts/Inter-Bold.ttf

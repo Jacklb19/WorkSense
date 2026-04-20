@@ -1,12 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
 import 'package:worksense_app/data/repositories/employee_repository_impl.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/domain/repositories/employee_repository.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
-import 'package:worksense_app/shared/providers/sync_state_provider.dart' hide supabaseDataSourceProvider;
+import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 import 'package:worksense_app/data/datasources/remote/supabase_datasource.dart';
-import 'package:worksense_app/shared/providers/auth_provider.dart';
+import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
 import 'package:worksense_app/core/constants/app_constants.dart';
 
@@ -30,22 +29,59 @@ final employeesProvider = FutureProvider<List<Employee>>((ref) async {
   return repo.getEmployees();
 });
 
-// Admin-specific provider that fetches directly from Supabase
+Employee _mapRemoteEmployee(Map<String, dynamic> json) {
+  return Employee(
+    id: json['id'] as String,
+    name: '${json['name']} ${json['last_name'] ?? ''}'.trim(),
+    companyId: json['company_id'] as String,
+    createdAt:
+        DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now(),
+    shiftId: json['shift_id'] as String?,
+  );
+}
+
+Employee _mergeEmployee(Employee? local, Employee remote) {
+  if (local == null) return remote;
+  return local.copyWith(
+    name: remote.name.isNotEmpty ? remote.name : local.name,
+    companyId: remote.companyId,
+    createdAt: remote.createdAt,
+    shiftId: remote.shiftId ?? local.shiftId,
+  );
+}
+
+// Admin-specific provider that merges local Drift + remote Supabase
 final adminEmployeesProvider = FutureProvider<List<Employee>>((ref) async {
+  final repo = ref.watch(employeeRepositoryProvider);
   final supabase = ref.watch(supabaseDataSourceProvider);
-  
-  // Asumiendo que DefaultCompanyId es usado por ahora.
-  // Podrías leer el companyId del current_user_provider si tienes multi-tenant
-  final data = await supabase.fetchAllEmployees(AppConstants.defaultCompanyId);
-  
-  return data.map((json) {
-    return Employee(
-      id: json['id'] as String,
-      name: '${json['name']} ${json['last_name'] ?? ''}'.trim(),
-      companyId: json['company_id'] as String,
-      createdAt: DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now(),
-    );
-  }).toList();
+  final currentUser = ref.watch(currentUserProvider).value;
+  final companyId = currentUser?.companyId ?? AppConstants.defaultCompanyId;
+
+  final merged = <String, Employee>{};
+
+  try {
+    final localEmployees = await repo.getEmployees();
+    for (final employee in localEmployees) {
+      merged[employee.id] = employee;
+    }
+  } catch (_) {
+    // Keep remote as fallback.
+  }
+
+  try {
+    final remoteEmployees = await supabase.fetchAllEmployees(companyId);
+    for (final row in remoteEmployees) {
+      final remoteEmployee = _mapRemoteEmployee(row);
+      merged[remoteEmployee.id] =
+          _mergeEmployee(merged[remoteEmployee.id], remoteEmployee);
+    }
+  } catch (_) {
+    if (merged.isEmpty) rethrow;
+  }
+
+  final employees = merged.values.toList()
+    ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+  return employees;
 });
 
 // ── Employee Form State ───────────────────────────────────────────────────────
@@ -77,8 +113,9 @@ class EmployeeFormState {
 class EmployeeFormNotifier extends StateNotifier<EmployeeFormState> {
   final EmployeeRepository _localRepo;
   final SupabaseDataSource _supabase;
+  final Ref _ref;
 
-  EmployeeFormNotifier(this._localRepo, this._supabase)
+  EmployeeFormNotifier(this._localRepo, this._supabase, this._ref)
       : super(const EmployeeFormState());
 
   Future<void> saveEmployee({
@@ -87,10 +124,16 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormState> {
     required String email,
     required String password,
     required String role,
+    String? shiftId,
     String companyId = AppConstants.defaultCompanyId,
     String? existingId,
   }) async {
     state = state.copyWith(isLoading: true, errorMessage: null, saved: false);
+
+    final currentUser = _ref.read(currentUserProvider).value;
+    final effectiveCompanyId = companyId != AppConstants.defaultCompanyId 
+        ? companyId 
+        : (currentUser?.companyId ?? AppConstants.defaultCompanyId);
 
     try {
       if (existingId == null) {
@@ -101,7 +144,8 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormState> {
           'name': name,
           'lastName': lastName,
           'role': role,
-          'companyId': companyId,
+          'companyId': effectiveCompanyId,
+          'shiftId': shiftId,
         });
       } else {
         // Editing existing: usually handled differently based on exact needs, 
@@ -109,7 +153,8 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormState> {
         final employee = Employee(
           id: existingId,
           name: name.trim(),
-          companyId: companyId,
+          companyId: effectiveCompanyId,
+          shiftId: shiftId,
           createdAt: DateTime.now(),
         );
         await _localRepo.saveEmployee(employee);
@@ -153,5 +198,5 @@ final employeeFormNotifierProvider =
     StateNotifierProvider<EmployeeFormNotifier, EmployeeFormState>((ref) {
   final repo = ref.watch(employeeRepositoryProvider);
   final supabase = ref.watch(supabaseDataSourceProvider);
-  return EmployeeFormNotifier(repo, supabase);
+  return EmployeeFormNotifier(repo, supabase, ref);
 });

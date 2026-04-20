@@ -11,7 +11,7 @@ abstract final class AppConstants {
   // ─────────────────────────────────────────────────────────
   // DEFAULT IDS
   // ─────────────────────────────────────────────────────────
-  static const String defaultCompanyId = 'default';
+  static const String defaultCompanyId = '00000000-0000-0000-0000-000000000000';
 
   // ─────────────────────────────────────────────────────────
   // ROLES DE USUARIO

@@ -1,31 +1,40 @@
 import 'package:flutter/material.dart';
 
-/// Paleta de colores centralizada de WorkSense.
-/// NUNCA usar colores hardcodeados en widgets — siempre referenciar esta clase.
 abstract final class AppColors {
   // ── Brand ────────────────────────────────────────────────
-  static const Color primary = Color(0xFF1A73E8);
-  static const Color primaryDark = Color(0xFF1557B0);
-  static const Color primaryLight = Color(0xFF4A9EF4);
+  static const Color primary = Color(0xFF1E88E5);
+  static const Color primaryDark = Color(0xFF1565C0);
+  static const Color primaryLight = Color(0xFF64B5F6);
 
-  static const Color secondary = Color(0xFF00BFA5);
-  static const Color secondaryDark = Color(0xFF008C78);
-  static const Color secondaryLight = Color(0xFF4DD9C9);
+  static const Color secondary = Color(0xFF26A69A);
+  static const Color secondaryDark = Color(0xFF00796B);
+  static const Color secondaryLight = Color(0xFF80CBC4);
 
-  // ── Estados de Actividad (AI Pipeline) ───────────────────
-  static const Color stateWorking = Color(0xFF34A853);    // Verde
-  static const Color stateInactive = Color(0xFF9E9E9E);   // Gris
-  static const Color stateAbsent = Color(0xFFEA4335);     // Rojo
-  static const Color stateDistracted = Color(0xFFFBBC04); // Amarillo
-  static const Color stateFatigue = Color(0xFFFF6D00);    // Naranja
-  static const Color stateOutsideArea = Color(0xFF2196F3);  // Azul
-  static const Color stateNotIdentified = Color(0xFF607D8B); // Gris azulado
+  // ── Texto ─────────────────────────────────────────────────
+  static const Color textPrimaryLight = Color(0xFF1A1C1E);
+  static const Color textSecondaryLight = Color(0xFF42474E);
+  static const Color textDisabledLight = Color(0xFF72777F);
 
-  // ── Sincronizacion ────────────────────────────────────────
-  static const Color syncOk = Color(0xFF34A853);
-  static const Color syncPending = Color(0xFFFBBC04);
-  static const Color syncOffline = Color(0xFFEA4335);
-  static const Color syncError = Color(0xFFD32F2F);
+  static const Color textPrimaryDark = Color(0xFFE2E2E6);
+  static const Color textSecondaryDark = Color(0xFFC1C7CE);
+  static const Color textDisabledDark = Color(0xFF8B9199);
+
+  // ── Divider ───────────────────────────────────────────────
+  static const Color dividerLight = Color(0xFFC4C7D0);
+  static const Color dividerDark = Color(0xFF44474E);
+
+  // ── Gradients ───────────────────────────────────────────
+  static const List<Color> mainGradient = [primary, Color(0xFF1976D2)];
+  static const List<Color> surfaceGradient = [Color(0xFF2C2C2C), Color(0xFF1E1E1E)];
+
+  // ── Actividad (AI Pipeline) ─────────────────────────────
+  static const Color stateWorking = Color(0xFF4CAF50);    // Emerald
+  static const Color stateInactive = Color(0xFF9E9E9E);   // Steel
+  static const Color stateAbsent = Color(0xFFF44336);     // Crimson
+  static const Color stateDistracted = Color(0xFFFFB300); // Amber
+  static const Color stateFatigue = Color(0xFFFF7043);    // Coral
+  static const Color stateOutsideArea = Color(0xFF4FC3F7);  // Sky
+  static const Color stateNotIdentified = Color(0xFF78909C); // Slate
 
   // ── Neutros ───────────────────────────────────────────────
   static const Color white = Color(0xFFFFFFFF);
@@ -43,79 +52,65 @@ abstract final class AppColors {
   static const Color grey900 = Color(0xFF212121);
 
   // ── Fondo y superficies (Light) ───────────────────────────
-  static const Color backgroundLight = Color(0xFFF8F9FA);
+  static const Color backgroundLight = Color(0xFFF8F9FD);
   static const Color surfaceLight = Color(0xFFFFFFFF);
   static const Color cardLight = Color(0xFFFFFFFF);
 
   // ── Fondo y superficies (Dark) ────────────────────────────
-  static const Color backgroundDark = Color(0xFF121212);
-  static const Color surfaceDark = Color(0xFF1E1E1E);
-  static const Color cardDark = Color(0xFF2C2C2C);
-
-  // ── Texto ─────────────────────────────────────────────────
-  static const Color textPrimaryLight = Color(0xFF212121);
-  static const Color textSecondaryLight = Color(0xFF757575);
-  static const Color textDisabledLight = Color(0xFFBDBDBD);
-
-  static const Color textPrimaryDark = Color(0xFFE0E0E0);
-  static const Color textSecondaryDark = Color(0xFF9E9E9E);
-  static const Color textDisabledDark = Color(0xFF616161);
+  static const Color backgroundDark = Color(0xFF0F1115);
+  static const Color surfaceDark = Color(0xFF1A1D24);
+  static const Color cardDark = Color(0xFF222831);
 
   // ── Feedback ─────────────────────────────────────────────
-  static const Color success = Color(0xFF34A853);
-  static const Color warning = Color(0xFFFBBC04);
-  static const Color error = Color(0xFFEA4335);
-  static const Color info = Color(0xFF1A73E8);
+  static const Color success = Color(0xFF43A047);
+  static const Color warning = Color(0xFFFFA000);
+  static const Color error = Color(0xFFD81B60);
+  static const Color info = Color(0xFF1E88E5);
 
-  static const Color successBg = Color(0xFFE6F4EA);
-  static const Color warningBg = Color(0xFFFEF7E0);
-  static const Color errorBg = Color(0xFFFCE8E6);
-  static const Color infoBg = Color(0xFFE8F0FE);
+  static Color successSoft = success.withOpacity(0.1);
+  static Color warningSoft = warning.withOpacity(0.1);
+  static Color errorSoft = error.withOpacity(0.1);
+  static Color infoSoft = info.withOpacity(0.1);
 
-  // ── Overlay de IA (Kiosk Mode) ────────────────────────────
-  static const Color overlayFaceRect = Color(0xFF00E5FF);
-  static const Color overlayPoseSkeleton = Color(0xFF76FF03);
-  static const Color overlayBadgeBg = Color(0xCC000000);
-
-  // ── Divider ───────────────────────────────────────────────
-  static const Color dividerLight = Color(0xFFE0E0E0);
-  static const Color dividerDark = Color(0xFF424242);
-
-  // ── Overlay Kiosk ──────────────────────────────────────────
-  static const Color overlayBlack70 = Color(0xB3000000);
-  static const Color overlayBlack85 = Color(0xD9000000);
+  // ── Glassmorphism & Overlays ──────────────────────────────
+  static const Color glassWhite = Color(0x1AFFFFFF);
+  static const Color glassBlack = Color(0x66000000);
+  static const Color overlayBadgeBg = Color(0xCC1A1D24);
+  static const Color glassBorder = Color(0x33FFFFFF);
 
   // ── Scan Feedback ──────────────────────────────────────────
-  static const Color feedbackDetected = Color(0xFF69F0AE);   // greenAccent
-  static const Color feedbackError = Color(0xFFFF5252);       // redAccent
-  static const Color feedbackCapturing = Color(0xFF40C4FF);   // lightBlueAccent
-  static const Color feedbackSearching = Color(0xFFFFFF00);   // yellow
+  static const Color feedbackDetected = Color(0xFF00E676);
+  static const Color feedbackError = Color(0xFFFF1744);
+  static const Color feedbackCapturing = Color(0xFF00B0FF);
+  static const Color feedbackSearching = Color(0xFFFFEA00);
 
   // ── Identity Confidence ────────────────────────────────────
-  static const Color identityHigh = Color(0xFF69F0AE);   // greenAccent
-  static const Color identityMedium = Color(0xFFFFFF00);  // yellowAccent
-  static const Color identityLow = Color(0xFFFF5252);     // redAccent
-
-  // ── Alert Colors ───────────────────────────────────────────
-  static const Color alertAbsent = Color(0xFFEA4335);
-  static const Color alertDistracted = Color(0xFFFFC107);
-
-  // ── Sync Specific ──────────────────────────────────────────
-  static const Color syncUploading = Color(0xFFFF6D00);
-
-  // ── Badge ──────────────────────────────────────────────────
-  static const Color badgeRed = Color(0xFFF44336);
+  static const Color identityHigh = Color(0xFF00E676);
+  static const Color identityMedium = Color(0xFFFFD600);
+  static const Color identityLow = Color(0xFFFF1744);
 
   // ── Overlay Painter ────────────────────────────────────────
   static const Color overlayCyanDot = Color(0xFF00E5FF);
-  static const Color overlayCyanLine = Color(0xFF0099CC);
-  static const Color overlayRedDot = Color(0xFFFF3333);
-  static const Color overlayRedLine = Color(0xFFCC1111);
-  static const Color overlayBlueFill = Color(0xFF2196F3);
+  static const Color overlayCyanLine = Color(0xFF00B8D4);
+  static const Color overlayRedDot = Color(0xFFFF5252);
+  static const Color overlayRedLine = Color(0xFFFF1744);
+  static const Color overlayBlueFill = Color(0xFF1E88E5);
+  static const Color overlayFaceRect = Color(0xFF00E5FF);
 
-  // ── Misc ───────────────────────────────────────────────────
-  static const Color amber = Color(0xFFFFC107);
+  // ── Sync Status ──────────────────────────────────────────────
+  static const Color syncOffline = Color(0xFF78909C);
+  static const Color syncUploading = Color(0xFFFFB74D);
+  static const Color syncOk = Color(0xFF66BB6A);
+  static const Color syncPending = Color(0xFFFFB74D);
+  static const Color badgeRed = Color(0xFFEF5350);
+
+  // ── Error Background ────────────────────────────────────────
+  static const Color errorBg = Color(0x1AD81B60);
+
+  // ── Alert Colors ────────────────────────────────────────────
+  static const Color alertAbsent = Color(0xFFF44336);
+  static const Color alertDistracted = Color(0xFFFF9800);
   static const Color orangeWarning = Color(0xFFFF9800);
 
   AppColors._();
-}
+}

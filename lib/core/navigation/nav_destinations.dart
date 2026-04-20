@@ -22,6 +22,12 @@ final List<NavDestination> adminDestinations = [
     route: AppRoutes.workstations,
   ),
   const NavDestination(
+    label: 'Horarios',
+    icon: Icon(Icons.schedule_outlined),
+    selectedIcon: Icon(Icons.schedule),
+    route: AppRoutes.shifts,
+  ),
+  const NavDestination(
     label: AppStrings.navSettings,
     icon: Icon(Icons.settings_outlined),
     selectedIcon: Icon(Icons.settings),

@@ -13,70 +13,51 @@ class MyActivityScreen extends ConsumerWidget {
     final recentEventsAsync = ref.watch(employeeRecentEventsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mi Actividad Reciente'),
-      ),
       body: recentEventsAsync.when(
         loading: () => const AppLoadingWidget(),
-        error: (error, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-              const SizedBox(height: 16),
-              const Text('Error al cargar la actividad', style: TextStyle(color: AppColors.error)),
-              TextButton(
-                onPressed: () => ref.invalidate(employeeRecentEventsProvider),
-                child: const Text('Reintentar'),
+        error: (error, _) => Center(child: Text('Error: $error')),
+        data: (events) {
+          if (events.isEmpty) return const _EmptyActivityView();
+
+          return CustomScrollView(
+            slivers: [
+              const SliverAppBar(
+                pinned: true,
+                title: Text('REGISTRO DE ACTIVIDAD', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                centerTitle: false,
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.all(16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => ActivityEventTile(event: events[index]),
+                    childCount: events.length,
+                  ),
+                ),
               ),
             ],
-          ),
-        ),
-        data: (events) {
-          if (events.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.history_toggle_off,
-                    size: 64,
-                    color: AppColors.grey300,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Aún no hay actividad registrada',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.grey500,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Si ya fuiste monitorizado, los eventos aparecerán aquí.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.grey400,
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton.tonal(
-                    onPressed: () => ref.invalidate(employeeRecentEventsProvider),
-                    child: const Text('Actualizar'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: events.length,
-            separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
-            itemBuilder: (context, index) => ActivityEventTile(
-              event: events[index],
-            ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _EmptyActivityView extends StatelessWidget {
+  const _EmptyActivityView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.history_toggle_off, size: 64, color: Colors.white10),
+          const SizedBox(height: 16),
+          const Text('SIN REGISTROS', style: TextStyle(color: Colors.white24, fontWeight: FontWeight.bold, letterSpacing: 2)),
+          const SizedBox(height: 8),
+          const Text('La actividad reciente aparecerá en este log.', style: TextStyle(color: Colors.white12, fontSize: 12)),
+        ],
       ),
     );
   }

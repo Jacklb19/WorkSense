@@ -273,9 +273,12 @@ import 'package:flutter/foundation.dart';
 
     /// Busca al empleado en el frame actual aislando los calculos pesados
     /// del UI thread para prevenir caida de frames.
+    /// Busca al empleado en el frame actual aislando los calculos pesados
+    /// del UI thread para prevenir caida de frames.
     Future<FindResult> findInFrame({
       required List<Face> detectedFaces,
       required List<Pose> detectedPoses,
+      required Map<int, List<double>> faceEmbeddings, // [trackingId or index] -> embedding
     }) async {
       // 1. Extraer a DTOs serializables en el main thread (rápido)
       final facesDto = <_FaceData>[];
@@ -283,10 +286,17 @@ import 'package:flutter/foundation.dart';
         final face = detectedFaces[i];
         final centerX = face.boundingBox.left + face.boundingBox.width / 2;
         final centerY = face.boundingBox.top + face.boundingBox.height / 2;
+        
+        // Usar embedding real pasado desde el exterior (MobileFaceNet)
+        // Si no hay embedding para esta cara, se envía una lista vacía o de ceros
+        final embedding = faceEmbeddings[face.trackingId] ?? 
+                          faceEmbeddings[i] ?? 
+                          const [];
+
         facesDto.add(_FaceData(
           i,
           face.trackingId,
-          extractFaceEmbedding(face),
+          embedding,
           centerX,
           centerY,
         ));
@@ -350,42 +360,10 @@ import 'package:flutter/foundation.dart';
       }
     }
 
-    /// Extrae embedding facial geométrico de los landmarks de la cara. (ejecuta rápido)
-    static List<double> extractFaceEmbedding(Face face) {
-      final box = face.boundingBox;
-      final w = box.width.clamp(1.0, double.infinity);
-      final h = box.height.clamp(1.0, double.infinity);
-
-      final landmarkOrder = [
-        FaceLandmarkType.leftEye,
-        FaceLandmarkType.rightEye,
-        FaceLandmarkType.noseBase,
-        FaceLandmarkType.leftMouth,
-        FaceLandmarkType.rightMouth,
-        FaceLandmarkType.bottomMouth,
-        FaceLandmarkType.leftEar,
-        FaceLandmarkType.rightEar,
-        FaceLandmarkType.leftCheek,
-        FaceLandmarkType.rightCheek,
-      ];
-
-      final embedding = <double>[];
-      for (final type in landmarkOrder) {
-        final lm = face.landmarks[type];
-        if (lm != null) {
-          embedding.add((lm.position.x - box.left) / w);
-          embedding.add((lm.position.y - box.top) / h);
-        } else {
-          embedding.add(0.0);
-          embedding.add(0.0);
-        }
-      }
-      return embedding;
-    }
-
     void reset() {
       _lockedTrackingId = null;
       _consecutiveMisses = 0;
       _lastFoundTime = null;
     }
   }
+

@@ -7,6 +7,7 @@ class Workstation {
   final double? longitude;
   final double? geofenceRadius;
   final String? assignedEmployeeId;
+  final String status;
 
   const Workstation({
     required this.id,
@@ -17,6 +18,7 @@ class Workstation {
     this.longitude,
     this.geofenceRadius,
     this.assignedEmployeeId,
+    this.status = 'IDLE',
   });
 
   Workstation copyWith({
@@ -28,6 +30,7 @@ class Workstation {
     double? longitude,
     double? geofenceRadius,
     String? assignedEmployeeId,
+    String? status,
   }) {
     return Workstation(
       id: id ?? this.id,
@@ -38,6 +41,7 @@ class Workstation {
       longitude: longitude ?? this.longitude,
       geofenceRadius: geofenceRadius ?? this.geofenceRadius,
       assignedEmployeeId: assignedEmployeeId ?? this.assignedEmployeeId,
+      status: status ?? this.status,
     );
   }
 
@@ -51,6 +55,7 @@ class Workstation {
       'longitude': longitude,
       'geofence_radius': geofenceRadius,
       'assigned_employee_id': assignedEmployeeId,
+      'status': status,
     };
   }
 
@@ -66,9 +71,10 @@ class Workstation {
           latitude == other.latitude &&
           longitude == other.longitude &&
           geofenceRadius == other.geofenceRadius &&
-          assignedEmployeeId == other.assignedEmployeeId;
+          assignedEmployeeId == other.assignedEmployeeId &&
+          status == other.status;
 
   @override
   int get hashCode => Object.hash(
-      id, name, companyId, deviceId, latitude, longitude, geofenceRadius, assignedEmployeeId);
+      id, name, companyId, deviceId, latitude, longitude, geofenceRadius, assignedEmployeeId, status);
 }

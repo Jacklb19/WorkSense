@@ -9,6 +9,7 @@ import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/workstation.dart';
 import 'package:worksense_app/features/workstations/presentation/providers/workstations_provider.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
+import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
 class WorkstationFormScreen extends ConsumerStatefulWidget {
   const WorkstationFormScreen({super.key});
@@ -92,8 +93,9 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     
-    // As in employees_provider, default to "default" if no companyId in session.
-    final companyId = AppConstants.defaultCompanyId;
+    // As in employees_provider, use currentUserProvider companyId if available.
+    final currentUser = ref.read(currentUserProvider).value;
+    final companyId = currentUser?.companyId ?? AppConstants.defaultCompanyId;
 
     setState(() => _isSaving = true);
 
@@ -134,8 +136,8 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
     return employeesAsync.when(
       data: (employees) {
         if (employees.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.0),
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
               AppStrings.noEmployeesRegistered,
               style: TextStyle(color: AppColors.orangeWarning, fontWeight: FontWeight.bold),

@@ -3,12 +3,16 @@ class Employee {
   final String name;
   final String companyId;
   final DateTime createdAt;
+  final List<double>? faceEmbedding;
+  final String? shiftId;
 
   const Employee({
     required this.id,
     required this.name,
     required this.companyId,
     required this.createdAt,
+    this.faceEmbedding,
+    this.shiftId,
   });
 
   Employee copyWith({
@@ -16,12 +20,16 @@ class Employee {
     String? name,
     String? companyId,
     DateTime? createdAt,
+    List<double>? faceEmbedding,
+    String? shiftId,
   }) {
     return Employee(
       id: id ?? this.id,
       name: name ?? this.name,
       companyId: companyId ?? this.companyId,
       createdAt: createdAt ?? this.createdAt,
+      faceEmbedding: faceEmbedding ?? this.faceEmbedding,
+      shiftId: shiftId ?? this.shiftId,
     );
   }
 
@@ -31,6 +39,9 @@ class Employee {
       'name': name,
       'company_id': companyId,
       'created_at': createdAt.toIso8601String(),
+      'shift_id': shiftId,
+      // El embedding se maneja fuera de esta entidad para serialización remota/local
+      // siguiendo la arquitectura limpia sugerida en el roadmap.
     };
   }
 
@@ -42,8 +53,11 @@ class Employee {
           id == other.id &&
           name == other.name &&
           companyId == other.companyId &&
-          createdAt == other.createdAt;
+          createdAt == other.createdAt &&
+          faceEmbedding == other.faceEmbedding &&
+          shiftId == other.shiftId;
 
   @override
-  int get hashCode => Object.hash(id, name, companyId, createdAt);
+  int get hashCode => Object.hash(id, name, companyId, createdAt, faceEmbedding, shiftId);
 }
+

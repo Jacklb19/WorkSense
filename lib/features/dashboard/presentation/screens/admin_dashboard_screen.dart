@@ -1,150 +1,147 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/features/dashboard/presentation/providers/dashboard_provider.dart';
-import 'package:worksense_app/features/dashboard/presentation/widgets/workstation_card.dart';
+import 'package:worksense_app/features/dashboard/presentation/providers/admin_analytics_provider.dart';
+import 'package:worksense_app/features/dashboard/presentation/widgets/employee_dashboard_card.dart';
+import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
+import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
 import 'package:worksense_app/shared/widgets/sync_indicator_widget.dart';
-import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final workstationsAsync = ref.watch(workstationsStreamProvider);
+    final employeesAsync = ref.watch(adminEmployeesProvider);
     final userState = ref.watch(currentUserProvider);
     final userEmail = userState.valueOrNull?.user?.email;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.adminTitle),
-        centerTitle: false,
-        actions: [
-          // Sync indicator
-          const SyncIndicatorWidget(),
-          const SizedBox(width: 8),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await ref.read(syncNotifierProvider.notifier).sync();
+          ref.invalidate(adminEmployeesProvider);
+          ref.invalidate(employeeAnalyticsProvider);
+          ref.invalidate(employeeDetailProvider);
+          ref.invalidate(employeeAttendanceProvider);
+        },
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              floating: true,
+              title: const Text(
+                'Comando central',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              actions: const [
+                SyncIndicatorWidget(),
+                SizedBox(width: 16),
+              ],
+            ),
+            employeesAsync.when(
+              loading: () =>
+                  const SliverFillRemaining(child: AppLoadingWidget()),
+              error: (error, _) => SliverFillRemaining(
+                child: _ErrorView(error: error.toString()),
+              ),
+              data: (employees) {
+                if (employees.isEmpty) {
+                  return SliverFillRemaining(
+                    child: _EmptyEmployeesView(userEmail: userEmail),
+                  );
+                }
 
-          // History
-          IconButton(
-            icon: const Icon(Icons.history),
-            tooltip: AppStrings.historyTooltip,
-            onPressed: () => context.push(AppRoutes.history),
+                return SliverMainAxisGroup(
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.all(24),
+                      sliver: SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'COLABORADORES',
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Tus trabajadores',
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 350,
+                          mainAxisExtent: 180,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) =>
+                              EmployeeDashboardCard(employee: employees[index]),
+                          childCount: employees.length,
+                        ),
+                      ),
+                    ),
+                    const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.extended(
+            heroTag: 'kiosk_btn',
+            onPressed: () {
+              context.push(AppRoutes.workstations);
+            },
+            icon: const Icon(Icons.desktop_windows),
+            label: const Text('VER ESTACIONES'),
           ),
-          
-          // Analytics
-          IconButton(
-            icon: const Icon(Icons.bar_chart_outlined),
-            tooltip: AppStrings.analyticsTooltip,
-            onPressed: () => context.push(AppRoutes.analytics),
+          const SizedBox(height: 16),
+          FloatingActionButton.extended(
+            heroTag: 'entrance_btn',
+            onPressed: () => context.push(AppRoutes.entrance),
+            icon: const Icon(Icons.meeting_room),
+            label: const Text('KIOSCO RECEPCION'),
+            backgroundColor: AppColors.primary,
           ),
         ],
       ),
-      body: workstationsAsync.when(
-        loading: () => const AppLoadingWidget(),
-        error: (error, _) => _ErrorView(error: error.toString()),
-        data: (workstations) {
-          if (workstations.isEmpty) {
-            return _EmptyWorkstationsView(
-              userEmail: userEmail,
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(workstationsStreamProvider);
-            },
-            child: CustomScrollView(
-              slivers: [
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  sliver: SliverToBoxAdapter(
-                    child: _DashboardHeader(
-                      workstationCount: workstations.length,
-                    ),
-                  ),
-                ),
-                SliverPadding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 280,
-                      mainAxisExtent: 160,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) => WorkstationCard(
-                        workstation: workstations[index],
-                      ),
-                      childCount: workstations.length,
-                    ),
-                  ),
-                ),
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: 80),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          final items = workstationsAsync.valueOrNull ?? [];
-          final firstId = items.isNotEmpty ? items.first.id : 'default';
-          context.push('/kiosk/$firstId');
-        },
-        icon: const Icon(Icons.camera_alt_outlined),
-        label: const Text(AppStrings.startKiosk),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
     );
   }
 }
 
-class _DashboardHeader extends StatelessWidget {
-  final int workstationCount;
-
-  const _DashboardHeader({
-    required this.workstationCount,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          AppStrings.controlPanel,
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '$workstationCount ${workstationCount == 1 ? 'puesto' : 'puestos'} registrados',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.grey600,
-          ),
-        ),
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-}
-
-class _EmptyWorkstationsView extends ConsumerWidget {
+class _EmptyEmployeesView extends ConsumerWidget {
   final String? userEmail;
 
-  const _EmptyWorkstationsView({this.userEmail});
+  const _EmptyEmployeesView({this.userEmail});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -156,20 +153,20 @@ class _EmptyWorkstationsView extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
-              Icons.monitor_outlined,
+              Icons.people_outline,
               size: 64,
               color: AppColors.grey300,
             ),
             const SizedBox(height: 16),
             Text(
-              AppStrings.noWorkstationsRegistered,
+              'No hay colaboradores',
               style: theme.textTheme.titleLarge?.copyWith(
                 color: AppColors.grey600,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              AppStrings.noWorkstationsDescription,
+              'Registra a tus empleados para administrar su asistencia.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: AppColors.grey400,
               ),
@@ -177,9 +174,9 @@ class _EmptyWorkstationsView extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: () => context.push('/kiosk/default'),
-              icon: const Icon(Icons.play_arrow),
-              label: const Text(AppStrings.startKioskMode),
+              onPressed: () => context.push(AppRoutes.employeeNew),
+              icon: const Icon(Icons.add),
+              label: const Text('REGISTRAR EMPLEADO'),
             ),
           ],
         ),

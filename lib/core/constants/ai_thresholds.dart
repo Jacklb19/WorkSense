@@ -101,11 +101,36 @@ abstract final class AiThresholds {
   /// Por debajo → "empleado no identificado".
   static const double minEmbeddingMatchScore = 0.75;
 
+  /// Umbral de distancia euclidiana/coseno para el modelo tflite
+  static const double FACE_MATCH_THRESHOLD = 0.82;
+
+  /// Tiempo mínimo de bloqueo (en minutos) tras múltiples fallos biométricos
+  static const int FACE_MATCH_LOCK_MIN = 5;
+
   /// Número de fotos requeridas para registrar un empleado.
   static const int requiredFacePhotos = 5;
 
-  /// Dimensión del vector de embedding facial.
-  static const int embeddingDimension = 128;
+  /// Dimensión del vector de embedding facial (MobileFaceNet).
+  static const int embeddingDimension = 192;
+
+  /// Intervalo para re-verificar la identidad real (embeddings) en segundos.
+  static const int reidIntervalSeconds = 4;
+
+  // ─────────────────────────────────────────────────────────
+  // MOBILEFACENET Y RECORTE FACIAL
+  // ─────────────────────────────────────────────────────────
+
+  /// Dimensión esperada por MobileFaceNet (112x112).
+  static const int faceInputSize = 112;
+
+  /// Factor de padding al recortar la cara original (ej. 0.15 = 15%).
+  static const double facePaddingFactor = 0.15;
+
+  /// Media usada para normalizar los canales de color.
+  static const double faceColorMean = 127.5;
+
+  /// Desviación usada para normalizar los canales de color.
+  static const double faceColorStd = 128.0;
 
   // ─────────────────────────────────────────────────────────
   // OVERLAY DE IA (Kiosk Mode)
