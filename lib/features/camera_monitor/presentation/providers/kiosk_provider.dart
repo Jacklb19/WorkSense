@@ -731,7 +731,6 @@ class KioskNotifier extends StateNotifier<KioskState> {
   }
 
   Future<void> stopCamera() async {
-    _disposed = true;
     _isAnalyzing = false;
     final controller = _cameraController;
     _cameraController = null;
@@ -748,6 +747,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
   @override
   void dispose() {
+    _disposed = true;
     stopCamera();
     Future.microtask(() async {
       try {

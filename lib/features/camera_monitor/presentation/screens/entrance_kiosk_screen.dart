@@ -270,7 +270,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                   
                   // Welcome text
                   const Text(
-                    '¡BIENVENIDO!',
+                    '¡ÉXITO!',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -281,14 +281,14 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                   
                   const SizedBox(height: 12),
                   
-                  // Employee name
+                  // Message From Kiosk Status
                   Text(
-                    state.matchedEmployeeName ?? 'Empleado',
+                    state.statusMessage,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 36,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0,
                     ),
                     textAlign: TextAlign.center,
                   ),
