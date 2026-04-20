@@ -84,39 +84,6 @@ class DashboardScreen extends ConsumerWidget {
             ),
             actions: [
               const SyncIndicatorWidget(),
-              IconButton(
-                icon: const Icon(Icons.history_rounded,
-                    color: _kTextSecondary, size: 22),
-                tooltip: 'Historial',
-                onPressed: () => context.push('/history'),
-              ),
-              if (canManage) ...[
-                IconButton(
-                  icon: const Icon(Icons.people_outline_rounded,
-                      color: _kTextSecondary, size: 22),
-                  tooltip: 'Empleados',
-                  onPressed: () => context.push('/employees'),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.monitor_outlined,
-                      color: _kTextSecondary, size: 22),
-                  tooltip: 'Estaciones',
-                  onPressed: () => context.push('/workstations'),
-                ),
-              ],
-              IconButton(
-                icon: const Icon(Icons.settings_outlined,
-                    color: _kTextSecondary, size: 22),
-                tooltip: 'Configuración',
-                onPressed: () => context.push('/settings'),
-              ),
-              IconButton(
-                icon: const Icon(Icons.logout_rounded,
-                    color: _kTextSecondary, size: 22),
-                tooltip: 'Cerrar sesión',
-                onPressed: () =>
-                    ref.read(loginNotifierProvider.notifier).signOut(),
-              ),
               const SizedBox(width: 8),
             ],
           ),
@@ -208,9 +175,15 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButton: canManage
-          ? _KioskFab(onTap: () => context.push('/kiosk/default'))
-          : null,
+      bottomNavigationBar: _DashboardBottomBar(
+        canManage: canManage,
+        onHistory: () => context.push('/history'),
+        onEmployees: () => context.push('/employees'),
+        onWorkstations: () => context.push('/workstations'),
+        onSettings: () => context.push('/settings'),
+        onLogout: () => ref.read(loginNotifierProvider.notifier).signOut(),
+        onKiosk: canManage ? () => context.push('/kiosk/default') : null,
+      ),
     );
   }
 }
@@ -714,5 +687,158 @@ class WorkstationCard extends ConsumerWidget {
       return 'Hoy $h:$m';
     }
     return '${dt.day}/${dt.month} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+// ─── Bottom Navigation Bar ────────────────────────────────────────────────────
+
+class _DashboardBottomBar extends StatelessWidget {
+  final bool canManage;
+  final VoidCallback? onKiosk;
+  final VoidCallback onHistory;
+  final VoidCallback? onEmployees;
+  final VoidCallback? onWorkstations;
+  final VoidCallback onSettings;
+  final VoidCallback onLogout;
+
+  const _DashboardBottomBar({
+    required this.canManage,
+    required this.onKiosk,
+    required this.onHistory,
+    required this.onEmployees,
+    required this.onWorkstations,
+    required this.onSettings,
+    required this.onLogout,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: _kSurface,
+        border: Border(top: BorderSide(color: _kBorder)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _NavItem(
+                icon: Icons.dashboard_outlined,
+                label: 'Inicio',
+                active: true,
+                onTap: () {},
+              ),
+              _NavItem(
+                icon: Icons.history_rounded,
+                label: 'Historial',
+                onTap: onHistory,
+              ),
+              if (canManage) ...[
+                _NavItem(
+                  icon: Icons.people_outline_rounded,
+                  label: 'Empleados',
+                  onTap: onEmployees ?? () {},
+                ),
+                _NavItem(
+                  icon: Icons.monitor_outlined,
+                  label: 'Estaciones',
+                  onTap: onWorkstations ?? () {},
+                ),
+                // Kiosk — elevated center button
+                _NavKioskButton(onTap: onKiosk ?? () {}),
+              ],
+              _NavItem(
+                icon: Icons.settings_outlined,
+                label: 'Config',
+                onTap: onSettings,
+              ),
+              _NavItem(
+                icon: Icons.logout_rounded,
+                label: 'Salir',
+                onTap: onLogout,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.active = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? _kBlue : _kTextSecondary;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 9,
+                fontWeight:
+                    active ? FontWeight.w600 : FontWeight.w400,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavKioskButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _NavKioskButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: _kBlue,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: _kBlue.withValues(alpha: 0.45),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.camera_alt_outlined,
+          color: Colors.white,
+          size: 22,
+        ),
+      ),
+    );
   }
 }
