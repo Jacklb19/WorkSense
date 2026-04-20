@@ -90,6 +90,7 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormState> {
     required String email,
     required String password,
     required String role,
+    String? shiftId,
     String companyId = AppConstants.defaultCompanyId,
     String? existingId,
   }) async {
@@ -110,6 +111,7 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormState> {
           'lastName': lastName,
           'role': role,
           'companyId': effectiveCompanyId,
+          'shiftId': shiftId,
         });
       } else {
         // Editing existing: usually handled differently based on exact needs, 
@@ -118,6 +120,7 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormState> {
           id: existingId,
           name: name.trim(),
           companyId: effectiveCompanyId,
+          shiftId: shiftId,
           createdAt: DateTime.now(),
         );
         await _localRepo.saveEmployee(employee);

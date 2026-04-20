@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
@@ -58,21 +59,32 @@ class EmployeesListScreen extends ConsumerWidget {
                     color: AppColors.grey500,
                   ),
                 ),
+                onTap: () => _navigateToEdit(context, ref, employee.id),
                 trailing: PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert),
                   onSelected: (value) async {
-                    if (value == 'delete') {
-                      final confirmed = await _confirmDelete(
-                          context, employee.name);
-                      if (confirmed) {
-                        await ref
-                            .read(employeeFormNotifierProvider.notifier)
-                            .deleteEmployee(employee.id);
-                        ref.invalidate(adminEmployeesProvider);
-                      }
+                    switch (value) {
+                      case 'edit':
+                        _navigateToEdit(context, ref, employee.id);
+                        break;
+                      case 'delete':
+                        await _confirmAndDelete(
+                            context, ref, employee.id, employee.name);
+                        break;
                     }
                   },
                   itemBuilder: (_) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined,
+                              color: AppColors.primary, size: 18),
+                          SizedBox(width: 8),
+                          Text('Editar'),
+                        ],
+                      ),
+                    ),
                     const PopupMenuItem(
                       value: 'delete',
                       child: Row(
@@ -96,7 +108,7 @@ class EmployeesListScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          await context.push('/employees/new');
+          await context.push(AppRoutes.employeeNew);
           ref.invalidate(adminEmployeesProvider);
         },
         tooltip: AppStrings.addEmployee,
@@ -105,12 +117,21 @@ class EmployeesListScreen extends ConsumerWidget {
     );
   }
 
-  Future<bool> _confirmDelete(BuildContext context, String name) async {
-    return await showDialog<bool>(
+  void _navigateToEdit(BuildContext context, WidgetRef ref, String employeeId) {
+    final route = AppRoutes.employeeEdit.replaceFirst(':employeeId', employeeId);
+    context.push(route).then((_) {
+      ref.invalidate(adminEmployeesProvider);
+    });
+  }
+
+  Future<void> _confirmAndDelete(
+      BuildContext context, WidgetRef ref, String id, String name) async {
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text(AppStrings.deleteEmployee),
-            content: Text('¿Eliminar a "$name"? Esta acción no se puede deshacer.'),
+            content:
+                Text('¿Eliminar a "$name"? Esta acción no se puede deshacer.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
@@ -118,14 +139,41 @@ class EmployeesListScreen extends ConsumerWidget {
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.error),
+                style:
+                    FilledButton.styleFrom(backgroundColor: AppColors.error),
                 child: const Text(AppStrings.delete),
               ),
             ],
           ),
         ) ??
         false;
+
+    if (!confirmed) return;
+    if (!context.mounted) return;
+
+    try {
+      await ref
+          .read(employeeFormNotifierProvider.notifier)
+          .deleteEmployee(id);
+      ref.invalidate(adminEmployeesProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('"$name" eliminado correctamente'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al eliminar: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 }
 

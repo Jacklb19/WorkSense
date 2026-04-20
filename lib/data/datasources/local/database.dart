@@ -35,6 +35,10 @@ class ShiftRecords extends Table {
   IntColumn get startMinute => integer()();
   IntColumn get endHour => integer()();
   IntColumn get endMinute => integer()();
+  IntColumn get breakStartHour => integer().nullable()();
+  IntColumn get breakStartMinute => integer().nullable()();
+  IntColumn get breakEndHour => integer().nullable()();
+  IntColumn get breakEndMinute => integer().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
@@ -125,7 +129,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -175,6 +179,14 @@ class AppDatabase extends _$AppDatabase {
         await migrator.addColumn(employeeRecords, employeeRecords.shiftId);
         await migrator.createTable(shiftRecords);
         await migrator.createTable(attendanceLogs);
+      }
+
+      if (from < 7) {
+        // Migración a v7: Almuerzo / Receso en turnos
+        await migrator.addColumn(shiftRecords, shiftRecords.breakStartHour);
+        await migrator.addColumn(shiftRecords, shiftRecords.breakStartMinute);
+        await migrator.addColumn(shiftRecords, shiftRecords.breakEndHour);
+        await migrator.addColumn(shiftRecords, shiftRecords.breakEndMinute);
       }
     },
     beforeOpen: (details) async {

@@ -25,11 +25,12 @@ class ScaffoldWithBottomNav extends ConsumerWidget {
     // Map GoRouter's branch index to our UI's destination index
     int getUIIndex(bool admin, int branchIndex) {
       if (admin) {
-        // Admin branches: 0 (Dashboard), 1 (Employees), 2 (Workstations), 4 (Settings)
+        // Admin branches: 0 (Dashboard), 1 (Employees), 2 (Workstations), 5 (Shifts), 4 (Settings)
         if (branchIndex == 0) return 0;
         if (branchIndex == 1) return 1;
         if (branchIndex == 2) return 2;
-        if (branchIndex == 4) return 3;
+        if (branchIndex == 5) return 3;
+        if (branchIndex == 4) return 4;
         return 0;
       } else {
         // Employee branches: 0 (Dashboard), 3 (History), 4 (Settings)
@@ -45,7 +46,8 @@ class ScaffoldWithBottomNav extends ConsumerWidget {
         if (uiIndex == 0) return 0;
         if (uiIndex == 1) return 1;
         if (uiIndex == 2) return 2;
-        if (uiIndex == 3) return 4;
+        if (uiIndex == 3) return 5;
+        if (uiIndex == 4) return 4;
         return 0;
       } else {
         if (uiIndex == 0) return 0;

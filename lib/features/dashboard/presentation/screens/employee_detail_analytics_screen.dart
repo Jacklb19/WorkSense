@@ -18,12 +18,13 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detailAsync = ref.watch(employeeDetailProvider(employeeId));
+    final attendanceAsync = ref.watch(employeeAttendanceProvider(employeeId));
     final dateRange = ref.watch(analyticsDateRangeProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: detailAsync.whenOrNull(
-          data: (a) => Text(a?.employee.name ?? 'Empleado'),
+          data: (EmployeeAnalytics? a) => Text(a?.employee.name ?? 'Empleado'),
         ) ?? const Text('Detalle'),
       ),
       body: detailAsync.when(
@@ -34,7 +35,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
             style: const TextStyle(color: AppColors.error),
           ),
         ),
-        data: (analytics) {
+        data: (EmployeeAnalytics? analytics) {
           if (analytics == null) {
             return const Center(child: Text('Empleado no encontrado'));
           }
@@ -94,6 +95,62 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                 delegate: SliverChildListDelegate(
                   _buildStateBreakdown(context, analytics),
                 ),
+              ),
+
+              // ── Attendance list ───────────────────────────────
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                  child: Text(
+                    'Asistencia Diaria (Horas Reales)',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ),
+              ),
+              attendanceAsync.when(
+                data: (logs) {
+                  if (logs.isEmpty) {
+                    return const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text('No hay registros de asistencia en el escáner.', style: TextStyle(color: AppColors.grey500)),
+                      ),
+                    );
+                  }
+                  
+                  // Calcular tiempo total neto
+                  Duration totalNetTime = Duration.zero;
+                  for (final log in logs) {
+                    final outTime = log.clockOutTime ?? DateTime.now();
+                    totalNetTime += outTime.difference(log.clockInTime);
+                  }
+
+                  return SliverList(
+                    delegate: SliverChildListDelegate([
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        child: Text(
+                          'Total horas en oficina: ${_fmtDur(totalNetTime)}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                        ),
+                      ),
+                      ...logs.map((log) {
+                        final inStr = DateFormat('HH:mm').format(log.clockInTime);
+                        final outStr = log.clockOutTime != null ? DateFormat('HH:mm').format(log.clockOutTime!) : 'En curso';
+                        final diff = (log.clockOutTime ?? DateTime.now()).difference(log.clockInTime);
+                        return ListTile(
+                          leading: const Icon(Icons.sensor_door, color: AppColors.grey400),
+                          title: Text('Entrada: $inStr - Salida: $outStr'),
+                          trailing: Text(_fmtDur(diff), style: const TextStyle(fontWeight: FontWeight.w600)),
+                        );
+                      }),
+                    ]),
+                  );
+                },
+                loading: () => const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator())),
+                error: (e, _) => SliverToBoxAdapter(child: Text('Error: $e')),
               ),
 
               // Bottom padding

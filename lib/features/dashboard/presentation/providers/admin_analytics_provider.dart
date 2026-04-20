@@ -5,6 +5,9 @@ import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/domain/repositories/activity_repository.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
+import 'package:worksense_app/domain/entities/attendance_log.dart';
+import 'package:worksense_app/domain/repositories/attendance_repository.dart';
+import 'package:worksense_app/data/repositories/attendance_repository_impl.dart';
 import 'package:worksense_app/features/dashboard/domain/entities/employee_analytics.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
@@ -38,6 +41,12 @@ final _analyticsActivityRepoProvider = Provider<ActivityRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);
   final syncRepo = ref.watch(syncRepositoryProvider);
   return ActivityRepositoryImpl(db, syncRepo);
+});
+
+final _analyticsAttendanceRepoProvider = Provider<AttendanceRepository>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  final syncRepo = ref.watch(syncRepositoryProvider);
+  return AttendanceRepositoryImpl(db, syncRepo);
 });
 
 // ── All Employee Analytics ───────────────────────────────────────────────────
@@ -122,6 +131,17 @@ final employeeDetailProvider =
   );
 
   return _buildAnalytics(employee, events);
+});
+
+// ── Employee Attendance Detail ───────────────────────────────────────────────
+
+final employeeAttendanceProvider =
+    FutureProvider.family<List<AttendanceLog>, String>((ref, employeeId) async {
+  final dateRange = ref.watch(analyticsDateRangeProvider);
+  final range = _dateRangeFor(dateRange);
+  final repo = ref.watch(_analyticsAttendanceRepoProvider);
+
+  return repo.getEmployeeLogs(employeeId, range.from, range.to);
 });
 
 // ── Build Analytics Helper ───────────────────────────────────────────────────

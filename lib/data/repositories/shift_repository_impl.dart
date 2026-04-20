@@ -40,20 +40,29 @@ class ShiftRepositoryImpl implements ShiftRepository {
       startMinute: Value(shift.startTime.minute),
       endHour: Value(shift.endTime.hour),
       endMinute: Value(shift.endTime.minute),
+      breakStartHour: Value(shift.breakStartTime?.hour),
+      breakStartMinute: Value(shift.breakStartTime?.minute),
+      breakEndHour: Value(shift.breakEndTime?.hour),
+      breakEndMinute: Value(shift.breakEndTime?.minute),
       createdAt: Value(shift.createdAt),
     );
 
     await _db.transaction(() async {
       await _db.insertShiftRecord(companion);
 
-      final payload = {
+      final payload = <String, dynamic>{
         'id': shift.id,
         'company_id': shift.companyId,
         'name': shift.name,
-        'start_time': '${shift.startTime.hour.toString().padLeft(2, '0')}:${shift.startTime.minute.toString().padLeft(2, '0')}:00',
-        'end_time': '${shift.endTime.hour.toString().padLeft(2, '0')}:${shift.endTime.minute.toString().padLeft(2, '0')}:00',
+        'start_time': _formatTime(shift.startTime),
+        'end_time': _formatTime(shift.endTime),
         'created_at': shift.createdAt.toIso8601String(),
       };
+
+      if (shift.hasBreak) {
+        payload['break_time_start'] = _formatTime(shift.breakStartTime!);
+        payload['break_time_end'] = _formatTime(shift.breakEndTime!);
+      }
 
       await _syncRepo.enqueue(
         targetTable: 'shifts',
@@ -66,13 +75,12 @@ class ShiftRepositoryImpl implements ShiftRepository {
 
   @override
   Future<void> updateShift(Shift shift) async {
-    // Igual que create por insertOrReplace
+    // Re-use create logic since Drift uses insertOrReplace
     return createShift(shift);
   }
 
   @override
   Future<void> assignShiftToEmployee(String employeeId, String shiftId) async {
-    // Update local employee
     final emp = await _db.getEmployeeRecordById(employeeId);
     if (emp == null) return;
 
@@ -81,7 +89,6 @@ class ShiftRepositoryImpl implements ShiftRepository {
       mode: InsertMode.insertOrReplace,
     );
 
-    // Sync to remote
     await _syncRepo.enqueue(
       targetTable: 'employees',
       operation: 'UPDATE',
@@ -90,6 +97,8 @@ class ShiftRepositoryImpl implements ShiftRepository {
     );
   }
 
+  // ── Private Helpers ─────────────────────────────────────────────────────────
+
   Shift _mapToEntity(local_db.ShiftRecordData row) {
     return Shift(
       id: row.id,
@@ -97,7 +106,19 @@ class ShiftRepositoryImpl implements ShiftRepository {
       name: row.name,
       startTime: TimeOfDay(hour: row.startHour, minute: row.startMinute),
       endTime: TimeOfDay(hour: row.endHour, minute: row.endMinute),
+      breakStartTime: row.breakStartHour != null && row.breakStartMinute != null
+          ? TimeOfDay(hour: row.breakStartHour!, minute: row.breakStartMinute!)
+          : null,
+      breakEndTime: row.breakEndHour != null && row.breakEndMinute != null
+          ? TimeOfDay(hour: row.breakEndHour!, minute: row.breakEndMinute!)
+          : null,
       createdAt: row.createdAt,
     );
+  }
+
+  /// Formats a TimeOfDay into SQL-friendly HH:mm:00 string.
+  String _formatTime(TimeOfDay time) {
+    return '${time.hour.toString().padLeft(2, '0')}:'
+        '${time.minute.toString().padLeft(2, '0')}:00';
   }
 }
