@@ -15,6 +15,10 @@ import 'package:worksense_app/features/camera_monitor/ai/employee_profile.dart';
 import 'package:worksense_app/features/camera_monitor/ai/face_analyzer.dart';
 import 'package:worksense_app/features/camera_monitor/ai/face_embedding_service.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
+import 'package:worksense_app/data/repositories/attendance_repository_impl.dart';
+import 'package:worksense_app/data/repositories/sync_repository_impl.dart';
+import 'package:worksense_app/domain/repositories/attendance_repository.dart';
+import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 
 /// Describes the current phase of the entrance kiosk flow.
 enum KioskPhase {
@@ -75,6 +79,7 @@ class EntranceKioskState {
 class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   final AppDatabase _db;
   final FaceEmbeddingService _embeddingService;
+  final AttendanceRepository _attendanceRepo;
 
   CameraController? _cameraController;
   late final FaceDetector _faceDetector;
@@ -102,7 +107,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   // Timers for phase transitions
   Timer? _phaseTimer;
 
-  EntranceKioskNotifier(this._db, this._embeddingService) : super(const EntranceKioskState()) {
+  EntranceKioskNotifier(this._db, this._embeddingService, this._attendanceRepo) : super(const EntranceKioskState()) {
     _faceDetector = FaceDetector(
       options: FaceDetectorOptions(
         performanceMode: FaceDetectorMode.fast,
@@ -358,22 +363,63 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
       statusMessage: '¡Bienvenido, $employeeName!',
     );
 
-    // Stop the camera stream to prevent unnecessary processing
+    // Detener la cámara para evitar procesamiento extra
     try {
       await _cameraController?.stopImageStream();
     } catch (_) {}
 
     try {
-      // Registrar en Supabase - Realtime activará la estación remotamente!
-      await Supabase.instance.client
-          .from('workstations')
-          .update({'status': 'ACTIVE', 'last_employee_id': employeeId})
-          .eq('assigned_employee_id', employeeId);
-          
-      debugPrint('[ENTRANCE] ✅ Estación activada para $employeeName ($employeeId)');
+      // 1. Lógica de Asistencia (Clock IN / OUT)
+      final openSession = await _attendanceRepo.getOpenSession(employeeId);
+      final todaySessions = await _attendanceRepo.getTodaySessions(employeeId);
+      final workstation = await _db.getWorkstationById(state.matchedWorkstationName ?? ''); // Not ideal, but we just need CompanyId
+      final employee = await _db.getEmployeeRecordById(employeeId);
+
+      if (openSession != null) {
+        // Tiene sesión abierta -> CLOCK OUT
+        await _attendanceRepo.clockOut(employeeId: employeeId, workstationId: workstation?.id);
+        
+        // Apagar estación
+        await Supabase.instance.client
+            .from('workstations')
+            .update({'status': 'IDLE'})
+            .eq('assigned_employee_id', employeeId);
+
+        final hour = DateTime.now().hour;
+        final min = DateTime.now().minute.toString().padLeft(2, '0');
+        state = state.copyWith(statusMessage: '¡Hasta luego $employeeName! Sesión cerrada a las $hour:$min.');
+        debugPrint('[ENTRANCE] ✅ Clock-OUT y estación apagada para $employeeName');
+      } else {
+        // No tiene sesión -> CLOCK IN
+        await _attendanceRepo.clockIn(
+          employeeId: employeeId, 
+          companyId: employee?.companyId ?? '', 
+          workstationId: workstation?.id
+        );
+
+        // Prender estación
+        await Supabase.instance.client
+            .from('workstations')
+            .update({'status': 'ACTIVE', 'last_employee_id': employeeId})
+            .eq('assigned_employee_id', employeeId);
+
+        // Mensaje personalizado 
+        final count = todaySessions.length + 1; // +1 porque el clock_in de arriba aun no lo refrescamos de la query previa a insertarlo
+        final timeStr = '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}';
+        
+        String welcomeMsg;
+        if (count == 1) {
+          welcomeMsg = '¡Bienvenido $employeeName!\nPrimera entrada a las $timeStr.';
+        } else {
+          welcomeMsg = '¡Hola de nuevo $employeeName!\nEntrada #$count del día a las $timeStr.';
+        }
+
+        state = state.copyWith(statusMessage: welcomeMsg);
+        debugPrint('[ENTRANCE] ✅ Clock-IN y estación activada para $employeeName');
+      }
     } catch (e) {
-      debugPrint('[ENTRANCE] Supabase trigger error: $e');
-      // Still show welcome even if Supabase fails
+      debugPrint('[ENTRANCE] Supabase trigger / Asistencia error: $e');
+      state = state.copyWith(statusMessage: 'Reconocido, pero hubo un error de red.');
     }
 
     // After 5 seconds: transition to cooldown, then back to scanning
@@ -452,9 +498,16 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   }
 }
 
+final attendanceRepositoryProvider = Provider<AttendanceRepository>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  final syncRepo = ref.watch(syncRepositoryProvider);
+  return AttendanceRepositoryImpl(db, syncRepo);
+});
+
 final entranceKioskProvider = StateNotifierProvider.autoDispose<EntranceKioskNotifier, EntranceKioskState>((ref) {
   return EntranceKioskNotifier(
     ref.watch(appDatabaseProvider),
     ref.watch(faceEmbeddingServiceProvider),
+    ref.watch(attendanceRepositoryProvider),
   );
 });
