@@ -419,14 +419,19 @@ class KioskNotifier extends StateNotifier<KioskState> {
       // ── Generación de Embeddings Inteligente ────────────────────────────────
       // Strategy:
       //  - When IDLE or ENTRY_PENDING: generate embeddings EVERY frame (need to find/confirm employee)
-      //  - When ACTIVE: only generate embeddings on reid intervals (save CPU, already confirmed)
+      //  - When ACTIVE: only generate embeddings on reid intervals (save CPU)
+      //  - EXCEPTION: if multiple faces are detected (intruder?), validate immediately.
       final Map<int, List<double>> embeddingsMap = {};
       final bool needsIdentification = state.sessionStatus == SessionStatus.idle || 
                                        state.sessionStatus == SessionStatus.entryPending;
-      final shouldReid = now.difference(_lastReidTime) >= _reidInterval;
-      final bool shouldGenerateEmbeddings = needsIdentification || shouldReid;
+      final bool hasIntruder = allFaces.length > 1;
+      final bool shouldReid = now.difference(_lastReidTime) >= _reidInterval;
+      final bool shouldGenerateEmbeddings = needsIdentification || shouldReid || hasIntruder;
       
       if (allFaces.isNotEmpty && (_finder!.profile.employeeId != null) && shouldGenerateEmbeddings) {
+        if (hasIntruder) {
+          debugPrint('[MONITOR] Intruder detection! Force validating all ${allFaces.length} faces.');
+        }
         for (final face in allFaces) {
           final cropped = await _faceAnalyzer.cropFaceFromCameraImageAsync(image, face);
           if (cropped != null) {
