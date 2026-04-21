@@ -103,6 +103,8 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   final Map<String, String> _employeeNames = {};
   // Cached workstation names: employeeId -> workstation name
   final Map<String, String> _workstationNames = {};
+  // Cached workstation IDs: employeeId -> workstation UUID
+  final Map<String, String> _workstationIds = {};
   
   // Timers for phase transitions
   Timer? _phaseTimer;
@@ -142,7 +144,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
     _cameraController = CameraController(
       camera,
-      ResolutionPreset.low, // optimización
+      ResolutionPreset.medium, // Aumentado de low a medium para mejor precisión facial
       enableAudio: false,
       imageFormatGroup: ImageFormatGroup.nv21,
     );
@@ -165,6 +167,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
     _employeeRegistry.clear();
     _employeeNames.clear();
     _workstationNames.clear();
+    _workstationIds.clear();
     int count = 0;
 
     // 1. Load employee names from local DB
@@ -206,6 +209,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
               if (embedding.isNotEmpty) {
                 _employeeRegistry[w['assigned_employee_id']] = embedding;
                 _workstationNames[w['assigned_employee_id']] = w['name'] ?? 'Estación';
+                _workstationIds[w['assigned_employee_id']] = w['id'];
                 count++;
               }
             } catch (e) {
@@ -263,6 +267,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
           if (embedding.isNotEmpty) {
              _employeeRegistry[w.assignedEmployeeId!] = embedding;
              _workstationNames[w.assignedEmployeeId!] = w.name;
+             _workstationIds[w.assignedEmployeeId!] = w.id;
              count++;
           }
         } catch (e) {
@@ -333,11 +338,17 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
       for (var entry in _employeeRegistry.entries) {
         final sim = EmployeeProfile.cosineSimilarity(entry.value, incomingEmb);
+        final name = _employeeNames[entry.key] ?? 'Unknown';
+        debugPrint('[ENTRANCE] Candidate: $name ID: ${entry.key.substring(0, 8)} Sim: ${sim.toStringAsFixed(3)}');
+        
         if (sim > maxSim) {
           maxSim = sim;
           bestMatchId = entry.key;
         }
       }
+
+      final bestName = _employeeNames[bestMatchId] ?? 'Desconocido';
+      debugPrint('[ENTRANCE] Result: Winner=$bestName Conf=${maxSim.toStringAsFixed(3)} (Threshold=${AiThresholds.minEmbeddingMatchScore})');
 
       if (maxSim >= AiThresholds.minEmbeddingMatchScore && bestMatchId != null) {
          await _triggerEntrance(bestMatchId);
@@ -372,7 +383,10 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
       // 1. Lógica de Asistencia (Clock IN / OUT)
       final openSession = await _attendanceRepo.getOpenSession(employeeId);
       final todaySessions = await _attendanceRepo.getTodaySessions(employeeId);
-      final workstation = await _db.getWorkstationById(state.matchedWorkstationName ?? ''); // Not ideal, but we just need CompanyId
+      
+      // Corregido: Buscar por el ID de la estación almacenado en cache, no por el nombre.
+      final wsId = _workstationIds[employeeId];
+      final workstation = wsId != null ? await _db.getWorkstationById(wsId) : null;
       final employee = await _db.getEmployeeRecordById(employeeId);
 
       if (openSession != null) {
