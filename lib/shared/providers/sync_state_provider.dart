@@ -38,6 +38,15 @@ final syncNotifierProvider =
     }
   });
 
+  // Auto-sync al detectar nuevos elementos en la cola (cada 5s según el provider)
+  ref.listen<AsyncValue<int>>(pendingSyncCountProvider, (previous, next) {
+    final count = next.valueOrNull ?? 0;
+    final isOnline = ref.read(isOnlineProvider);
+    if (count > 0 && isOnline) {
+      notifier.sync();
+    }
+  });
+
   // Auto-sync al iniciar sesión
   ref.listen<AsyncValue<CurrentUser>>(currentUserProvider, (previous, next) {
     final wasLoggedOut = previous?.valueOrNull?.user == null;

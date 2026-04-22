@@ -4,6 +4,7 @@ class ActivityEvent {
   final String id;
   final String? employeeId;
   final String workstationId;
+  final String? companyId; // Added
   final ActivityState state;
   final double confidence;
   final DateTime timestamp;
@@ -16,6 +17,7 @@ class ActivityEvent {
     required this.id,
     this.employeeId,
     required this.workstationId,
+    this.companyId,
     required this.state,
     required this.confidence,
     required this.timestamp,
@@ -28,6 +30,7 @@ class ActivityEvent {
     String? id,
     String? employeeId,
     String? workstationId,
+    String? companyId,
     ActivityState? state,
     double? confidence,
     DateTime? timestamp,
@@ -39,6 +42,7 @@ class ActivityEvent {
       id: id ?? this.id,
       employeeId: employeeId ?? this.employeeId,
       workstationId: workstationId ?? this.workstationId,
+      companyId: companyId ?? this.companyId,
       state: state ?? this.state,
       confidence: confidence ?? this.confidence,
       timestamp: timestamp ?? this.timestamp,
@@ -53,6 +57,7 @@ class ActivityEvent {
       'id': id,
       'employee_id': employeeId,
       'workstation_id': workstationId,
+      'company_id': companyId,
       'state': state.name,
       'confidence': confidence,
       'timestamp': timestamp.toIso8601String(),

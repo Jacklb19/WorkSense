@@ -106,6 +106,7 @@ class ActivityRepositoryImpl implements ActivityRepository {
       confidence: row.confidence,
       timestamp: row.timestamp,
       synced: row.synced,
+      companyId: row.companyId,
       identityConfidence: row.identityConfidence,
       identificationMethod: row.identificationMethod,
     );
@@ -116,6 +117,7 @@ class ActivityRepositoryImpl implements ActivityRepository {
       id: event.id,
       employeeId: Value(event.employeeId),
       workstationId: event.workstationId,
+      companyId: Value(event.companyId),
       state: event.state.name,
       confidence: event.confidence,
       timestamp: Value(event.timestamp),
