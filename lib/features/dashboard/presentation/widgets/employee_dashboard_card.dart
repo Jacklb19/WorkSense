@@ -18,14 +18,14 @@ class EmployeeDashboardCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const EmployeeDashboardCard({
-    super.key,
     required this.employeeName,
-    required this.workstationName,
     required this.lastStateLabel,
     required this.lastStateColor,
     required this.lastStateIcon,
     required this.updatedLabel,
     required this.onTap,
+    this.workstationName,
+    super.key,
   });
 
   @override

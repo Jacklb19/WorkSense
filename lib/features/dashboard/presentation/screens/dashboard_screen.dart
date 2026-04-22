@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/core/theme/app_text_styles.dart';
+import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/activity_event.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
@@ -33,8 +34,9 @@ class DashboardScreen extends ConsumerWidget {
     final canManage =
         userRole == AppRole.admin || userRole == AppRole.superAdmin;
 
-    final workstationsById = {
-      for (final workstation in workstationsAsync.valueOrNull ?? [])
+    final workstationsById = <String, WorkstationRecord>{
+      for (final workstation
+          in workstationsAsync.valueOrNull ?? <WorkstationRecord>[])
         workstation.id: workstation,
     };
     final latestEventsByEmployee =
@@ -117,7 +119,8 @@ class DashboardScreen extends ConsumerWidget {
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
                           final employee = employees[index];
-                          final latestEvent = latestEventsByEmployee[employee.id];
+                          final latestEvent =
+                              latestEventsByEmployee[employee.id];
                           final workstation = latestEvent == null
                               ? null
                               : workstationsById[latestEvent.workstationId];
@@ -179,7 +182,9 @@ class DashboardScreen extends ConsumerWidget {
     ]);
   }
 
-  Map<String, ActivityEvent> _latestEventByEmployee(List<ActivityEvent> events) {
+  Map<String, ActivityEvent> _latestEventByEmployee(
+    List<ActivityEvent> events,
+  ) {
     final latest = <String, ActivityEvent>{};
     for (final event in events) {
       final employeeId = event.employeeId;
