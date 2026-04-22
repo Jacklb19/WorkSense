@@ -6,6 +6,7 @@ import 'package:worksense_app/core/constants/appconstants.dart';
 import 'package:worksense_app/core/constants/aithresholds.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:worksense_app/shared/providers/theme_mode_provider.dart';
 
 // Settings provider using shared_preferences
 final analysisIntervalProvider =
@@ -49,6 +50,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final theme = Theme.of(context);
     final analysisInterval = ref.watch(analysisIntervalProvider);
     final userEmail = ref.watch(currentUserEmailProvider);
+    final themeMode = ref.watch(themeModeProvider);
+    final isDarkMode = themeMode == ThemeMode.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -62,6 +65,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             leading: const Icon(Icons.account_circle_outlined),
             title: const Text('Usuario'),
             subtitle: Text(userEmail ?? 'No disponible'),
+          ),
+
+          SwitchListTile(
+            secondary: Icon(
+              isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+            ),
+            title: const Text('Modo oscuro'),
+            subtitle: Text(
+              isDarkMode ? 'Tema oscuro activado' : 'Tema claro activado',
+            ),
+            value: isDarkMode,
+            onChanged: (_) {
+              ref.read(themeModeProvider.notifier).toggleLightDark();
+            },
           ),
 
           const Divider(),
@@ -201,8 +218,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style:
-                FilledButton.styleFrom(backgroundColor: AppColors.error),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Cerrar sesión'),
           ),
         ],
