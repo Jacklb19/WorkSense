@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:worksense_app/core/constants/appconstants.dart';
 import 'package:worksense_app/core/constants/aithresholds.dart';
@@ -60,7 +59,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: ListView(
         children: [
           // ── Account section ─────────────────────────────────────
-          _SectionHeader(title: 'Cuenta'),
+          const _SectionHeader(title: 'Cuenta'),
           ListTile(
             leading: const Icon(Icons.account_circle_outlined),
             title: const Text('Usuario'),
@@ -84,7 +83,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Divider(),
 
           // ── AI Pipeline section ──────────────────────────────────
-          _SectionHeader(title: 'Análisis de Actividad'),
+          const _SectionHeader(title: 'Análisis de Actividad'),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
@@ -133,24 +132,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Divider(),
 
           // ── Thresholds info ──────────────────────────────────────
-          _SectionHeader(title: 'Umbrales de Detección (solo lectura)'),
-          _ThresholdTile(
+          const _SectionHeader(title: 'Umbrales de Detección (solo lectura)'),
+          const _ThresholdTile(
             label: 'Ángulo máximo de giro (yaw)',
             value: '${AiThresholds.maxYawAngle}°',
           ),
-          _ThresholdTile(
+          const _ThresholdTile(
             label: 'Ángulo mínimo de inclinación (pitch)',
             value: '${AiThresholds.minPitchAngle}°',
           ),
-          _ThresholdTile(
+          const _ThresholdTile(
             label: 'Ángulo máximo de volteo (roll)',
             value: '${AiThresholds.maxRollAngle}°',
           ),
-          _ThresholdTile(
+          const _ThresholdTile(
             label: 'Confianza mínima de pose',
             value: '${(AiThresholds.minPoseConfidence * 100).toInt()}%',
           ),
-          _ThresholdTile(
+          const _ThresholdTile(
             label: 'Umbral de inactividad',
             value: '${AiThresholds.inactivityThresholdSeconds} seg',
           ),
@@ -158,7 +157,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Divider(),
 
           // ── App info ─────────────────────────────────────────────
-          _SectionHeader(title: 'Acerca de'),
+          const _SectionHeader(title: 'Acerca de'),
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('Versión'),
@@ -225,7 +224,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
 
-    if (confirmed == true && context.mounted) {
+    if ((confirmed ?? false) && context.mounted) {
       await ref.read(loginNotifierProvider.notifier).signOut();
     }
   }

@@ -261,7 +261,7 @@ class _SectionHeader extends StatelessWidget {
           BoxShadow(
             color: palette.shadow,
             blurRadius: 24,
-            offset: Offset(0, 12),
+            offset: const Offset(0, 12),
           ),
         ],
       ),

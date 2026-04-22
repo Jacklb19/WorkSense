@@ -31,12 +31,13 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
-        _storageKey,
-        switch (mode) {
-          ThemeMode.light => 'light',
-          ThemeMode.dark => 'dark',
-          ThemeMode.system => 'system',
-        });
+      _storageKey,
+      switch (mode) {
+        ThemeMode.light => 'light',
+        ThemeMode.dark => 'dark',
+        ThemeMode.system => 'system',
+      },
+    );
   }
 
   Future<void> toggleLightDark() async {
