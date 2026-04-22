@@ -89,6 +89,7 @@ class ActivityEntries extends Table {
   TextColumn get id => text()();
   TextColumn get employeeId => text().nullable()();
   TextColumn get workstationId => text()();
+  TextColumn get companyId => text().nullable()(); // Added in v8
   TextColumn get state => text()();
   RealColumn get confidence => real()();
   DateTimeColumn get timestamp => dateTime().withDefault(currentDateAndTime)();
@@ -129,7 +130,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -187,6 +188,11 @@ class AppDatabase extends _$AppDatabase {
         await migrator.addColumn(shiftRecords, shiftRecords.breakStartMinute);
         await migrator.addColumn(shiftRecords, shiftRecords.breakEndHour);
         await migrator.addColumn(shiftRecords, shiftRecords.breakEndMinute);
+      }
+
+      if (from < 8) {
+        // Migración a v8: añadir companyId a activity_entries para RLS en Supabase
+        await migrator.addColumn(activityEntries, activityEntries.companyId);
       }
     },
     beforeOpen: (details) async {

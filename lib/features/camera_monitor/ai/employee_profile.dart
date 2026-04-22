@@ -20,9 +20,9 @@ class EmployeeProfile {
   final int version;
 
   static const int currentVersion = 1;
-  // Threshold reducido para kiosko de empleado único (0.42).
-  // Revisar si se implementa multi-empleado por estación.
-  static const double identityThreshold = 0.42;
+  // Threshold aumentado para mayor seguridad (0.75).
+  // Asegura que extraños no sean detectados como el empleado asignado.
+  static const double identityThreshold = 0.75;
 
   const EmployeeProfile({
     required this.employeeId,

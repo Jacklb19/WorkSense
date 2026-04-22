@@ -74,12 +74,19 @@ class SupabaseDataSource {
   Future<List<Map<String, dynamic>>> fetchActivityEventsByDateRange({
     required DateTime from,
     required DateTime to,
+    String? companyId,
   }) async {
     try {
-      final response = await _client
+      var query = _client
           .from('activity_events')
           .select()
-          .not('employee_id', 'is', null)
+          .not('employee_id', 'is', null);
+      
+      if (companyId != null && companyId != 'default') {
+        query = query.eq('company_id', companyId);
+      }
+
+      final response = await query
           .gte('timestamp', from.toUtc().toIso8601String())
           .lte('timestamp', to.toUtc().toIso8601String())
           .order('timestamp', ascending: true)

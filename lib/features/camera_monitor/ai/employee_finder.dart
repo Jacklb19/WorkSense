@@ -116,8 +116,10 @@ import 'package:flutter/foundation.dart';
 
   _IsolatedFindResult _computeFindInFrameWorker(_FindInFrameParams params) {
     int? currentLockedTrackingId = params.lockedTrackingId;
-    const double identityThreshold = EmployeeProfile.identityThreshold;
-    const double trackingBodyThreshold = 0.30;
+    final bool multiplePeople = params.faces.length > 1;
+    final double identityThreshold = EmployeeProfile.identityThreshold;
+    // Umbral de seguimiento más estricto si hay intrusos (múltiples personas)
+    final double trackingBodyThreshold = multiplePeople ? 0.60 : 0.30;
     const double maxFaceToPoseDistance = 200.0;
 
     if (params.faces.isEmpty && params.poses.isEmpty) {

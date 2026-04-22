@@ -73,6 +73,7 @@ class KioskState {
   final List<Pose> poses;
   final List<Face> faces;
   final Size imageSize;
+  final String? companyId;
 
   // Re-identificación y Sesión
   final SessionStatus sessionStatus;
@@ -95,6 +96,7 @@ class KioskState {
     this.cameraInitialized = false,
     this.error,
     this.workstationId = '',
+    this.companyId,
     this.poses = const [],
     this.faces = const [],
     this.imageSize = Size.zero,
@@ -106,6 +108,7 @@ class KioskState {
     this.assignedEmployeeId,
     this.sessionStartTime,
     this.workstationStatus = 'IDLE',
+    this.companyId,
   });
 
   KioskState copyWith({
@@ -120,6 +123,7 @@ class KioskState {
     List<Pose>? poses,
     List<Face>? faces,
     Size? imageSize,
+    String? companyId,
     SessionStatus? sessionStatus,
     bool? isEmployeeScanned,
     EmployeeProfile? employeeProfile,
@@ -149,6 +153,7 @@ class KioskState {
       assignedEmployeeId: assignedEmployeeId ?? this.assignedEmployeeId,
       sessionStartTime: sessionStartTime ?? this.sessionStartTime,
       workstationStatus: workstationStatus ?? this.workstationStatus,
+      companyId: companyId ?? this.companyId,
     );
   }
 }
@@ -239,6 +244,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
     final record = await _db.getWorkstationById(workstationId);
     final assignedId = record?.assignedEmployeeId;
+    final companyId = record?.companyId;
 
     if (record != null &&
         record.faceEmbedding != null &&
@@ -270,6 +276,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
           assignedEmployeeId: assignedId,
           currentState: ActivityState.ausente,
           sessionStatus: SessionStatus.idle,
+          companyId: companyId,
         );
 
         _listenRemoteStatus(workstationId);
@@ -285,6 +292,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
       isEmployeeScanned: false,
       assignedEmployeeId: assignedId,
       currentState: ActivityState.noIdentificado,
+      companyId: companyId,
     );
     
     _listenRemoteStatus(workstationId);
@@ -419,14 +427,19 @@ class KioskNotifier extends StateNotifier<KioskState> {
       // ── Generación de Embeddings Inteligente ────────────────────────────────
       // Strategy:
       //  - When IDLE or ENTRY_PENDING: generate embeddings EVERY frame (need to find/confirm employee)
-      //  - When ACTIVE: only generate embeddings on reid intervals (save CPU, already confirmed)
+      //  - When ACTIVE: only generate embeddings on reid intervals (save CPU)
+      //  - EXCEPTION: if multiple faces are detected (intruder?), validate immediately.
       final Map<int, List<double>> embeddingsMap = {};
       final bool needsIdentification = state.sessionStatus == SessionStatus.idle || 
                                        state.sessionStatus == SessionStatus.entryPending;
-      final shouldReid = now.difference(_lastReidTime) >= _reidInterval;
-      final bool shouldGenerateEmbeddings = needsIdentification || shouldReid;
+      final bool hasIntruder = allFaces.length > 1;
+      final bool shouldReid = now.difference(_lastReidTime) >= _reidInterval;
+      final bool shouldGenerateEmbeddings = needsIdentification || shouldReid || hasIntruder;
       
       if (allFaces.isNotEmpty && (_finder!.profile.employeeId != null) && shouldGenerateEmbeddings) {
+        if (hasIntruder) {
+          debugPrint('[MONITOR] Intruder detection! Force validating all ${allFaces.length} faces.');
+        }
         for (final face in allFaces) {
           final cropped = await _faceAnalyzer.cropFaceFromCameraImageAsync(image, face);
           if (cropped != null) {
@@ -719,6 +732,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
       id: const Uuid().v4(),
       employeeId: state.assignedEmployeeId,
       workstationId: state.workstationId,
+      companyId: state.companyId,
       state: aiResult.state,
       confidence: aiResult.confidence,
       timestamp: timestamp,

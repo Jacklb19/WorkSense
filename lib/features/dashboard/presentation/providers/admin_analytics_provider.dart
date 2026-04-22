@@ -54,6 +54,8 @@ final employeeAnalyticsProvider =
   final dateRange = ref.watch(analyticsDateRangeProvider);
   final range = _dateRangeFor(dateRange);
   final remote = ref.watch(supabaseDataSourceProvider);
+  final currentUser = ref.watch(currentUserProvider).value;
+  final companyId = currentUser?.companyId;
 
   // 1. Fetch employees
   List<Employee> employees;
@@ -85,6 +87,7 @@ final employeeAnalyticsProvider =
     final rawEvents = await remote.fetchActivityEventsByDateRange(
       from: range.from,
       to: range.to,
+      companyId: companyId,
     );
     final remoteEvents = rawEvents.map(_mapRemoteToActivityEvent);
     for (var e in remoteEvents) {
