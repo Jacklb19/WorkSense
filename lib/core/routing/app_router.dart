@@ -64,7 +64,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             final allowedEmployeeRoutes = [
               AppRoutes.myActivity,
               AppRoutes.myHours,
-              AppRoutes.settings
+              AppRoutes.settings,
             ];
             if (!allowedEmployeeRoutes.contains(loc) &&
                 loc != AppRoutes.login) {
@@ -159,8 +159,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.kioskWaiting,
         name: 'kiosk-waiting',
         pageBuilder: (context, state) => const MaterialPage(
-          child:
-              Scaffold(body: Center(child: Text('Dispositivo no configurado'))),
+          child: Scaffold(
+            body: Center(
+              child: Text('Dispositivo no configurado'),
+            ),
+          ),
         ),
       ),
       GoRoute(
@@ -168,15 +171,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'my-activity',
         pageBuilder: (context, state) => const MaterialPage(
           child: Scaffold(
-              body: Center(child: Text('Panel de empleado — Próximamente'))),
+            body: Center(
+              child: Text('Panel de empleado — Próximamente'),
+            ),
+          ),
         ),
       ),
       GoRoute(
         path: AppRoutes.myHours,
         name: 'my-hours',
         pageBuilder: (context, state) => const MaterialPage(
-          child:
-              Scaffold(body: Center(child: Text('Mis horas — Próximamente'))),
+          child: Scaffold(
+            body: Center(
+              child: Text('Mis horas — Próximamente'),
+            ),
+          ),
         ),
       ),
 
@@ -191,7 +200,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
     errorPageBuilder: (context, state) => MaterialPage(
       child: _RouteErrorScreen(
-          error: state.error?.message ?? 'Ruta no encontrada'),
+        error: state.error?.message ?? 'Ruta no encontrada',
+      ),
     ),
   );
 });
