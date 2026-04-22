@@ -170,6 +170,7 @@ class DashboardScreen extends ConsumerWidget {
       bottomNavigationBar: _DashboardBottomBar(
         canManage: canManage,
         onHistory: () => context.push('/history'),
+        onAnalytics: () => context.push('/analytics'),
         onEmployees: () => context.push('/employees'),
         onWorkstations: () => context.push('/workstations'),
         onSettings: () => context.push('/settings'),
@@ -218,6 +219,10 @@ class DashboardScreen extends ConsumerWidget {
         return Icons.bedtime_rounded;
       case ActivityState.ausente:
         return Icons.person_off_rounded;
+      case ActivityState.fueraDelArea:
+        return Icons.location_off_rounded;
+      case ActivityState.noIdentificado:
+        return Icons.help_outline_rounded;
       case ActivityState.inactivo:
       case null:
         return Icons.timelapse_rounded;
@@ -315,6 +320,16 @@ class _AdminActions extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
+        FloatingActionButton.extended(
+          heroTag: 'view-shifts-fab',
+          backgroundColor: palette.surface,
+          foregroundColor: palette.heading,
+          elevation: 4,
+          onPressed: () => context.push('/shifts'),
+          icon: const Icon(Icons.schedule_rounded),
+          label: const Text('VER TURNOS'),
+        ),
+        const SizedBox(height: 12),
         FloatingActionButton.extended(
           heroTag: 'view-stations-fab',
           backgroundColor: palette.surface,
@@ -449,6 +464,7 @@ class _ErrorView extends StatelessWidget {
 class _DashboardBottomBar extends StatelessWidget {
   final bool canManage;
   final VoidCallback onHistory;
+  final VoidCallback? onAnalytics;
   final VoidCallback? onEmployees;
   final VoidCallback? onWorkstations;
   final VoidCallback onSettings;
@@ -457,8 +473,9 @@ class _DashboardBottomBar extends StatelessWidget {
   const _DashboardBottomBar({
     required this.canManage,
     required this.onHistory,
-    required this.onEmployees,
-    required this.onWorkstations,
+    this.onAnalytics,
+    this.onEmployees,
+    this.onWorkstations,
     required this.onSettings,
     required this.onLogout,
   });
@@ -491,6 +508,11 @@ class _DashboardBottomBar extends StatelessWidget {
                 onTap: onHistory,
               ),
               if (canManage) ...[
+                _NavItem(
+                  icon: Icons.bar_chart_rounded,
+                  label: 'Analíticas',
+                  onTap: onAnalytics ?? () {},
+                ),
                 _NavItem(
                   icon: Icons.people_outline_rounded,
                   label: 'Empleados',
