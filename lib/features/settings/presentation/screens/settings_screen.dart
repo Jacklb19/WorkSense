@@ -145,7 +145,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             label: 'Ángulo máximo de volteo (roll)',
             value: '${AiThresholds.maxRollAngle}°',
           ),
-          const _ThresholdTile(
+          _ThresholdTile(
             label: 'Confianza mínima de pose',
             value: '${(AiThresholds.minPoseConfidence * 100).toInt()}%',
           ),
@@ -241,7 +241,7 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       child: Text(
         title,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
           color: AppColors.primary,
