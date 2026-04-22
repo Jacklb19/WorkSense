@@ -2,17 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/features/auth/presentation/screens/login_screen.dart';
+import 'package:worksense_app/features/camera_monitor/presentation/screens/entrance_kiosk_screen.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/kiosk_screen.dart';
+import 'package:worksense_app/features/camera_monitor/presentation/screens/kiosk_waiting_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/activity_history_screen.dart';
+import 'package:worksense_app/features/dashboard/presentation/screens/admin_analytics_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:worksense_app/features/dashboard/presentation/screens/employee_detail_analytics_screen.dart';
+import 'package:worksense_app/features/dashboard/presentation/screens/my_activity_screen.dart';
+import 'package:worksense_app/features/dashboard/presentation/screens/my_hours_screen.dart';
 import 'package:worksense_app/features/employees/presentation/screens/employee_form_screen.dart';
 import 'package:worksense_app/features/employees/presentation/screens/employees_list_screen.dart';
 import 'package:worksense_app/features/settings/presentation/screens/settings_screen.dart';
 import 'package:worksense_app/features/workstations/presentation/screens/workstation_form_screen.dart';
 import 'package:worksense_app/features/workstations/presentation/screens/workstations_list_screen.dart';
+import 'package:worksense_app/features/shifts/presentation/screens/shifts_list_screen.dart';
+import 'package:worksense_app/features/shifts/presentation/screens/shift_form_screen.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
-// Route name constants
+// ── Route constants ────────────────────────────────────────────────────────────
+
 abstract final class AppRoutes {
   static const login = '/login';
   static const dashboard = '/dashboard';
@@ -24,56 +33,65 @@ abstract final class AppRoutes {
   static const workstations = '/workstations';
   static const workstationNew = '/workstations/new';
   static const kioskWaiting = '/kiosk_waiting';
+  static const entrance = '/entrance';
   static const myActivity = '/my-activity';
   static const myHours = '/my-hours';
+  static const analytics = '/analytics';
+  static const analyticsDetail = '/analytics/:employeeId';
+  static const shifts = '/shifts';
+  static const shiftNew = '/shift_form';
 }
+
+// ── Router provider ───────────────────────────────────────────────────────────
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authNotifier = _AuthNotifier(ref);
   return GoRouter(
-    initialLocation: '/dashboard',
+    initialLocation: AppRoutes.dashboard,
     refreshListenable: authNotifier,
     redirect: (context, state) {
       final currentUserState = ref.read(currentUserProvider);
 
-      if (currentUserState.isLoading) return null; // Wait for resolution
+      if (currentUserState.isLoading) return null;
 
       final currentUser = currentUserState.valueOrNull;
       final isAuthenticated = currentUser?.user != null;
-      final isOnLoginPage = state.matchedLocation == AppRoutes.login;
+      final loc = state.matchedLocation;
+      final isOnLoginPage = loc == AppRoutes.login;
 
-      if (!isAuthenticated && !isOnLoginPage) {
-        return AppRoutes.login;
-      }
+      // Not logged in → login
+      if (!isAuthenticated && !isOnLoginPage) return AppRoutes.login;
 
-      if (isAuthenticated && isOnLoginPage) {
-        return AppRoutes.dashboard;
-      }
+      // Already logged in → leave login
+      if (isAuthenticated && isOnLoginPage) return AppRoutes.dashboard;
 
+      // Role-based guards
       if (isAuthenticated && currentUser != null) {
         final role = currentUser.role;
-        final loc = state.matchedLocation;
 
         switch (role) {
           case AppRole.cameraMonitor:
-            if (!loc.startsWith('/kiosk') && loc != AppRoutes.login) {
+            // Camera monitors can only access kiosk routes
+            final allowed = loc.startsWith('/kiosk') || loc == AppRoutes.entrance;
+            if (!allowed && loc != AppRoutes.login) {
               return AppRoutes.kioskWaiting;
             }
             break;
+
           case AppRole.employee:
-            final allowedEmployeeRoutes = [
+            const allowedEmployeeRoutes = [
               AppRoutes.myActivity,
               AppRoutes.myHours,
               AppRoutes.settings,
             ];
-            if (!allowedEmployeeRoutes.contains(loc) &&
-                loc != AppRoutes.login) {
+            if (!allowedEmployeeRoutes.contains(loc) && loc != AppRoutes.login) {
               return AppRoutes.myActivity;
             }
             break;
+
           case AppRole.admin:
-            break;
           case AppRole.superAdmin:
+            // No restrictions — admins can access all routes
             break;
         }
       }
@@ -81,7 +99,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      // Auth
+      // ── Auth ────────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.login,
         name: 'login',
@@ -90,7 +108,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      // Dashboard
+      // ── Admin Dashboard ──────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.dashboard,
         name: 'dashboard',
@@ -99,7 +117,37 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      // Kiosk
+      // ── Employee screens ─────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.myActivity,
+        name: 'my-activity',
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: MyActivityScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.myHours,
+        name: 'my-hours',
+        pageBuilder: (context, state) => const MaterialPage(
+          child: MyHoursScreen(),
+        ),
+      ),
+
+      // ── Kiosk ────────────────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.kioskWaiting,
+        name: 'kiosk-waiting',
+        pageBuilder: (context, state) => const NoTransitionPage(
+          child: KioskWaitingScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.entrance,
+        name: 'entrance',
+        pageBuilder: (context, state) => const MaterialPage(
+          child: EntranceKioskScreen(),
+        ),
+      ),
       GoRoute(
         path: AppRoutes.kiosk,
         name: 'kiosk',
@@ -111,16 +159,26 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // Activity history
+      // ── Analytics ────────────────────────────────────────────────────────────
       GoRoute(
-        path: AppRoutes.history,
-        name: 'history',
+        path: AppRoutes.analytics,
+        name: 'analytics',
         pageBuilder: (context, state) => const MaterialPage(
-          child: ActivityHistoryScreen(),
+          child: AdminAnalyticsScreen(),
         ),
       ),
+      GoRoute(
+        path: AppRoutes.analyticsDetail,
+        name: 'analytics-detail',
+        pageBuilder: (context, state) {
+          final employeeId = state.pathParameters['employeeId'] ?? '';
+          return MaterialPage(
+            child: EmployeeDetailAnalyticsScreen(employeeId: employeeId),
+          );
+        },
+      ),
 
-      // Employees list
+      // ── Employees ────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.employees,
         name: 'employees',
@@ -128,8 +186,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           child: EmployeesListScreen(),
         ),
       ),
-
-      // Employee form (new)
       GoRoute(
         path: AppRoutes.employeeNew,
         name: 'employee-new',
@@ -138,7 +194,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      // Workstations
+      // ── Shifts ───────────────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.shifts,
+        name: 'shifts',
+        pageBuilder: (context, state) => const MaterialPage(
+          child: ShiftsListScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.shiftNew,
+        name: 'shift-new',
+        pageBuilder: (context, state) => const MaterialPage(
+          child: ShiftFormScreen(),
+        ),
+      ),
+
+      // ── Workstations ─────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.workstations,
         name: 'workstations',
@@ -154,42 +226,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
-      // Placeholder Routes
+      // ── History ──────────────────────────────────────────────────────────────
       GoRoute(
-        path: AppRoutes.kioskWaiting,
-        name: 'kiosk-waiting',
+        path: AppRoutes.history,
+        name: 'history',
         pageBuilder: (context, state) => const MaterialPage(
-          child: Scaffold(
-            body: Center(
-              child: Text('Dispositivo no configurado'),
-            ),
-          ),
-        ),
-      ),
-      GoRoute(
-        path: AppRoutes.myActivity,
-        name: 'my-activity',
-        pageBuilder: (context, state) => const MaterialPage(
-          child: Scaffold(
-            body: Center(
-              child: Text('Panel de empleado — Próximamente'),
-            ),
-          ),
-        ),
-      ),
-      GoRoute(
-        path: AppRoutes.myHours,
-        name: 'my-hours',
-        pageBuilder: (context, state) => const MaterialPage(
-          child: Scaffold(
-            body: Center(
-              child: Text('Mis horas — Próximamente'),
-            ),
-          ),
+          child: ActivityHistoryScreen(),
         ),
       ),
 
-      // Settings
+      // ── Settings ─────────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.settings,
         name: 'settings',
@@ -206,7 +252,8 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-/// A [ChangeNotifier] that triggers GoRouter refresh on auth state changes.
+// ── Auth change notifier ───────────────────────────────────────────────────────
+
 class _AuthNotifier extends ChangeNotifier {
   final Ref _ref;
 
@@ -216,6 +263,8 @@ class _AuthNotifier extends ChangeNotifier {
     });
   }
 }
+
+// ── Error screen ──────────────────────────────────────────────────────────────
 
 class _RouteErrorScreen extends StatelessWidget {
   final String error;

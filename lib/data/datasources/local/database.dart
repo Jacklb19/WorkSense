@@ -26,6 +26,20 @@ class EmployeeRecords extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class ShiftRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get employeeId => text()();
+  DateTimeColumn get startTime => dateTime()();
+  DateTimeColumn get endTime => dateTime()();
+  TextColumn get status => text()();
+  TextColumn get notes => text().nullable()();
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class WorkstationRecords extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
@@ -78,6 +92,7 @@ class SyncQueueEntries extends Table {
     WorkstationRecords,
     ActivityEntries,
     SyncQueueEntries,
+    ShiftRecords,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -142,6 +157,24 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteEmployeeRecord(String id) =>
       (delete(employeeRecords)..where((t) => t.id.equals(id))).go();
+
+  // ── ShiftRecords DAO methods ──────────────────────────────────────────────
+
+  Future<void> insertShiftRecord(ShiftRecordsCompanion record) =>
+      into(shiftRecords).insert(record, mode: InsertMode.insertOrReplace);
+
+  Future<List<ShiftRecord>> getAllShiftRecords() => select(shiftRecords).get();
+
+  Stream<List<ShiftRecord>> watchAllShiftRecords() => select(shiftRecords).watch();
+
+  Future<ShiftRecord?> getShiftRecordById(String id) =>
+      (select(shiftRecords)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  Stream<List<ShiftRecord>> watchShiftRecordsByEmployee(String employeeId) =>
+      (select(shiftRecords)..where((t) => t.employeeId.equals(employeeId))).watch();
+
+  Future<void> deleteShiftRecord(String id) =>
+      (delete(shiftRecords)..where((t) => t.id.equals(id))).go();
 
   // ── WorkstationRecords DAO methods ────────────────────────────────────────
 

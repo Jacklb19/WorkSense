@@ -68,6 +68,26 @@ class SupabaseDataSource {
     await _client.from('employees').delete().eq('id', id);
   }
 
+  // ── Shifts ────────────────────────────────────────────────────────────────
+
+  Future<List<Map<String, dynamic>>> getShifts() async {
+    final response = await _client.from('shifts').select();
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  Future<void> insertShift(Map<String, dynamic> data) async {
+    await _client.from('shifts').insert(data);
+  }
+
+  Future<void> updateShift(
+      String id, Map<String, dynamic> data) async {
+    await _client.from('shifts').update(data).eq('id', id);
+  }
+
+  Future<void> deleteShift(String id) async {
+    await _client.from('shifts').delete().eq('id', id);
+  }
+
   // ── Auth ──────────────────────────────────────────────────────────────────
 
   Stream<bool> get authStateStream =>
