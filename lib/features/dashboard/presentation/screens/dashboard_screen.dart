@@ -12,14 +12,8 @@ import 'package:worksense_app/features/dashboard/presentation/widgets/employee_d
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
+import 'package:worksense_app/shared/providers/theme_mode_provider.dart';
 import 'package:worksense_app/shared/widgets/sync_indicator_widget.dart';
-
-const _kDashboardBackground = Color(0xFFF4F7FB);
-const _kDashboardSurface = Colors.white;
-const _kDashboardBorder = Color(0xFFDDE5F0);
-const _kDashboardHeading = Color(0xFF0F172A);
-const _kDashboardSubtle = Color(0xFF64748B);
-const _kDashboardShadow = Color(0x120F172A);
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -33,6 +27,8 @@ class DashboardScreen extends ConsumerWidget {
     final userRole = currentUserState.valueOrNull?.role ?? AppRole.employee;
     final canManage =
         userRole == AppRole.admin || userRole == AppRole.superAdmin;
+    final themeMode = ref.watch(themeModeProvider);
+    final palette = _DashboardPalette.of(context);
 
     final workstationsById = <String, WorkstationRecord>{
       for (final workstation
@@ -43,10 +39,10 @@ class DashboardScreen extends ConsumerWidget {
         _latestEventByEmployee(recentEventsAsync.valueOrNull ?? const []);
 
     return Scaffold(
-      backgroundColor: _kDashboardBackground,
+      backgroundColor: palette.background,
       body: RefreshIndicator(
         color: AppColors.primary,
-        backgroundColor: _kDashboardSurface,
+        backgroundColor: palette.surface,
         edgeOffset: 92,
         onRefresh: () => _handleRefresh(ref),
         child: CustomScrollView(
@@ -59,21 +55,35 @@ class DashboardScreen extends ConsumerWidget {
               snap: true,
               elevation: 0,
               scrolledUnderElevation: 0,
-              backgroundColor: _kDashboardBackground,
+              backgroundColor: palette.background,
               surfaceTintColor: Colors.transparent,
               toolbarHeight: 82,
               titleSpacing: 24,
               title: Text(
                 'Comando central',
                 style: AppTextStyles.headlineSmall.copyWith(
-                  color: _kDashboardHeading,
+                  color: palette.heading,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 0.5,
                 ),
               ),
-              actions: const [
-                SyncIndicatorWidget(),
-                SizedBox(width: 12),
+              actions: [
+                IconButton(
+                  tooltip: themeMode == ThemeMode.dark
+                      ? 'Cambiar a modo claro'
+                      : 'Cambiar a modo oscuro',
+                  onPressed: () {
+                    ref.read(themeModeProvider.notifier).toggleLightDark();
+                  },
+                  icon: Icon(
+                    themeMode == ThemeMode.dark
+                        ? Icons.light_mode_rounded
+                        : Icons.dark_mode_rounded,
+                    color: palette.heading,
+                  ),
+                ),
+                const SyncIndicatorWidget(),
+                const SizedBox(width: 12),
               ],
             ),
             const SliverPadding(
@@ -239,15 +249,17 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _DashboardPalette.of(context);
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: _kDashboardSurface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: _kDashboardBorder),
-        boxShadow: const [
+        border: Border.all(color: palette.border),
+        boxShadow: [
           BoxShadow(
-            color: _kDashboardShadow,
+            color: palette.shadow,
             blurRadius: 24,
             offset: Offset(0, 12),
           ),
@@ -259,7 +271,7 @@ class _SectionHeader extends StatelessWidget {
           Text(
             'COLABORADORES',
             style: AppTextStyles.labelMedium.copyWith(
-              color: _kDashboardSubtle,
+              color: palette.subtle,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.8,
             ),
@@ -268,7 +280,7 @@ class _SectionHeader extends StatelessWidget {
           Text(
             'Tus trabajadores',
             style: AppTextStyles.headlineMedium.copyWith(
-              color: _kDashboardHeading,
+              color: palette.heading,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -276,7 +288,7 @@ class _SectionHeader extends StatelessWidget {
           Text(
             'Consulta el estado general de cada colaborador y entra a su detalle desde una sola vista.',
             style: AppTextStyles.bodyMedium.copyWith(
-              color: _kDashboardSubtle,
+              color: palette.subtle,
               height: 1.4,
             ),
           ),
@@ -297,14 +309,16 @@ class _AdminActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _DashboardPalette.of(context);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         FloatingActionButton.extended(
           heroTag: 'view-stations-fab',
-          backgroundColor: _kDashboardSurface,
-          foregroundColor: _kDashboardHeading,
+          backgroundColor: palette.surface,
+          foregroundColor: palette.heading,
           elevation: 4,
           onPressed: onStations,
           icon: const Icon(Icons.desktop_windows),
@@ -343,22 +357,24 @@ class _EmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _DashboardPalette.of(context);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.people_outline,
               size: 64,
-              color: _kDashboardSubtle,
+              color: palette.subtle,
             ),
             const SizedBox(height: 20),
             Text(
               'Todavía no tienes colaboradores registrados',
               style: AppTextStyles.titleLarge.copyWith(
-                color: _kDashboardHeading,
+                color: palette.heading,
                 fontWeight: FontWeight.w700,
               ),
               textAlign: TextAlign.center,
@@ -367,7 +383,7 @@ class _EmptyView extends StatelessWidget {
             Text(
               'Agrega tu primer empleado para comenzar a monitorear actividad y productividad.',
               style: AppTextStyles.bodyMedium.copyWith(
-                color: _kDashboardSubtle,
+                color: palette.subtle,
                 height: 1.45,
               ),
               textAlign: TextAlign.center,
@@ -392,6 +408,8 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _DashboardPalette.of(context);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -407,7 +425,7 @@ class _ErrorView extends StatelessWidget {
             Text(
               'No fue posible cargar el dashboard',
               style: AppTextStyles.titleLarge.copyWith(
-                color: _kDashboardHeading,
+                color: palette.heading,
                 fontWeight: FontWeight.w700,
               ),
               textAlign: TextAlign.center,
@@ -416,7 +434,7 @@ class _ErrorView extends StatelessWidget {
             Text(
               error,
               style: AppTextStyles.bodyMedium.copyWith(
-                color: _kDashboardSubtle,
+                color: palette.subtle,
                 height: 1.4,
               ),
               textAlign: TextAlign.center,
@@ -447,10 +465,12 @@ class _DashboardBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _DashboardPalette.of(context);
+
     return Container(
-      decoration: const BoxDecoration(
-        color: _kDashboardSurface,
-        border: Border(top: BorderSide(color: _kDashboardBorder)),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        border: Border(top: BorderSide(color: palette.border)),
       ),
       child: SafeArea(
         top: false,
@@ -515,7 +535,8 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? AppColors.primary : _kDashboardSubtle;
+    final palette = _DashboardPalette.of(context);
+    final color = active ? AppColors.primary : palette.subtle;
 
     return GestureDetector(
       onTap: onTap,
@@ -537,6 +558,38 @@ class _NavItem extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _DashboardPalette {
+  final Color background;
+  final Color surface;
+  final Color border;
+  final Color heading;
+  final Color subtle;
+  final Color shadow;
+
+  const _DashboardPalette({
+    required this.background,
+    required this.surface,
+    required this.border,
+    required this.heading,
+    required this.subtle,
+    required this.shadow,
+  });
+
+  factory _DashboardPalette.of(BuildContext context) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+
+    return _DashboardPalette(
+      background: dark ? const Color(0xFF0F172A) : const Color(0xFFF4F7FB),
+      surface: dark ? const Color(0xFF111827) : Colors.white,
+      border: dark ? const Color(0xFF334155) : const Color(0xFFDDE5F0),
+      heading: dark ? Colors.white : const Color(0xFF0F172A),
+      subtle: dark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+      shadow: dark ? const Color(0x00000000) : const Color(0x120F172A),
     );
   }
 }
