@@ -35,7 +35,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: authNotifier,
     redirect: (context, state) {
       final currentUserState = ref.read(currentUserProvider);
-      
+
       if (currentUserState.isLoading) return null; // Wait for resolution
 
       final currentUser = currentUserState.valueOrNull;
@@ -61,15 +61,17 @@ final routerProvider = Provider<GoRouter>((ref) {
             }
             break;
           case AppRole.employee:
-            final allowedEmployeeRoutes = [AppRoutes.myActivity, AppRoutes.myHours, AppRoutes.settings];
-            if (!allowedEmployeeRoutes.contains(loc) && loc != AppRoutes.login) {
+            final allowedEmployeeRoutes = [
+              AppRoutes.myActivity,
+              AppRoutes.myHours,
+              AppRoutes.settings
+            ];
+            if (!allowedEmployeeRoutes.contains(loc) &&
+                loc != AppRoutes.login) {
               return AppRoutes.myActivity;
             }
             break;
           case AppRole.admin:
-            if (loc.startsWith('/kiosk')) {
-              return AppRoutes.dashboard;
-            }
             break;
           case AppRole.superAdmin:
             break;
@@ -157,21 +159,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.kioskWaiting,
         name: 'kiosk-waiting',
         pageBuilder: (context, state) => const MaterialPage(
-          child: Scaffold(body: Center(child: Text('Dispositivo no configurado'))),
+          child:
+              Scaffold(body: Center(child: Text('Dispositivo no configurado'))),
         ),
       ),
       GoRoute(
         path: AppRoutes.myActivity,
         name: 'my-activity',
         pageBuilder: (context, state) => const MaterialPage(
-          child: Scaffold(body: Center(child: Text('Panel de empleado — Próximamente'))),
+          child: Scaffold(
+              body: Center(child: Text('Panel de empleado — Próximamente'))),
         ),
       ),
       GoRoute(
         path: AppRoutes.myHours,
         name: 'my-hours',
         pageBuilder: (context, state) => const MaterialPage(
-          child: Scaffold(body: Center(child: Text('Mis horas — Próximamente'))),
+          child:
+              Scaffold(body: Center(child: Text('Mis horas — Próximamente'))),
         ),
       ),
 
@@ -185,7 +190,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
     errorPageBuilder: (context, state) => MaterialPage(
-      child: _RouteErrorScreen(error: state.error?.message ?? 'Ruta no encontrada'),
+      child: _RouteErrorScreen(
+          error: state.error?.message ?? 'Ruta no encontrada'),
     ),
   );
 });
