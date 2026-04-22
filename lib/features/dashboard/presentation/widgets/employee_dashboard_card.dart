@@ -46,7 +46,7 @@ class EmployeeDashboardCard extends StatelessWidget {
               BoxShadow(
                 color: shadow,
                 blurRadius: 18,
-                offset: Offset(0, 10),
+                offset: const Offset(0, 10),
               ),
             ],
           ),
@@ -96,7 +96,7 @@ class EmployeeDashboardCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Icon(
+                    Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 16,
                       color: subtitleColor,
