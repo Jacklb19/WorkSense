@@ -1,13 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:worksense_app/core/theme/app_text_styles.dart';
 
-const _kCardSurface = Colors.white;
-const _kCardBorder = Color(0xFFDDE5F0);
-const _kCardTitle = Color(0xFF0F172A);
-const _kCardSubtitle = Color(0xFF64748B);
-const _kCardAccent = Color(0xFFE8EEF8);
-const _kCardShadow = Color(0x120F172A);
-
 class EmployeeDashboardCard extends StatelessWidget {
   final String employeeName;
   final String? workstationName;
@@ -30,6 +23,15 @@ class EmployeeDashboardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final surface = dark ? const Color(0xFF111827) : Colors.white;
+    final border = dark ? const Color(0xFF334155) : const Color(0xFFDDE5F0);
+    final titleColor = dark ? Colors.white : const Color(0xFF0F172A);
+    final subtitleColor =
+        dark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final accent = dark ? const Color(0xFF1E293B) : const Color(0xFFE8EEF8);
+    final shadow = dark ? const Color(0x00000000) : const Color(0x120F172A);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -37,12 +39,12 @@ class EmployeeDashboardCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         child: Ink(
           decoration: BoxDecoration(
-            color: _kCardSurface,
+            color: surface,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: _kCardBorder),
-            boxShadow: const [
+            border: Border.all(color: border),
+            boxShadow: [
               BoxShadow(
-                color: _kCardShadow,
+                color: shadow,
                 blurRadius: 18,
                 offset: Offset(0, 10),
               ),
@@ -59,12 +61,12 @@ class EmployeeDashboardCard extends StatelessWidget {
                       width: 46,
                       height: 46,
                       decoration: BoxDecoration(
-                        color: _kCardAccent,
+                        color: accent,
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.person_outline_rounded,
-                        color: _kCardTitle,
+                        color: titleColor,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -77,7 +79,7 @@ class EmployeeDashboardCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTextStyles.titleMedium.copyWith(
-                              color: _kCardTitle,
+                              color: titleColor,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -87,7 +89,7 @@ class EmployeeDashboardCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTextStyles.bodySmall.copyWith(
-                              color: _kCardSubtitle,
+                              color: subtitleColor,
                             ),
                           ),
                         ],
@@ -97,7 +99,7 @@ class EmployeeDashboardCard extends StatelessWidget {
                     const Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 16,
-                      color: _kCardSubtitle,
+                      color: subtitleColor,
                     ),
                   ],
                 ),
@@ -134,7 +136,7 @@ class EmployeeDashboardCard extends StatelessWidget {
                 Text(
                   updatedLabel,
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: _kCardSubtitle,
+                    color: subtitleColor,
                   ),
                 ),
               ],
