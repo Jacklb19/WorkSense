@@ -89,6 +89,7 @@ class EmployeeRepositoryImpl implements EmployeeRepository {
   }) async {
     final faceEmbeddingJson = BiometricSerializer.serializeEmbedding(faceEmbedding);
     final bodySignatureJson = jsonEncode(bodySignature.toJson());
+    final capturedAt = DateTime.now();
 
     await _db.transaction(() async {
       // 1. Guardar perfil en la workstation localmente
@@ -112,6 +113,8 @@ class EmployeeRepositoryImpl implements EmployeeRepository {
           'assigned_employee_id': employeeId,
           'face_embedding': faceEmbeddingJson,
           'body_signature': bodySignatureJson,
+          'profile_captured_at': capturedAt.toIso8601String(),
+          'profile_version': 1,
         },
       );
     });

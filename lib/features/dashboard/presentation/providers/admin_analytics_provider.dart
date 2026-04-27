@@ -10,6 +10,7 @@ import 'package:worksense_app/features/camera_monitor/presentation/providers/ent
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
+import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
 // ── Date Range Filter ────────────────────────────────────────────────────────
 

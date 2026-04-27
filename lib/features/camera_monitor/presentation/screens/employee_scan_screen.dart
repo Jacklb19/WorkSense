@@ -218,10 +218,10 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
   String _getGuidanceMessage(int index) {
     switch (index) {
       case 0: return 'Mira directo a la cámara';
-      case 1: return 'Gira la cabeza a la derecha';
-      case 2: return 'Gira la cabeza a la izquierda';
-      case 3: return 'Mira hacia arriba';
-      case 4: return 'Mira hacia abajo';
+      case 1: return 'Gira levemente la cabeza hacia tu izquierda (15-20 grados)';
+      case 2: return 'Gira levemente la cabeza hacia tu derecha (15-20 grados)';
+      case 3: return 'Inclina la cabeza levemente hacia abajo (como mirando el escritorio)';
+      case 4: return 'Levanta levemente la cabeza (como mirando una pantalla alta)';
       default: return 'Ajusta tu posición';
     }
   }

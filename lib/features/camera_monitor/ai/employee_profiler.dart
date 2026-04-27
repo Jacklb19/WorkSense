@@ -179,10 +179,9 @@ class EmployeeProfiler {
     _faceEmbeddings.add(embedding);
     // Si no hay firma válida, usamos una previa o zero para no romper el promedio simple,
     // o mejor guardamos la que tengamos.
-    _bodySignatures.add(sig ??
-        (_bodySignatures.isNotEmpty
-            ? _bodySignatures.last
-            : BodySignature.zero));
+    if (sig != null && sig.isValid) {
+      _bodySignatures.add(sig);
+    }
 
     return SampleResult.success;
   }
@@ -207,26 +206,30 @@ class EmployeeProfiler {
     final normalizedEmbedding = EmployeeProfile.normalizeVector(avgEmbedding);
 
     // Promediar proporciones corporales
-    final avgBody = BodySignature(
-      shoulderToHipRatio: _bodySignatures
-              .map((s) => s.shoulderToHipRatio)
-              .reduce((a, b) => a + b) /
-          samplesRequired,
-      torsoToLegRatio: _bodySignatures
-              .map((s) => s.torsoToLegRatio)
-              .reduce((a, b) => a + b) /
-          samplesRequired,
-      armSpanRatio:
-          _bodySignatures.map((s) => s.armSpanRatio).reduce((a, b) => a + b) /
-              samplesRequired,
-      headToShoulderRatio: _bodySignatures
-              .map((s) => s.headToShoulderRatio)
-              .reduce((a, b) => a + b) /
-          samplesRequired,
-      neckLength:
-          _bodySignatures.map((s) => s.neckLength).reduce((a, b) => a + b) /
-              samplesRequired,
-    );
+    final avgBody = _bodySignatures.isEmpty
+        ? BodySignature.zero
+        : BodySignature(
+            shoulderToHipRatio: _bodySignatures
+                    .map((s) => s.shoulderToHipRatio)
+                    .reduce((a, b) => a + b) /
+                _bodySignatures.length,
+            torsoToLegRatio: _bodySignatures
+                    .map((s) => s.torsoToLegRatio)
+                    .reduce((a, b) => a + b) /
+                _bodySignatures.length,
+            armSpanRatio: _bodySignatures
+                    .map((s) => s.armSpanRatio)
+                    .reduce((a, b) => a + b) /
+                _bodySignatures.length,
+            headToShoulderRatio: _bodySignatures
+                    .map((s) => s.headToShoulderRatio)
+                    .reduce((a, b) => a + b) /
+                _bodySignatures.length,
+            neckLength: _bodySignatures
+                    .map((s) => s.neckLength)
+                    .reduce((a, b) => a + b) /
+                _bodySignatures.length,
+          );
 
     return EmployeeProfile(
       employeeId: employeeId,

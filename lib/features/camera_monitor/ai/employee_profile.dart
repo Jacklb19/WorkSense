@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:worksense_app/core/constants/ai_thresholds.dart';
 import 'package:worksense_app/features/camera_monitor/ai/body_signature.dart';
 
 /// Perfil biométrico completo del empleado.
@@ -20,9 +21,9 @@ class EmployeeProfile {
   final int version;
 
   static const int currentVersion = 1;
-  // Threshold aumentado para mayor seguridad (0.75).
-  // Asegura que extraños no sean detectados como el empleado asignado.
-  static const double identityThreshold = 0.75;
+  // Threshold aumentado para máxima seguridad (0.85).
+  // Evita confusiones entre empleados con rasgos similares.
+  static const double identityThreshold = AiThresholds.minEmbeddingMatchScore;
 
   const EmployeeProfile({
     required this.employeeId,

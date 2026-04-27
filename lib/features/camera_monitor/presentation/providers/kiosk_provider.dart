@@ -108,7 +108,6 @@ class KioskState {
     this.assignedEmployeeId,
     this.sessionStartTime,
     this.workstationStatus = 'IDLE',
-    this.companyId,
   });
 
   KioskState copyWith({
@@ -180,8 +179,8 @@ class KioskNotifier extends StateNotifier<KioskState> {
   DateTime _lastMovementTime = DateTime.now();
   DateTime _lastSaveTime = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _lastReidTime = DateTime.fromMillisecondsSinceEpoch(0);
-  int _adaptationsCount = 0;
   int _consecutiveAbsentFrames = 0;
+  bool _requiresFreshIdentityCheck = true;
   
   /// Number of consecutive absent frames required to cancel entryPending/exitPending.
   static const int _absentFramesToCancel = 8;
@@ -281,8 +280,6 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
         _listenRemoteStatus(workstationId);
 
-        // Ya no iniciamos cámara de inmediato, lo maneja el Listener de Realtime
-        // Si quieres forzar inicio manual para test: if(state.workstationStatus == 'ACTIVE') await initializeCamera(cameras);
         return true;
       }
     }
@@ -425,16 +422,24 @@ class KioskNotifier extends StateNotifier<KioskState> {
       }
 
       // ── Generación de Embeddings Inteligente ────────────────────────────────
-      // Strategy:
-      //  - When IDLE or ENTRY_PENDING: generate embeddings EVERY frame (need to find/confirm employee)
-      //  - When ACTIVE: only generate embeddings on reid intervals (save CPU)
-      //  - EXCEPTION: if multiple faces are detected (intruder?), validate immediately.
       final Map<int, List<double>> embeddingsMap = {};
       final bool needsIdentification = state.sessionStatus == SessionStatus.idle || 
                                        state.sessionStatus == SessionStatus.entryPending;
       final bool hasIntruder = allFaces.length > 1;
       final bool shouldReid = now.difference(_lastReidTime) >= _reidInterval;
-      final bool shouldGenerateEmbeddings = needsIdentification || shouldReid || hasIntruder;
+      final bool shouldGenerateEmbeddings =
+          needsIdentification ||
+          shouldReid ||
+          hasIntruder ||
+          _requiresFreshIdentityCheck;
+
+      if (state.sessionStatus == SessionStatus.active) {
+        if (allFaces.isEmpty || allFaces.length > 1) {
+          _requiresFreshIdentityCheck = true;
+        } else if (!_finder!.isTrackingLockedTo(allFaces.first)) {
+          _requiresFreshIdentityCheck = true;
+        }
+      }
       
       if (allFaces.isNotEmpty && (_finder!.profile.employeeId != null) && shouldGenerateEmbeddings) {
         if (hasIntruder) {
@@ -450,9 +455,14 @@ class KioskNotifier extends StateNotifier<KioskState> {
         }
       }
 
-      // When no embeddings were generated (reid cooldown during active session)
-      // and faces ARE visible, skip identity check but STILL run activity classification.
-      if (embeddingsMap.isEmpty && allFaces.isNotEmpty && state.sessionStatus == SessionStatus.active) {
+      final bool canTrustTrackedOwnerWithoutEmbedding =
+          embeddingsMap.isEmpty &&
+          state.sessionStatus == SessionStatus.active &&
+          !_requiresFreshIdentityCheck &&
+          allFaces.length == 1 &&
+          _finder!.isTrackingLockedTo(allFaces.first);
+
+      if (canTrustTrackedOwnerWithoutEmbedding) {
         _consecutiveAbsentFrames = 0; // reset, person is clearly visible
         
         // Pick the largest face for activity analysis
@@ -487,6 +497,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
         final isInactive = now.difference(_lastMovementTime).inSeconds >=
             AiThresholds.inactivityThresholdSeconds;
         
+        // await migrator.addColumn(activityEntries, activityEntries.companyId);
         final aiResult = _classifier.classify(
           pose: poseResult,
           face: faceResult,
@@ -529,10 +540,11 @@ class KioskNotifier extends StateNotifier<KioskState> {
         case FindStatus.absent:
         case FindStatus.outsideArea:
           _handleAbsent(findResult, imgSize);
-          
+          break;
         case FindStatus.found:
           _consecutiveAbsentFrames = 0;
           _handleFound(findResult, allFaces, allPoses, imgSize, now);
+          break;
       }
     } catch (e) {
       debugPrint('[MONITOR] Error frame analysis: $e');
@@ -542,6 +554,9 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
   void _handleAbsent(FindResult findResult, Size imgSize) {
     _consecutiveAbsentFrames++;
+    if (state.sessionStatus == SessionStatus.active) {
+      _requiresFreshIdentityCheck = true;
+    }
     
     // Only cancel entryPending/exitPending after several consecutive absent frames.
     // This prevents a single bad frame from destroying the welcome overlay.
@@ -567,6 +582,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
   }
 
   void _handleFound(FindResult findResult, List<Face> allFaces, List<Pose> allPoses, Size imgSize, DateTime now) {
+    _requiresFreshIdentityCheck = false;
     final employeeFace = findResult.employeeFace!;
     final employeePose = findResult.employeePose;
 
@@ -617,11 +633,6 @@ class KioskNotifier extends StateNotifier<KioskState> {
             identificationMethod: methodLabel);
         _lastSaveTime = now;
       }
-
-      // Aprendizaje incremental conservador (solo si confianza es muy alta)
-      if (findResult.confidence >= 0.92) {
-         // (Lógica de adaptación de perfil si fuera necesaria)
-      }
     }
   }
 
@@ -636,6 +647,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
       sessionStartTime: now,
       currentState: ActivityState.trabajando,
     );
+    _requiresFreshIdentityCheck = false;
 
     await _saveEvent(
       AiResult(state: ActivityState.trabajando, confidence: 1.0),
@@ -674,6 +686,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
     // resetear finder para evitar locks de tracking viejos
     _finder?.reset();
+    _requiresFreshIdentityCheck = true;
     
     debugPrint('[SESSION] Salida aprobada. Sesión cerrada.');
   }

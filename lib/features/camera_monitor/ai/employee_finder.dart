@@ -233,18 +233,6 @@ import 'package:flutter/foundation.dart';
       );
     }
 
-    if (bestScore >= identityThreshold * 0.75 && bestFace != null) {
-      return _IsolatedFindResult(
-        status: FindStatus.found,
-        faceIndex: bestFace.index,
-        poseIndex: bestPose?.index,
-        confidence: bestScore,
-        identifiedBy: bestMethod,
-        newLockedTrackingId: bestFace.trackingId,
-        clearLockedTrackingId: true,
-      );
-    }
-
     if (params.faces.isNotEmpty || params.poses.isNotEmpty) {
       return _IsolatedFindResult(
         status: FindStatus.outsideArea,
@@ -272,6 +260,10 @@ import 'package:flutter/foundation.dart';
     EmployeeFinder(this._profile);
 
     EmployeeProfile get profile => _profile;
+    int? get lockedTrackingId => _lockedTrackingId;
+
+    bool isTrackingLockedTo(Face face) =>
+        _lockedTrackingId != null && face.trackingId == _lockedTrackingId;
 
     /// Busca al empleado en el frame actual aislando los calculos pesados
     /// del UI thread para prevenir caida de frames.
