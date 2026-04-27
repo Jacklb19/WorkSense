@@ -11,6 +11,7 @@ import 'dart:ui' show Size;
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
+import 'package:worksense_app/core/constants/ai_thresholds.dart';
 import 'package:worksense_app/features/camera_monitor/ai/body_signature.dart';
 import 'package:worksense_app/features/camera_monitor/ai/employee_profile.dart';
 import 'package:worksense_app/features/camera_monitor/ai/face_analyzer.dart';
@@ -224,11 +225,31 @@ class EmployeeProfiler {
     }
 
     final cropQuality = _faceAnalyzer.assessCropQuality(croppedFace);
-    if (!cropQuality.passes) {
+    print(
+      '[SCAN] CROP QUALITY - '
+      'brightness: ${cropQuality.brightness.toStringAsFixed(3)}, '
+      'contrast: ${cropQuality.contrast.toStringAsFixed(3)}, '
+      'sharpness: ${cropQuality.sharpness.toStringAsFixed(3)}, '
+      'overall: ${cropQuality.overallScore.toStringAsFixed(3)}, '
+      'passes: ${cropQuality.passes}, '
+      'feedback: ${cropQuality.feedback}',
+    );
+
+    final canSoftAcceptCrop = !cropQuality.passes &&
+        cropQuality.feedback == 'Quedate quieto un momento' &&
+        cropQuality.overallScore >= AiThresholds.minSoftFaceQualityScore &&
+        faceConf >= 0.68 &&
+        poseConf >= minPoseConfidence;
+
+    if (!cropQuality.passes && !canSoftAcceptCrop) {
       return SampleAssessment(
         result: SampleResult.lowConfidence,
         feedback: cropQuality.feedback,
       );
+    }
+
+    if (canSoftAcceptCrop) {
+      print('[SCAN] Soft-accepting sharpness gate for stable frontal sample.');
     }
 
     List<double> embedding;

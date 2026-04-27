@@ -97,6 +97,11 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
   bool _isLiveProcessing = false;
   bool _disposed = false;
   bool _blockFrameUpdates = false;
+  bool _blinkSatisfied = false;
+  bool _blinkArmed = false;
+  int _openEyesStableFrames = 0;
+  int _livenessSampleIndex = 0;
+  int _stableLiveFrames = 0;
   CameraImage? _lastFrame;
 
   static const Map<DeviceOrientation, int> _orientationMap = {
@@ -193,35 +198,73 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
 
       final poses = await _livePoseDetector.processImage(inputImage);
       if (_disposed || _blockFrameUpdates || state.isCapturing) return;
+      _syncLivenessState();
 
       if (faces.isEmpty) {
+        _resetBlinkState();
+        _stableLiveFrames = 0;
         state = state.copyWith(
           frameStatus: _FrameStatus.searching,
           feedback: 'Acércate a la cámara',
         );
       } else if (faces.length > 1) {
+        _resetBlinkState();
+        _stableLiveFrames = 0;
         state = state.copyWith(
           frameStatus: _FrameStatus.error,
           feedback: 'Solo debe estar el empleado en cámara',
         );
       } else if (poses.isEmpty) {
+        _resetBlinkState();
+        _stableLiveFrames = 0;
         state = state.copyWith(
           frameStatus: _FrameStatus.searching,
           feedback: 'Asegúrate de que tu cuerpo sea visible',
         );
       } else {
         if (!state.isCapturing && (state.frameStatus != _FrameStatus.capturing)) {
-          final isCorrectPos = _profiler.isPositionStateCorrect(faces.first);
+          final face = faces.first;
+          final isCorrectPos = _profiler.isPositionStateCorrect(face);
+          final passesLivePresence = _passesLivePresenceGate(
+            face,
+            inputImage.metadata?.size,
+          );
           
-          if (isCorrectPos) {
+          if (isCorrectPos && passesLivePresence) {
+            _stableLiveFrames++;
+            if (_requiresBlinkChallenge) {
+              _updateBlinkChallenge(face);
+              if (!_blinkSatisfied) {
+                state = state.copyWith(
+                  frameStatus: _FrameStatus.searching,
+                  feedback: _blinkArmed
+                      ? 'Parpadea una vez para validar presencia'
+                      : 'Mira al frente con los ojos abiertos',
+                );
+                return;
+              }
+            }
+            if (_stableLiveFrames < AiThresholds.liveDetectionStableFrames) {
+              state = state.copyWith(
+                frameStatus: _FrameStatus.searching,
+                feedback: 'Sostente frente a la camara un momento',
+              );
+              return;
+            }
             state = state.copyWith(
               frameStatus: _FrameStatus.detected,
               feedback: 'Posición correcta',
             );
           } else {
+            if (_requiresBlinkChallenge) {
+              _resetBlinkState();
+            }
+            _stableLiveFrames = 0;
             state = state.copyWith(
               frameStatus: _FrameStatus.searching,
-              feedback: _getGuidanceMessage(state.currentSampleIndex),
+              feedback: passesLivePresence
+                  ? _getGuidanceMessage(state.currentSampleIndex)
+                  : 'Centra mejor el rostro dentro del marco',
             );
           }
         }
@@ -315,6 +358,7 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
               ? 'Escaneo completado'
               : EmployeeProfiler.instructions[nextIndex].text,
         );
+        _syncLivenessState(forceReset: true);
 
         if (!isComplete) {
           await Future<void>.delayed(const Duration(milliseconds: 1500));
@@ -373,7 +417,85 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
   void resetScan() {
     if (_disposed) return;
     _profiler.reset();
+    _resetBlinkState();
+    _stableLiveFrames = 0;
+    _livenessSampleIndex = 0;
     state = const EmployeeScanState(cameraReady: true);
+  }
+
+  bool get _requiresBlinkChallenge => state.currentSampleIndex == 0;
+
+  bool _passesLivePresenceGate(Face face, Size? frameSize) {
+    if (frameSize == null) return false;
+
+    final box = face.boundingBox;
+    final frameArea = frameSize.width * frameSize.height;
+    if (frameArea <= 0) return false;
+
+    final areaRatio = (box.width * box.height) / frameArea;
+    final centerX = box.left + (box.width / 2);
+    final centerY = box.top + (box.height / 2);
+
+    final minX = frameSize.width * AiThresholds.liveFaceGuideMargin;
+    final maxX = frameSize.width * (1 - AiThresholds.liveFaceGuideMargin);
+    final minY = frameSize.height * AiThresholds.liveFaceGuideMargin;
+    final maxY = frameSize.height * (1 - AiThresholds.liveFaceGuideMargin);
+
+    final centered = centerX >= minX &&
+        centerX <= maxX &&
+        centerY >= minY &&
+        centerY <= maxY;
+    final fullyVisible = box.left >= 0 &&
+        box.top >= 0 &&
+        box.right <= frameSize.width &&
+        box.bottom <= frameSize.height;
+
+    return areaRatio >= AiThresholds.minLiveFaceAreaRatio &&
+        centered &&
+        fullyVisible;
+  }
+
+  void _syncLivenessState({bool forceReset = false}) {
+    final sampleIndex = state.currentSampleIndex;
+    if (forceReset || sampleIndex != _livenessSampleIndex) {
+      _livenessSampleIndex = sampleIndex;
+      _resetBlinkState();
+      _stableLiveFrames = 0;
+    }
+  }
+
+  void _resetBlinkState() {
+    _blinkSatisfied = false;
+    _blinkArmed = false;
+    _openEyesStableFrames = 0;
+  }
+
+  void _updateBlinkChallenge(Face face) {
+    final leftEye = face.leftEyeOpenProbability;
+    final rightEye = face.rightEyeOpenProbability;
+    if (leftEye == null || rightEye == null) return;
+
+    final eyesOpen = leftEye >= AiThresholds.minEyeOpenProbability &&
+        rightEye >= AiThresholds.minEyeOpenProbability;
+    final eyesClosed = leftEye <= AiThresholds.maxEyeClosedProbability &&
+        rightEye <= AiThresholds.maxEyeClosedProbability;
+
+    if (eyesOpen) {
+      _openEyesStableFrames++;
+      if (_openEyesStableFrames >= AiThresholds.blinkOpenFramesRequired) {
+        _blinkArmed = true;
+      }
+      return;
+    }
+
+    if (eyesClosed && _blinkArmed) {
+      _blinkSatisfied = true;
+      return;
+    }
+
+    if (!eyesClosed) {
+      _openEyesStableFrames = 0;
+    }
   }
 
   String _resultMessage(SampleResult result) {

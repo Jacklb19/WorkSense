@@ -4,7 +4,7 @@ import 'package:worksense_app/features/camera_monitor/ai/ai_result.dart';
 
 class ActivityClassifier {
   // Smoothing buffer — stores last N results for majority vote
-  static const int _bufferSize = 3;
+  static const int _bufferSize = 7;
   final List<ActivityState> _recentStates = [];
 
   AiResult classify({
@@ -18,13 +18,11 @@ class ActivityClassifier {
       isInactive: isInactive,
     );
 
-    // Add raw result to smoothing buffer
     _recentStates.add(rawResult.state);
     if (_recentStates.length > _bufferSize) {
       _recentStates.removeAt(0);
     }
 
-    // Return the mode (most frequent state) of the buffer
     final smoothedState = _mode(_recentStates);
 
     return AiResult(
@@ -38,56 +36,56 @@ class ActivityClassifier {
     required FaceAnalysisResult face,
     required bool isInactive,
   }) {
-    // Priority 1: No signals detected (neither face nor pose)
     final alguienPresente = face.faceDetected || pose.personDetected;
     if (!alguienPresente) {
-      return const AiResult(
-        state: ActivityState.ausente,
-        confidence: 0.85,
-      );
+      return const AiResult(state: ActivityState.ausente, confidence: 0.85);
     }
 
-    // Priority 2: Person detected but face not visible
-    // (could be looking down at work — assume working)
     if (!face.faceDetected) {
-      return const AiResult(
-        state: ActivityState.trabajando,
-        confidence: 0.55,
-      );
+      // Se detecta cuerpo pero no rostro. Podría estar de espaldas.
+      // Ya no asumimos que está trabajando a ciegas.
+      return const AiResult(state: ActivityState.noIdentificado, confidence: 0.50);
     }
 
-    // Priority 3: Head turned significantly or hand near face → distracted
     final yawAbsolute = face.yaw.abs();
-    if (yawAbsolute > AiThresholds.maxYawAngle || pose.handNearFace) {
-      return const AiResult(
-        state: ActivityState.distraido,
-        confidence: 0.75,
-      );
+    final isLookingDown = face.pitch < AiThresholds.minPitchAngle;
+
+    // Fatiga real: Ojos cerrados + cabeza caída
+    if (face.eyesClosed && (isLookingDown || face.roll.abs() > AiThresholds.maxRollAngle)) {
+      return const AiResult(state: ActivityState.fatiga, confidence: 0.85);
     }
 
-    // Priority 4: Head drooping or eyes closed → fatigue
-    if (face.pitch < AiThresholds.minPitchAngle ||
-        face.roll.abs() > AiThresholds.maxRollAngle ||
-        face.eyesClosed) {
-      return const AiResult(
-        state: ActivityState.fatiga,
-        confidence: 0.75,
-      );
+    // Solo ojos cerrados (descanso visual momentáneo)
+    if (face.eyesClosed) {
+      return const AiResult(state: ActivityState.inactivo, confidence: 0.70);
     }
 
-    // Priority 5: Person present but not moving hands → inactive
+    // Trabajo manual o lectura: Mirando hacia abajo pero con ojos abiertos
+    if (isLookingDown && !face.eyesClosed) {
+      return const AiResult(state: ActivityState.trabajando, confidence: 0.80);
+    }
+
+    // Distracción extrema: Cabeza completamente girada por mucho tiempo
+    if (yawAbsolute > AiThresholds.maxYawAngle + 15.0) {
+      return const AiResult(state: ActivityState.distraido, confidence: 0.75);
+    }
+
+    // Inactividad: No hay movimiento y la PC reporta inactividad
     if (isInactive && !pose.handsMoving) {
-      return const AiResult(
-        state: ActivityState.inactivo,
-        confidence: 0.80,
-      );
+      // Si tiene la mano en la cara, podría estar pensando/leyendo
+      if (pose.handNearFace) {
+        return const AiResult(state: ActivityState.trabajando, confidence: 0.60);
+      }
+      return const AiResult(state: ActivityState.inactivo, confidence: 0.80);
     }
 
-    // Priority 6: Default — person present, face forward, hands moving
-    return const AiResult(
-      state: ActivityState.trabajando,
-      confidence: 0.90,
-    );
+    // Distracción leve: Mirando ligeramente a un lado con mano en la cara
+    if (yawAbsolute > AiThresholds.maxYawAngle && pose.handNearFace) {
+       return const AiResult(state: ActivityState.distraido, confidence: 0.65);
+    }
+
+    // Default: Presente, ojos abiertos, mirando al frente
+    return const AiResult(state: ActivityState.trabajando, confidence: 0.90);
   }
 
   ActivityState _mode(List<ActivityState> states) {

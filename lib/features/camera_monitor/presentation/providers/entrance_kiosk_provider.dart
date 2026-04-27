@@ -87,8 +87,9 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
   bool _isAnalyzing = false;
   bool _disposed = false;
+  bool _hasBlinked = false;
   DateTime _lastAnalysisTime = DateTime.fromMillisecondsSinceEpoch(0);
-  static const Duration _analysisInterval = Duration(milliseconds: 1000);
+  static const Duration _analysisInterval = Duration(milliseconds: 300);
   
   static const Map<DeviceOrientation, int> _orientationMap = {
     DeviceOrientation.portraitUp: 0,
@@ -115,6 +116,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
         performanceMode: FaceDetectorMode.fast,
         enableTracking: false,
         enableLandmarks: true,
+        enableClassification: true,
       ),
     );
     _faceAnalyzer = FaceAnalyzer();
@@ -300,7 +302,6 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   }
 
   Future<void> _processFrame(CameraImage image) async {
-    // Double-check we're still in scanning phase
     if (state.phase != KioskPhase.scanning) return;
     
     try {
@@ -309,18 +310,47 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
       final faces = await _faceDetector.processImage(inputImage);
       if (faces.isEmpty || _disposed) {
-        // Only update message if we were previously detecting
-        if (state.statusMessage.startsWith('Detectando')) {
+        if (state.statusMessage != 'Recepción Activa') {
            state = state.copyWith(statusMessage: 'Recepción Activa');
+           _hasBlinked = false; // Reset blink
         }
         return;
       }
 
-      state = state.copyWith(statusMessage: 'Detectando rostro...');
-
-      // Solo evaluamos la cara más grande/cercana
       final largestFace = faces.reduce((a, b) => 
         (a.boundingBox.width * a.boundingBox.height) > (b.boundingBox.width * b.boundingBox.height) ? a : b);
+
+      // --- CENTERING & LIVENESS RULES ---
+      // Check distance (size ratio)
+      final widthRatio = largestFace.boundingBox.width / image.width;
+      if (widthRatio < 0.25) {
+        state = state.copyWith(statusMessage: 'Acércate a la cámara');
+        _hasBlinked = false;
+        return;
+      }
+      
+      // Check angles
+      if ((largestFace.headEulerAngleY?.abs() ?? 0) > 12 || (largestFace.headEulerAngleX?.abs() ?? 0) > 12) {
+        state = state.copyWith(statusMessage: 'Mira directamente de frente');
+        _hasBlinked = false;
+        return;
+      }
+
+      // Blink Challenge
+      if (!_hasBlinked) {
+        final leftEyeOpen = largestFace.leftEyeOpenProbability ?? 1.0;
+        final rightEyeOpen = largestFace.rightEyeOpenProbability ?? 1.0;
+        
+        debugPrint('[ENTRANCE] Eyes: L=${leftEyeOpen.toStringAsFixed(2)} R=${rightEyeOpen.toStringAsFixed(2)}');
+        
+        if (leftEyeOpen < 0.45 && rightEyeOpen < 0.45) {
+          _hasBlinked = true;
+          state = state.copyWith(statusMessage: 'Verificado ✓ Identificando...');
+        } else {
+          state = state.copyWith(statusMessage: 'Parpadea para verificar');
+          return; // Wait for blink
+        }
+      }
 
       final cropped = await _faceAnalyzer.cropFaceFromCameraImageAsync(image, largestFace);
       if (cropped == null) return;
@@ -332,31 +362,28 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
         return;
       }
 
-      // Compare with registry
       String? bestMatchId;
       double maxSim = 0.0;
 
       for (var entry in _employeeRegistry.entries) {
         final sim = EmployeeProfile.cosineSimilarity(entry.value, incomingEmb);
-        final name = _employeeNames[entry.key] ?? 'Unknown';
-        debugPrint('[ENTRANCE] Candidate: $name ID: ${entry.key.substring(0, 8)} Sim: ${sim.toStringAsFixed(3)}');
-        
         if (sim > maxSim) {
           maxSim = sim;
           bestMatchId = entry.key;
         }
       }
 
-      final bestName = _employeeNames[bestMatchId] ?? 'Desconocido';
-      debugPrint('[ENTRANCE] Result: Winner=$bestName Conf=${maxSim.toStringAsFixed(3)} (Threshold=${AiThresholds.minEmbeddingMatchScore})');
+      // Strict Threshold for Entrance (0.87 minimum recommended for high security)
+      final threshold = 0.87; 
 
-      if (maxSim >= AiThresholds.minEmbeddingMatchScore && bestMatchId != null) {
+      if (maxSim >= threshold && bestMatchId != null) {
          await _triggerEntrance(bestMatchId);
       } else {
-         state = state.copyWith(statusMessage: 'Rostro desconocido (Sim: ${(maxSim*100).toStringAsFixed(1)}%)');
+         state = state.copyWith(statusMessage: 'Rostro desconocido (Sim: %)');
+         _hasBlinked = false; // Require new blink on fail
       }
     } catch (e) {
-      debugPrint('[ENTRANCE] Error: $e');
+      debugPrint('[ENTRANCE] Error: ');
     }
   }
 

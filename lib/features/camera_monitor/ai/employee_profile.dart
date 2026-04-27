@@ -39,13 +39,13 @@ class EmployeeProfile {
   /// [faceScore] null si la cara no fue visible en el frame.
   /// [bodyScore] null si la pose no fue detectable en el frame.
   double matchScore({double? faceScore, double? bodyScore}) {
-    print('[MATCH] faceScore: $faceScore, bodyScore: $bodyScore');
+    print('[MATCH] faceScore: , bodyScore: ');
     if (faceScore != null && bodyScore != null) {
-      return faceScore * 0.70 + bodyScore * 0.30;
+      return faceScore * 0.95 + bodyScore * 0.05;
     } else if (faceScore != null) {
-      return faceScore; // Sin penalización si solo hay cara
+      return faceScore;
     } else if (bodyScore != null) {
-      return bodyScore; // Sin penalización si solo hay pose
+      return bodyScore * 0.30;
     }
     return 0.0;
   }

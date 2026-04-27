@@ -179,7 +179,10 @@ class KioskNotifier extends StateNotifier<KioskState> {
   DateTime _lastMovementTime = DateTime.now();
   DateTime _lastSaveTime = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _lastReidTime = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _lastBlinkTime = DateTime.now();
+  static const Duration _maxTimeWithoutBlink = Duration(seconds: 40);
   int _consecutiveAbsentFrames = 0;
+  int _stableEntryFrames = 0;
   bool _requiresFreshIdentityCheck = true;
   
   /// Number of consecutive absent frames required to cancel entryPending/exitPending.
@@ -554,6 +557,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
   void _handleAbsent(FindResult findResult, Size imgSize) {
     _consecutiveAbsentFrames++;
+    _stableEntryFrames = 0;
     if (state.sessionStatus == SessionStatus.active) {
       _requiresFreshIdentityCheck = true;
     }
@@ -601,6 +605,11 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
     final methodLabel = findResult.identifiedBy?.name.toUpperCase() ?? 'FACE';
     final previousActivityState = state.currentState;
+    final requiresEntryStability =
+        state.sessionStatus == SessionStatus.idle ||
+        state.sessionStatus == SessionStatus.entryPending;
+    final hasStableEntryPresence =
+        _passesEntryPresenceGate(employeeFace, imgSize);
 
     // Actualizar confianza y overlays
     state = state.copyWith(
@@ -614,11 +623,23 @@ class KioskNotifier extends StateNotifier<KioskState> {
       imageSize: imgSize,
     );
 
+    if (requiresEntryStability) {
+      if (findResult.confidence >= AiThresholds.minEmbeddingMatchScore &&
+          hasStableEntryPresence) {
+        _stableEntryFrames++;
+      } else {
+        _stableEntryFrames = 0;
+      }
+    } else {
+      _stableEntryFrames = 0;
+    }
+
     // ── Lógica de Sesión ──────────────────────────────────────────────
     
     // CASO 1: Estamos IDLE y detectamos al dueño con confianza ALTA
     if (state.sessionStatus == SessionStatus.idle && 
-        findResult.confidence >= AiThresholds.minEmbeddingMatchScore) {
+        findResult.confidence >= AiThresholds.minEmbeddingMatchScore &&
+        _stableEntryFrames >= AiThresholds.liveDetectionStableFrames) {
       state = state.copyWith(sessionStatus: SessionStatus.entryPending);
     }
 
@@ -642,6 +663,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
     if (state.sessionStatus != SessionStatus.entryPending) return;
     
     final now = DateTime.now();
+    _stableEntryFrames = 0;
     state = state.copyWith(
       sessionStatus: SessionStatus.active,
       sessionStartTime: now,
@@ -668,6 +690,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
     if (state.sessionStatus != SessionStatus.exitPending) return;
     
     final now = DateTime.now();
+    _stableEntryFrames = 0;
     
     // 1. Guardar evento de salida (AUSENTE para indicar fin de jornada)
     await _saveEvent(
@@ -693,6 +716,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
   void cancelApproval() {
     if (state.sessionStatus == SessionStatus.entryPending) {
+       _stableEntryFrames = 0;
        state = state.copyWith(sessionStatus: SessionStatus.idle);
     } else if (state.sessionStatus == SessionStatus.exitPending) {
        state = state.copyWith(sessionStatus: SessionStatus.active);
@@ -700,6 +724,40 @@ class KioskNotifier extends StateNotifier<KioskState> {
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
+
+  bool _passesEntryPresenceGate(Face face, Size imgSize) {
+    final frameArea = imgSize.width * imgSize.height;
+    if (frameArea <= 0) return false;
+
+    final box = face.boundingBox;
+    final areaRatio = (box.width * box.height) / frameArea;
+    final centerX = box.left + (box.width / 2);
+    final centerY = box.top + (box.height / 2);
+
+    final minX = imgSize.width * AiThresholds.liveFaceGuideMargin;
+    final maxX = imgSize.width * (1 - AiThresholds.liveFaceGuideMargin);
+    final minY = imgSize.height * AiThresholds.liveFaceGuideMargin;
+    final maxY = imgSize.height * (1 - AiThresholds.liveFaceGuideMargin);
+
+    final centered = centerX >= minX &&
+        centerX <= maxX &&
+        centerY >= minY &&
+        centerY <= maxY;
+    final fullyVisible = box.left >= 0 &&
+        box.top >= 0 &&
+        box.right <= imgSize.width &&
+        box.bottom <= imgSize.height;
+
+    final yaw = (face.headEulerAngleY ?? 0.0).abs();
+    final pitch = (face.headEulerAngleX ?? 0.0).abs();
+    final frontal = yaw <= AiThresholds.normalYawRange &&
+        pitch <= (AiThresholds.normalPitchRange + 2);
+
+    return areaRatio >= AiThresholds.minLiveFaceAreaRatio &&
+        centered &&
+        fullyVisible &&
+        frontal;
+  }
 
   InputImage? _buildInputImage(CameraImage image) {
     if (_cameraController == null) return null;

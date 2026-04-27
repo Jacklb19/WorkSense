@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
@@ -62,24 +63,21 @@ class FaceEmbeddingService {
   }
 
   /// Extrae la matriz tridimensional normalizada usando (p - avg) / std
-  List<List<List<List<double>>>> _toFloatMatrix(img.Image resizedImage) {
-    return List.generate(
-      1,
-      (i) => List.generate(
-        AiThresholds.faceInputSize,
-        (y) => List.generate(
-          AiThresholds.faceInputSize,
-          (x) {
-            final pixel = resizedImage.getPixel(x, y);
-            return [
-              (pixel.r - AiThresholds.faceColorMean) / AiThresholds.faceColorStd, // Canal R
-              (pixel.g - AiThresholds.faceColorMean) / AiThresholds.faceColorStd, // Canal G
-              (pixel.b - AiThresholds.faceColorMean) / AiThresholds.faceColorStd, // Canal B
-            ];
-          },
-        ),
-      ),
-    );
+  Object _toFloatMatrix(img.Image resizedImage) {
+    final int size = AiThresholds.faceInputSize;
+    final buffer = Float32List(1 * size * size * 3);
+    int index = 0;
+
+    for (int y = 0; y < size; y++) {
+      for (int x = 0; x < size; x++) {
+        final pixel = resizedImage.getPixel(x, y);
+        buffer[index++] = (pixel.r - AiThresholds.faceColorMean) / AiThresholds.faceColorStd;
+        buffer[index++] = (pixel.g - AiThresholds.faceColorMean) / AiThresholds.faceColorStd;
+        buffer[index++] = (pixel.b - AiThresholds.faceColorMean) / AiThresholds.faceColorStd;
+      }
+    }
+    
+    return buffer.reshape([1, size, size, 3]);
   }
 
   /// Normaliza el vector en el espacio L2

@@ -16,6 +16,19 @@ class SupabaseDataSource {
     }
   }
 
+  Future<void> upsertBatch(String table, List<Map<String, dynamic>> dataList) async {
+    if (dataList.isEmpty) return;
+    try {
+      await _client.from(table).upsert(dataList);
+    } on PostgrestException catch (e) {
+      throw SyncException(
+        'Error upserting batch en $table: ${e.message} (code: ${e.code})',
+      );
+    } catch (e) {
+      throw SyncException('Error inesperado batch en $table: $e');
+    }
+  }
+
   Future<void> delete(String table, String id) async {
     try {
       await _client.from(table).delete().eq('id', id);

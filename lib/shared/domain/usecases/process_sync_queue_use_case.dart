@@ -21,7 +21,30 @@ class ProcessSyncQueueUseCase {
       debugPrint('[Sync PUSH] Iniciando procesamiento de ${pending.length} ítems pendientes...');
     }
 
+    // --- BATCH PROCESSING (OPTIMIZATION) ---
+    final batchEvents = pending.where((e) => 
+      e.targetTable == 'activity_events' && (e.operation == 'UPSERT' || e.operation == 'INSERT')).toList();
+    
+    bool batchSuccess = false;
+    if (batchEvents.isNotEmpty) {
+      try {
+        final payloads = batchEvents.map((e) => jsonDecode(e.payload) as Map<String, dynamic>).toList();
+        await _remote.upsertBatch('activity_events', payloads);
+        for (final entry in batchEvents) {
+          await _syncRepo.delete(entry.id);
+          success++;
+        }
+        batchSuccess = true;
+        debugPrint('[Sync PUSH] Batch de ${batchEvents.length} activity_events enviado con éxito.');
+      } catch (e) {
+        debugPrint('[Sync PUSH] Error en batch, haciendo fallback individual: $e');
+      }
+    }
+    // ---------------------------------------
+
     for (final entry in pending) {
+      if (batchSuccess && batchEvents.contains(entry)) continue;
+
       try {
         final payload = jsonDecode(entry.payload) as Map<String, dynamic>;
 
