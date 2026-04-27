@@ -41,9 +41,11 @@ class FaceEmbeddingService {
       }
     }
 
+    final squaredFace = _squarePadFace(croppedFace);
+
     // 1. Resize estricto
     final resizedImage = img.copyResize(
-      croppedFace, 
+      squaredFace,
       width: AiThresholds.faceInputSize, 
       height: AiThresholds.faceInputSize,
     );
@@ -90,6 +92,16 @@ class FaceEmbeddingService {
     if (norm == 0.0) return vector; // Evitar división por cero
     
     return vector.map((v) => v / norm).toList();
+  }
+
+  img.Image _squarePadFace(img.Image source) {
+    final size = math.max(source.width, source.height);
+    final square = img.Image(width: size, height: size);
+    img.fill(square, color: img.ColorRgb8(0, 0, 0));
+    final offsetX = ((size - source.width) / 2).round();
+    final offsetY = ((size - source.height) / 2).round();
+    img.compositeImage(square, source, dstX: offsetX, dstY: offsetY);
+    return square;
   }
 
   /// Libera los recursos C/C++ del intérprete de TFLite

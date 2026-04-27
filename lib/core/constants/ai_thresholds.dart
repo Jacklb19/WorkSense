@@ -126,6 +126,24 @@ abstract final class AiThresholds {
   /// Factor de padding al recortar la cara original (ej. 0.15 = 15%).
   static const double facePaddingFactor = 0.15;
 
+  /// Iluminación mínima recomendada para aceptar un crop facial.
+  static const double minFaceBrightness = 0.20;
+
+  /// Iluminación máxima antes de considerar el rostro sobreexpuesto.
+  static const double maxFaceBrightness = 0.88;
+
+  /// Contraste mínimo normalizado del crop facial.
+  static const double minFaceContrast = 0.12;
+
+  /// Nitidez mínima normalizada del crop facial.
+  static const double minFaceSharpness = 0.10;
+
+  /// Número de tomas rápidas por pose durante el enrolamiento.
+  static const int scanBurstFrames = 5;
+
+  /// Separación entre tomas del burst biométrico.
+  static const int scanBurstDelayMs = 120;
+
   /// Media usada para normalizar los canales de color.
   static const double faceColorMean = 127.5;
 

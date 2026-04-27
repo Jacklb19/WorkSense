@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
@@ -5,6 +6,24 @@ import 'package:image/image.dart' as img;
 import 'package:camera/camera.dart';
 import 'package:worksense_app/core/constants/ai_thresholds.dart';
 import 'package:worksense_app/features/camera_monitor/ai/ai_result.dart';
+
+class FaceCropQuality {
+  final double brightness;
+  final double contrast;
+  final double sharpness;
+  final double overallScore;
+  final bool passes;
+  final String feedback;
+
+  const FaceCropQuality({
+    required this.brightness,
+    required this.contrast,
+    required this.sharpness,
+    required this.overallScore,
+    required this.passes,
+    required this.feedback,
+  });
+}
 
 class FaceAnalyzer {
   /// Analiza una sola cara (para usar con el empleado identificado).
@@ -106,6 +125,125 @@ class FaceAnalyzer {
       y: y,
       width: w,
       height: h,
+    );
+  }
+
+  FaceCropQuality assessCropQuality(img.Image croppedFace) {
+    if (croppedFace.width < 48 || croppedFace.height < 48) {
+      return const FaceCropQuality(
+        brightness: 0.0,
+        contrast: 0.0,
+        sharpness: 0.0,
+        overallScore: 0.0,
+        passes: false,
+        feedback: 'Acercate mas a la camara',
+      );
+    }
+
+    double sum = 0.0;
+    double sumSq = 0.0;
+    double edgeSum = 0.0;
+    int edgeCount = 0;
+
+    final width = croppedFace.width;
+    final height = croppedFace.height;
+    final luminance = List<double>.filled(width * height, 0.0);
+
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        final pixel = croppedFace.getPixel(x, y);
+        final value =
+            (0.299 * pixel.r + 0.587 * pixel.g + 0.114 * pixel.b) / 255.0;
+        final index = y * width + x;
+        luminance[index] = value;
+        sum += value;
+        sumSq += value * value;
+      }
+    }
+
+    final totalPixels = (width * height).toDouble();
+    final brightness = sum / totalPixels;
+    final variance = (sumSq / totalPixels) - (brightness * brightness);
+    final contrast = variance <= 0 ? 0.0 : math.sqrt(variance);
+
+    for (int y = 0; y < height - 1; y++) {
+      for (int x = 0; x < width - 1; x++) {
+        final current = luminance[y * width + x];
+        final right = luminance[y * width + x + 1];
+        final bottom = luminance[(y + 1) * width + x];
+        edgeSum += (current - right).abs() + (current - bottom).abs();
+        edgeCount += 2;
+      }
+    }
+
+    final sharpness = edgeCount == 0 ? 0.0 : (edgeSum / edgeCount).clamp(0.0, 1.0);
+
+    final brightnessScore = brightness < AiThresholds.minFaceBrightness
+        ? (brightness / AiThresholds.minFaceBrightness).clamp(0.0, 1.0)
+        : brightness > AiThresholds.maxFaceBrightness
+            ? ((1.0 - brightness) / (1.0 - AiThresholds.maxFaceBrightness))
+                .clamp(0.0, 1.0)
+            : 1.0;
+    final contrastScore =
+        (contrast / AiThresholds.minFaceContrast).clamp(0.0, 1.0);
+    final sharpnessScore =
+        (sharpness / AiThresholds.minFaceSharpness).clamp(0.0, 1.0);
+
+    final overallScore = (brightnessScore * 0.4) +
+        (contrastScore * 0.25) +
+        (sharpnessScore * 0.35);
+
+    if (brightness < AiThresholds.minFaceBrightness) {
+      return FaceCropQuality(
+        brightness: brightness,
+        contrast: contrast,
+        sharpness: sharpness,
+        overallScore: overallScore,
+        passes: false,
+        feedback: 'Mas luz en el rostro',
+      );
+    }
+
+    if (brightness > AiThresholds.maxFaceBrightness) {
+      return FaceCropQuality(
+        brightness: brightness,
+        contrast: contrast,
+        sharpness: sharpness,
+        overallScore: overallScore,
+        passes: false,
+        feedback: 'Hay demasiada luz frontal',
+      );
+    }
+
+    if (contrast < AiThresholds.minFaceContrast) {
+      return FaceCropQuality(
+        brightness: brightness,
+        contrast: contrast,
+        sharpness: sharpness,
+        overallScore: overallScore,
+        passes: false,
+        feedback: 'Mejora la luz o el encuadre',
+      );
+    }
+
+    if (sharpness < AiThresholds.minFaceSharpness) {
+      return FaceCropQuality(
+        brightness: brightness,
+        contrast: contrast,
+        sharpness: sharpness,
+        overallScore: overallScore,
+        passes: false,
+        feedback: 'Quedate quieto un momento',
+      );
+    }
+
+    return FaceCropQuality(
+      brightness: brightness,
+      contrast: contrast,
+      sharpness: sharpness,
+      overallScore: overallScore,
+      passes: true,
+      feedback: 'Calidad facial correcta',
     );
   }
 

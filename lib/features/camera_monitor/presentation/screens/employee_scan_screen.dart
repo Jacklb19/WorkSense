@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
+import 'package:worksense_app/core/constants/ai_thresholds.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/domain/repositories/employee_repository.dart';
@@ -31,6 +32,9 @@ class EmployeeScanState {
   final bool isComplete;
   final String? error;
   final bool cameraReady;
+  final bool isIlluminating;
+  final int burstProgress;
+  final int burstTotal;
 
   const EmployeeScanState({
     this.currentSampleIndex = 0,
@@ -41,6 +45,9 @@ class EmployeeScanState {
     this.isComplete = false,
     this.error,
     this.cameraReady = false,
+    this.isIlluminating = false,
+    this.burstProgress = 0,
+    this.burstTotal = AiThresholds.scanBurstFrames,
   });
 
   int get capturedCount => completedSamples.where((s) => s).length;
@@ -54,6 +61,9 @@ class EmployeeScanState {
     bool? isComplete,
     String? error,
     bool? cameraReady,
+    bool? isIlluminating,
+    int? burstProgress,
+    int? burstTotal,
   }) {
     return EmployeeScanState(
       currentSampleIndex: currentSampleIndex ?? this.currentSampleIndex,
@@ -64,6 +74,9 @@ class EmployeeScanState {
       isComplete: isComplete ?? this.isComplete,
       error: error,
       cameraReady: cameraReady ?? this.cameraReady,
+      isIlluminating: isIlluminating ?? this.isIlluminating,
+      burstProgress: burstProgress ?? this.burstProgress,
+      burstTotal: burstTotal ?? this.burstTotal,
     );
   }
 }
@@ -158,8 +171,9 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
   }
 
   void _onFrame(CameraImage image) {
-    if (_disposed || _blockFrameUpdates) return;
+    if (_disposed) return;
     _lastFrame = image;
+    if (_blockFrameUpdates) return;
     if (_isLiveProcessing) return;
     _isLiveProcessing = true;
 
@@ -178,7 +192,7 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
       if (_disposed) return;
 
       final poses = await _livePoseDetector.processImage(inputImage);
-      if (_disposed) return;
+      if (_disposed || _blockFrameUpdates || state.isCapturing) return;
 
       if (faces.isEmpty) {
         state = state.copyWith(
@@ -232,24 +246,57 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
     if (state.frameStatus != _FrameStatus.detected) return;
 
     try {
+      _blockFrameUpdates = true;
       state = state.copyWith(
         isCapturing: true,
         frameStatus: _FrameStatus.capturing,
+        isIlluminating: true,
+        burstProgress: 0,
+        burstTotal: AiThresholds.scanBurstFrames,
+        feedback: 'Capturando rafaga biometrica',
       );
 
-      final inputImage = _buildInputImage(_lastFrame!);
-      if (inputImage == null) {
-        state = state.copyWith(
-          isCapturing: false,
-          frameStatus: _FrameStatus.error,
-          feedback: 'Error al procesar el frame',
-        );
-        return;
+      await Future<void>.delayed(
+        const Duration(milliseconds: AiThresholds.scanBurstDelayMs),
+      );
+
+      SampleAssessment? bestAssessment;
+      String lastFeedback = 'No se pudo capturar una muestra estable';
+
+      for (int i = 0; i < AiThresholds.scanBurstFrames; i++) {
+        final frame = _lastFrame;
+        if (frame == null) continue;
+
+        final inputImage = _buildInputImage(frame);
+        if (inputImage == null) {
+          lastFeedback = 'Error al procesar el frame';
+          continue;
+        }
+
+        final assessment = await _profiler.assessSample(inputImage, frame);
+        lastFeedback = assessment.feedback;
+
+        if (assessment.isSuccess) {
+          if (bestAssessment == null ||
+              assessment.sample!.qualityScore >
+                  bestAssessment.sample!.qualityScore) {
+            bestAssessment = assessment;
+          }
+        }
+
+        if (!_disposed) {
+          state = state.copyWith(burstProgress: i + 1);
+        }
+
+        if (i < AiThresholds.scanBurstFrames - 1) {
+          await Future<void>.delayed(
+            const Duration(milliseconds: AiThresholds.scanBurstDelayMs),
+          );
+        }
       }
 
-      final result = await _profiler.addSample(inputImage, _lastFrame!);
-
-      if (result == SampleResult.success) {
+      if (bestAssessment != null && bestAssessment.isSuccess) {
+        _profiler.commitAssessedSample(bestAssessment.sample!);
         final newCompleted = List<bool>.from(state.completedSamples);
         newCompleted[state.currentSampleIndex] = true;
 
@@ -261,35 +308,41 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
           currentSampleIndex: isComplete ? state.currentSampleIndex : nextIndex,
           isCapturing: false,
           isComplete: isComplete,
+          isIlluminating: false,
           frameStatus: _FrameStatus.searching,
+          burstProgress: 0,
           feedback: isComplete
               ? 'Escaneo completado'
               : EmployeeProfiler.instructions[nextIndex].text,
         );
 
-        _blockFrameUpdates = true;
         if (!isComplete) {
           await Future<void>.delayed(const Duration(milliseconds: 1500));
         }
-        _blockFrameUpdates = false;
 
         if (isComplete) {
           await _buildAndSaveProfile();
         }
       } else {
-        final msg = _resultMessage(result);
         state = state.copyWith(
           isCapturing: false,
+          isIlluminating: false,
           frameStatus: _FrameStatus.error,
-          feedback: msg,
+          burstProgress: 0,
+          feedback: lastFeedback,
         );
-        _blockFrameUpdates = true;
         await Future<void>.delayed(const Duration(milliseconds: 2000));
-        _blockFrameUpdates = false;
       }
     } catch (e) {
       if (_disposed) return;
-      state = state.copyWith(isCapturing: false, error: e.toString());
+      state = state.copyWith(
+        isCapturing: false,
+        isIlluminating: false,
+        burstProgress: 0,
+        error: e.toString(),
+      );
+    } finally {
+      _blockFrameUpdates = false;
     }
   }
 
@@ -488,6 +541,8 @@ class _EmployeeScanScreenState extends ConsumerState<EmployeeScanScreen> with Wi
           else
             const Center(child: CircularProgressIndicator(color: AppColors.primary)),
 
+          if (scanState.isIlluminating) const _ScreenFlashOverlay(),
+
           // Glassmorphism HUD
           const _HUDOverlay(),
 
@@ -538,6 +593,30 @@ class _HUDOverlay extends StatelessWidget {
               Colors.black.withOpacity(0.6),
             ],
             stops: const [0.5, 0.8, 1.0],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScreenFlashOverlay extends StatelessWidget {
+  const _ScreenFlashOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 0.9,
+            colors: [
+              Colors.white.withOpacity(0.70),
+              Colors.white.withOpacity(0.32),
+              Colors.white.withOpacity(0.10),
+            ],
+            stops: const [0.0, 0.55, 1.0],
           ),
         ),
       ),
@@ -705,6 +784,18 @@ class _BottomHUD extends StatelessWidget {
                 letterSpacing: 1.5,
               ),
             ),
+            if (state.isCapturing) ...[
+              const SizedBox(height: 12),
+              Text(
+                'RAFAGA ${state.burstProgress}/${state.burstTotal}',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
 
             // Capture Button
