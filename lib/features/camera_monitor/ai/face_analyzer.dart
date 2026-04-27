@@ -1,9 +1,10 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
+
+import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as img;
-import 'package:camera/camera.dart';
 import 'package:worksense_app/core/constants/ai_thresholds.dart';
 import 'package:worksense_app/features/camera_monitor/ai/ai_result.dart';
 
@@ -26,7 +27,6 @@ class FaceCropQuality {
 }
 
 class FaceAnalyzer {
-  /// Analiza una sola cara (para usar con el empleado identificado).
   FaceAnalysisResult analyzeSingle(Face face) {
     return _analyzeOneFace(face);
   }
@@ -36,17 +36,12 @@ class FaceAnalyzer {
       return FaceAnalysisResult.empty;
     }
 
-    // Use the largest face (by bounding box area) as primary
     final face = faces.reduce((a, b) {
       final aArea = a.boundingBox.width * a.boundingBox.height;
       final bArea = b.boundingBox.width * b.boundingBox.height;
       return aArea >= bArea ? a : b;
     });
 
-    // ML Kit provides head rotation angles:
-    // headEulerAngleY = yaw  (left/right rotation)
-    // headEulerAngleX = pitch (up/down tilt)
-    // headEulerAngleZ = roll  (sideways tilt)
     return _analyzeOneFace(face);
   }
 
@@ -55,8 +50,6 @@ class FaceAnalyzer {
     final pitch = face.headEulerAngleX ?? 0.0;
     final roll = face.headEulerAngleZ ?? 0.0;
 
-    // Confidence estimate — ML Kit Face Detection doesn't expose a raw
-    // confidence value, so we derive one from the landmark availability.
     double confidence = 0.8;
     if (face.landmarks.isNotEmpty) {
       confidence = 0.9;
@@ -65,8 +58,7 @@ class FaceAnalyzer {
       confidence *= 0.7;
     }
 
-    // Detect closed eyes (probability < 0.3 means likely closed)
-    bool eyesClosed = false;
+    var eyesClosed = false;
     if (face.leftEyeOpenProbability != null &&
         face.rightEyeOpenProbability != null) {
       if (face.leftEyeOpenProbability! < 0.3 &&
@@ -85,47 +77,57 @@ class FaceAnalyzer {
     );
   }
 
-  /// Integración principal desde el ciclo de vida de la cámara en vivo.
-  /// Convierte eficientemente la trama nativa y realiza el recorte del rostro en background isolate.
-  Future<img.Image?> cropFaceFromCameraImageAsync(CameraImage cameraImage, Face face) async {
+  Future<img.Image?> cropFaceFromCameraImageAsync(
+    CameraImage cameraImage,
+    Face face,
+  ) async {
     final image = await _convertCameraImageAsync(cameraImage);
     if (image == null) return null;
     return cropFaceFromImage(image, face);
   }
 
-  /// (obsoleto, usa la versión Async)
   img.Image? cropFaceFromCameraImage(CameraImage cameraImage, Face face) {
     throw UnsupportedError('Use cropFaceFromCameraImageAsync instead');
   }
 
-  /// Recorta el rostro detectado de la imagen original usando su BoundingBox.
-  /// Aplica el padding factor global estructurado para mayor fiabilidad biométrica.
   img.Image? cropFaceFromImage(img.Image originalImage, Face face) {
     final rect = face.boundingBox;
+    final hasEyeLandmarks = _hasEyeLandmarks(face);
+    final paddingFactor = AiThresholds.facePaddingFactor +
+        (hasEyeLandmarks ? 0.10 : 0.0);
 
-    // Uso de constante centralizada en la arquitectura para evitar magic numbers
-    final paddingX = (rect.width * AiThresholds.facePaddingFactor).toInt();
-    final paddingY = (rect.height * AiThresholds.facePaddingFactor).toInt();
+    final side = math.max(
+      1,
+      (math.max(rect.width, rect.height) * (1 + (paddingFactor * 2))).round(),
+    );
+    final safeSide = math.min(
+      side,
+      math.min(originalImage.width, originalImage.height),
+    );
+    if (safeSide <= 0) return null;
 
-    int x = rect.left.toInt() - paddingX;
-    int y = rect.top.toInt() - paddingY;
-    int w = rect.width.toInt() + (paddingX * 2);
-    int h = rect.height.toInt() + (paddingY * 2);
+    final centerX = rect.left + (rect.width / 2);
+    final centerY = rect.top + (rect.height / 2);
+    final x = _clampCropStart(
+      (centerX - (safeSide / 2)).round(),
+      safeSide,
+      originalImage.width,
+    );
+    final y = _clampCropStart(
+      (centerY - (safeSide / 2)).round(),
+      safeSide,
+      originalImage.height,
+    );
 
-    x = x < 0 ? 0 : x;
-    y = y < 0 ? 0 : y;
-    w = (x + w > originalImage.width) ? (originalImage.width - x) : w;
-    h = (y + h > originalImage.height) ? (originalImage.height - y) : h;
-
-    if (w <= 0 || h <= 0) return null;
-
-    return img.copyCrop(
+    final croppedFace = img.copyCrop(
       originalImage,
       x: x,
       y: y,
-      width: w,
-      height: h,
+      width: safeSide,
+      height: safeSide,
     );
+
+    return _alignFaceCrop(croppedFace, face);
   }
 
   FaceCropQuality assessCropQuality(img.Image croppedFace) {
@@ -140,17 +142,17 @@ class FaceAnalyzer {
       );
     }
 
-    double sum = 0.0;
-    double sumSq = 0.0;
-    double edgeSum = 0.0;
-    int edgeCount = 0;
+    var sum = 0.0;
+    var sumSq = 0.0;
+    var edgeSum = 0.0;
+    var edgeCount = 0;
 
     final width = croppedFace.width;
     final height = croppedFace.height;
     final luminance = List<double>.filled(width * height, 0.0);
 
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
+    for (var y = 0; y < height; y++) {
+      for (var x = 0; x < width; x++) {
         final pixel = croppedFace.getPixel(x, y);
         final value =
             (0.299 * pixel.r + 0.587 * pixel.g + 0.114 * pixel.b) / 255.0;
@@ -166,8 +168,8 @@ class FaceAnalyzer {
     final variance = (sumSq / totalPixels) - (brightness * brightness);
     final contrast = variance <= 0 ? 0.0 : math.sqrt(variance);
 
-    for (int y = 0; y < height - 1; y++) {
-      for (int x = 0; x < width - 1; x++) {
+    for (var y = 0; y < height - 1; y++) {
+      for (var x = 0; x < width - 1; x++) {
         final current = luminance[y * width + x];
         final right = luminance[y * width + x + 1];
         final bottom = luminance[(y + 1) * width + x];
@@ -176,7 +178,8 @@ class FaceAnalyzer {
       }
     }
 
-    final sharpness = edgeCount == 0 ? 0.0 : (edgeSum / edgeCount).clamp(0.0, 1.0);
+    final sharpness =
+        edgeCount == 0 ? 0.0 : (edgeSum / edgeCount).clamp(0.0, 1.0);
 
     final brightnessScore = brightness < AiThresholds.minFaceBrightness
         ? (brightness / AiThresholds.minFaceBrightness).clamp(0.0, 1.0)
@@ -247,21 +250,79 @@ class FaceAnalyzer {
     );
   }
 
-  // ── Helpers Privados de Conversión ───────────────────────────────────────
+  bool _hasEyeLandmarks(Face face) {
+    return face.landmarks[FaceLandmarkType.leftEye] != null &&
+        face.landmarks[FaceLandmarkType.rightEye] != null;
+  }
+
+  int _clampCropStart(int start, int size, int maxExtent) {
+    if (size >= maxExtent) return 0;
+    if (start < 0) return 0;
+    final maxStart = maxExtent - size;
+    if (start > maxStart) return maxStart;
+    return start;
+  }
+
+  img.Image _alignFaceCrop(img.Image croppedFace, Face face) {
+    final leftEye = face.landmarks[FaceLandmarkType.leftEye];
+    final rightEye = face.landmarks[FaceLandmarkType.rightEye];
+    if (leftEye == null || rightEye == null) {
+      return croppedFace;
+    }
+
+    final deltaX = rightEye.position.x - leftEye.position.x;
+    final deltaY = rightEye.position.y - leftEye.position.y;
+    if (deltaX.abs() < 0.001) {
+      return croppedFace;
+    }
+
+    final rotationDegrees = math.atan2(deltaY, deltaX) * 180 / math.pi;
+    if (rotationDegrees.abs() < 1.0 ||
+        rotationDegrees.abs() > AiThresholds.maxRollAngle) {
+      return croppedFace;
+    }
+
+    final rotated = img.copyRotate(croppedFace, angle: -rotationDegrees);
+    final safeSide = math.min(
+      croppedFace.width,
+      math.min(rotated.width, rotated.height),
+    );
+    final startX = _clampCropStart(
+      ((rotated.width - safeSide) / 2).round(),
+      safeSide,
+      rotated.width,
+    );
+    final startY = _clampCropStart(
+      ((rotated.height - safeSide) / 2).round(),
+      safeSide,
+      rotated.height,
+    );
+
+    return img.copyCrop(
+      rotated,
+      x: startX,
+      y: startY,
+      width: safeSide,
+      height: safeSide,
+    );
+  }
 
   Future<img.Image?> _convertCameraImageAsync(CameraImage image) async {
     try {
-      final Map<String, dynamic> data = {
+      final data = <String, dynamic>{
         'format': image.format.group.name,
         'width': image.width,
         'height': image.height,
-        'planes': image.planes.map((p) => {
-          'bytes': p.bytes,
-          'bytesPerRow': p.bytesPerRow,
-          'bytesPerPixel': p.bytesPerPixel,
-        }).toList(),
+        'planes': image.planes
+            .map(
+              (p) => {
+                'bytes': p.bytes,
+                'bytesPerRow': p.bytesPerRow,
+                'bytesPerPixel': p.bytesPerPixel,
+              },
+            )
+            .toList(),
       };
-      // Run the heavy loop on a background isolate
       return await compute(_convertCameraImageTask, data);
     } catch (e) {
       print('[FaceAnalyzer] Error preparando CameraImage para isolate: $e');
@@ -283,9 +344,11 @@ class FaceAnalyzer {
           bytes: (planes[0]['bytes'] as Uint8List).buffer,
           order: img.ChannelOrder.bgra,
         );
-      } else if (format == 'nv21') {
+      }
+      if (format == 'nv21') {
         return _convertNV21(width, height, planes);
-      } else if (format == 'yuv420') {
+      }
+      if (format == 'yuv420') {
         return _convertYUV420(width, height, planes);
       }
       return null;
@@ -297,39 +360,39 @@ class FaceAnalyzer {
 
   static img.Image _convertNV21(int width, int height, List<dynamic> planes) {
     final yPlane = planes[0]['bytes'] as Uint8List;
-    
+
     Uint8List vuPlane;
     int yRowStride;
     int vuRowStride;
-    int vuOffset = 0;
+    var vuOffset = 0;
 
     if (planes.length >= 2) {
       vuPlane = planes[1]['bytes'] as Uint8List;
       yRowStride = planes[0]['bytesPerRow'] as int;
       vuRowStride = planes[1]['bytesPerRow'] as int;
     } else {
-      // Packed in a single plane
       vuPlane = yPlane;
       yRowStride = width;
       vuRowStride = width;
       vuOffset = width * height;
     }
 
-    final img.Image result = img.Image(width: width, height: height);
+    final result = img.Image(width: width, height: height);
 
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
+    for (var y = 0; y < height; y++) {
+      for (var x = 0; x < width; x++) {
         final uvIndex = vuOffset + (y ~/ 2) * vuRowStride + (x ~/ 2) * 2;
         final yIndex = y * yRowStride + x;
 
         final yp = yPlane[yIndex];
-        // En NV21 el plano V está intercalado antes que U
         final vp = vuPlane[uvIndex];
         final up = vuPlane[uvIndex + 1];
 
-        int r = (yp + vp * 1436 / 1024 - 179).round().clamp(0, 255);
-        int g = (yp - up * 46549 / 131072 + 44 - vp * 93604 / 131072 + 91).round().clamp(0, 255);
-        int b = (yp + up * 1814 / 1024 - 227).round().clamp(0, 255);
+        final r = (yp + vp * 1436 / 1024 - 179).round().clamp(0, 255);
+        final g = (yp - up * 46549 / 131072 + 44 - vp * 93604 / 131072 + 91)
+            .round()
+            .clamp(0, 255);
+        final b = (yp + up * 1814 / 1024 - 227).round().clamp(0, 255);
 
         result.setPixelRgb(x, y, r, g, b);
       }
@@ -346,10 +409,10 @@ class FaceAnalyzer {
     final uvRowStride = planes[1]['bytesPerRow'] as int;
     final uvPixelStride = planes[1]['bytesPerPixel'] as int? ?? 1;
 
-    final img.Image result = img.Image(width: width, height: height);
+    final result = img.Image(width: width, height: height);
 
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
+    for (var y = 0; y < height; y++) {
+      for (var x = 0; x < width; x++) {
         final uvIndex = uvPixelStride * (x ~/ 2) + uvRowStride * (y ~/ 2);
         final yIndex = y * yRowStride + x;
 
@@ -357,9 +420,11 @@ class FaceAnalyzer {
         final up = uPlane[uvIndex];
         final vp = vPlane[uvIndex];
 
-        int r = (yp + vp * 1436 / 1024 - 179).round().clamp(0, 255);
-        int g = (yp - up * 46549 / 131072 + 44 - vp * 93604 / 131072 + 91).round().clamp(0, 255);
-        int b = (yp + up * 1814 / 1024 - 227).round().clamp(0, 255);
+        final r = (yp + vp * 1436 / 1024 - 179).round().clamp(0, 255);
+        final g = (yp - up * 46549 / 131072 + 44 - vp * 93604 / 131072 + 91)
+            .round()
+            .clamp(0, 255);
+        final b = (yp + up * 1814 / 1024 - 227).round().clamp(0, 255);
 
         result.setPixelRgb(x, y, r, g, b);
       }
@@ -367,4 +432,3 @@ class FaceAnalyzer {
     return result;
   }
 }
-
