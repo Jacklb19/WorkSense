@@ -63,21 +63,25 @@ class FaceEmbeddingService {
   }
 
   /// Extrae la matriz tridimensional normalizada usando (p - avg) / std
-  Object _toFloatMatrix(img.Image resizedImage) {
+  List<List<List<List<double>>>> _toFloatMatrix(img.Image resizedImage) {
     final int size = AiThresholds.faceInputSize;
-    final buffer = Float32List(1 * size * size * 3);
-    int index = 0;
+    final mean = AiThresholds.faceColorMean;
+    final std = AiThresholds.faceColorStd;
 
+    final rows = <List<List<double>>>[];
     for (int y = 0; y < size; y++) {
+      final row = <List<double>>[];
       for (int x = 0; x < size; x++) {
         final pixel = resizedImage.getPixel(x, y);
-        buffer[index++] = (pixel.r - AiThresholds.faceColorMean) / AiThresholds.faceColorStd;
-        buffer[index++] = (pixel.g - AiThresholds.faceColorMean) / AiThresholds.faceColorStd;
-        buffer[index++] = (pixel.b - AiThresholds.faceColorMean) / AiThresholds.faceColorStd;
+        row.add([
+          (pixel.r - mean) / std,
+          (pixel.g - mean) / std,
+          (pixel.b - mean) / std,
+        ]);
       }
+      rows.add(row);
     }
-    
-    return buffer.reshape([1, size, size, 3]);
+    return [rows];
   }
 
   /// Normaliza el vector en el espacio L2

@@ -5,6 +5,7 @@ import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
+import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
 import 'package:intl/intl.dart';
 
@@ -155,6 +156,10 @@ class EmployeesListScreen extends ConsumerWidget {
       await ref
           .read(employeeFormNotifierProvider.notifier)
           .deleteEmployee(id);
+      
+      // Forzar y esperar la sincronización para que Supabase se actualice antes de recargar
+      await ref.read(syncNotifierProvider.notifier).sync();
+      
       ref.invalidate(adminEmployeesProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

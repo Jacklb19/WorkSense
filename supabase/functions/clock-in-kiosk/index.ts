@@ -15,6 +15,15 @@ serve(async (req) => {
 
     const { employeeId, workstationId } = await req.json()
 
+    // 0. Fetch company_id for the employee
+    const { data: employeeData } = await supabase
+      .from('employees')
+      .select('company_id')
+      .eq('id', employeeId)
+      .single()
+    
+    const companyId = employeeData?.company_id
+
     // 1. Verificar sesión abierta
     const { data: openSession } = await supabase
       .from('attendance_logs')
@@ -33,6 +42,7 @@ serve(async (req) => {
       await supabase.from('attendance_logs').insert([{ 
         employee_id: employeeId, 
         workstation_id: workstationId,
+        company_id: companyId,
         shift_date: new Date().toISOString().split('T')[0],
         clock_in_time: new Date().toISOString() 
       }])

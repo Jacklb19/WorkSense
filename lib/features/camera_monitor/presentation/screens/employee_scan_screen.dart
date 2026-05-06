@@ -228,6 +228,7 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
           final passesLivePresence = _passesLivePresenceGate(
             face,
             inputImage.metadata?.size,
+            inputImage.metadata?.rotation,
           );
           
           if (isCorrectPos && passesLivePresence) {
@@ -425,30 +426,39 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
 
   bool get _requiresBlinkChallenge => state.currentSampleIndex == 0;
 
-  bool _passesLivePresenceGate(Face face, Size? frameSize) {
+  bool _passesLivePresenceGate(Face face, Size? frameSize, InputImageRotation? rotation) {
     if (frameSize == null) return false;
 
+    double fWidth = frameSize.width;
+    double fHeight = frameSize.height;
+
+    if (rotation == InputImageRotation.rotation90deg || rotation == InputImageRotation.rotation270deg) {
+      fWidth = frameSize.height;
+      fHeight = frameSize.width;
+    }
+
     final box = face.boundingBox;
-    final frameArea = frameSize.width * frameSize.height;
+    final frameArea = fWidth * fHeight;
     if (frameArea <= 0) return false;
 
     final areaRatio = (box.width * box.height) / frameArea;
     final centerX = box.left + (box.width / 2);
     final centerY = box.top + (box.height / 2);
 
-    final minX = frameSize.width * AiThresholds.liveFaceGuideMargin;
-    final maxX = frameSize.width * (1 - AiThresholds.liveFaceGuideMargin);
-    final minY = frameSize.height * AiThresholds.liveFaceGuideMargin;
-    final maxY = frameSize.height * (1 - AiThresholds.liveFaceGuideMargin);
+    final minX = fWidth * AiThresholds.liveFaceGuideMargin;
+    final maxX = fWidth * (1 - AiThresholds.liveFaceGuideMargin);
+    final minY = fHeight * AiThresholds.liveFaceGuideMargin;
+    final maxY = fHeight * (1 - AiThresholds.liveFaceGuideMargin);
 
     final centered = centerX >= minX &&
         centerX <= maxX &&
         centerY >= minY &&
         centerY <= maxY;
-    final fullyVisible = box.left >= 0 &&
-        box.top >= 0 &&
-        box.right <= frameSize.width &&
-        box.bottom <= frameSize.height;
+    
+    final fullyVisible = box.left >= -20 &&
+        box.top >= -20 &&
+        box.right <= fWidth + 20 &&
+        box.bottom <= fHeight + 20;
 
     return areaRatio >= AiThresholds.minLiveFaceAreaRatio &&
         centered &&

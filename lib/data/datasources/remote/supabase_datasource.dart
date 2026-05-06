@@ -196,6 +196,19 @@ class SupabaseDataSource {
     }
   }
 
+  Future<List<Map<String, dynamic>>> fetchAllShifts(String? companyId) async {
+    try {
+      var query = _client.from('shifts').select();
+      if (companyId != null && companyId != 'default') {
+        query = query.eq('company_id', companyId);
+      }
+      final response = await query;
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      throw SyncException('Error obteniendo shifts: $e');
+    }
+  }
+
   // Test de conectividad aislado
   Future<bool> testConnection() async {
     try {

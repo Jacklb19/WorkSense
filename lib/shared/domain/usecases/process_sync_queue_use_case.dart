@@ -95,6 +95,16 @@ class ProcessSyncQueueUseCase {
       
       // Descargar Workstations
       final remoteWorkstations = await _remote.fetchAllWorkstations(companyId);
+      final remoteWorkstationIds = remoteWorkstations.map((w) => w['id'] as String).toSet();
+      
+      // Eliminar workstations locales que ya no existen en Supabase
+      final localWorkstations = await _db.getAllWorkstationRecords();
+      for (var localW in localWorkstations) {
+        if (!remoteWorkstationIds.contains(localW.id)) {
+          await (_db.delete(_db.workstationRecords)..where((t) => t.id.equals(localW.id))).go();
+        }
+      }
+
       for (var w in remoteWorkstations) {
         await _db.into(_db.workstationRecords).insertOnConflictUpdate(
           WorkstationRecord(
@@ -117,15 +127,52 @@ class ProcessSyncQueueUseCase {
 
       // Descargar Empleados
       final remoteEmployees = await _remote.fetchAllEmployees(companyId);
+      final remoteEmployeeIds = remoteEmployees.map((e) => e['id'] as String).toSet();
+
+      // Eliminar empleados locales que ya no existen en Supabase
+      final localEmployees = await _db.select(_db.employeeRecords).get();
+      for (var localE in localEmployees) {
+        if (!remoteEmployeeIds.contains(localE.id)) {
+          await _db.deleteEmployeeRecord(localE.id);
+        }
+      }
+
       for (var e in remoteEmployees) {
+        final localEmp = await _db.getEmployeeRecordById(e['id']);
         await _db.into(_db.employeeRecords).insertOnConflictUpdate(
           EmployeeRecord(
             id: e['id'],
             name: e['name'] ?? 'Desconocido',
             companyId: e['company_id'],
             createdAt: e['created_at'] != null ? DateTime.parse(e['created_at']) : DateTime.now(),
-            // La BD central no guarda face_embedding en employees, sino en workstations.
-            faceEmbedding: null, 
+            faceEmbedding: localEmp?.faceEmbedding, 
+            shiftId: e['shift_id'] ?? localEmp?.shiftId,
+          )
+        );
+      }
+
+      // Descargar Shifts
+      final remoteShifts = await _remote.fetchAllShifts(companyId);
+      for (var s in remoteShifts) {
+        final startParts = s['start_time'].split(':');
+        final endParts = s['end_time'].split(':');
+        final breakStartParts = s['break_time_start']?.split(':');
+        final breakEndParts = s['break_time_end']?.split(':');
+
+        await _db.into(_db.shiftRecords).insertOnConflictUpdate(
+          ShiftRecordData(
+            id: s['id'],
+            companyId: s['company_id'],
+            name: s['name'] ?? 'Turno',
+            startHour: int.parse(startParts[0]),
+            startMinute: int.parse(startParts[1]),
+            endHour: int.parse(endParts[0]),
+            endMinute: int.parse(endParts[1]),
+            breakStartHour: breakStartParts != null ? int.parse(breakStartParts[0]) : null,
+            breakStartMinute: breakStartParts != null ? int.parse(breakStartParts[1]) : null,
+            breakEndHour: breakEndParts != null ? int.parse(breakEndParts[0]) : null,
+            breakEndMinute: breakEndParts != null ? int.parse(breakEndParts[1]) : null,
+            createdAt: s['created_at'] != null ? DateTime.parse(s['created_at']) : DateTime.now(),
           )
         );
       }

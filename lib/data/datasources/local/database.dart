@@ -343,6 +343,16 @@ class AppDatabase extends _$AppDatabase {
         profileVersion: Value(0),
       ));
 
+  Future<void> clearWorkstationProfilesByEmployeeId(String employeeId) =>
+      (update(workstationRecords)..where((t) => t.assignedEmployeeId.equals(employeeId)))
+          .write(const WorkstationRecordsCompanion(
+        assignedEmployeeId: Value(null),
+        faceEmbedding: Value(null),
+        bodySignature: Value(null),
+        profileCapturedAt: Value(null),
+        profileVersion: Value(0),
+      ));
+
   // ── SyncQueueEntries methods ──────────────────────────────────────────────
 
   Future<void> insertSyncQueueEntry(SyncQueueEntriesCompanion entry) =>

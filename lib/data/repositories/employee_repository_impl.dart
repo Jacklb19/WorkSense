@@ -53,11 +53,32 @@ class EmployeeRepositoryImpl implements EmployeeRepository {
 
   @override
   Future<void> deleteEmployee(String id) async {
+    // 0. Obtener workstations afectadas localmente ANTES de borrar el empleado
+    final workstations = await _db.getAllWorkstationRecords();
+    final affectedWorkstations = workstations.where((w) => w.assignedEmployeeId == id).toList();
+
     await _db.transaction(() async {
       // 1. Eliminar localmente
       await _db.deleteEmployeeRecord(id);
+      await _db.clearWorkstationProfilesByEmployeeId(id);
 
-      // 2. Encolar eliminación
+      // 2. Encolar actualización de las workstations afectadas para limpiar biométricos en remoto PRIMERO (para evitar FK constraints)
+      for (final ws in affectedWorkstations) {
+        await _syncRepo.enqueue(
+          targetTable: 'workstations',
+          operation: 'PATCH',
+          recordId: ws.id,
+          payload: {
+            'assigned_employee_id': null,
+            'face_embedding': null,
+            'body_signature': null,
+            'profile_captured_at': null,
+            'profile_version': 0,
+          },
+        );
+      }
+
+      // 3. Encolar eliminación del empleado DESPUÉS
       await _syncRepo.enqueue(
         targetTable: 'employees',
         operation: 'DELETE',
