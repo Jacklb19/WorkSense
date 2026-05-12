@@ -130,7 +130,7 @@ class FaceAnalyzer {
     return _alignFaceCrop(croppedFace, face);
   }
 
-  FaceCropQuality assessCropQuality(img.Image croppedFace) {
+  Future<FaceCropQuality> assessCropQuality(img.Image croppedFace) async {
     if (croppedFace.width < 48 || croppedFace.height < 48) {
       return const FaceCropQuality(
         brightness: 0.0,
@@ -142,13 +142,27 @@ class FaceAnalyzer {
       );
     }
 
+    final data = {
+      'width': croppedFace.width,
+      'height': croppedFace.height,
+      'bytes': croppedFace.getBytes(),
+    };
+
+    return compute(_computeCropQualityTask, data);
+  }
+
+  static FaceCropQuality _computeCropQualityTask(Map<String, dynamic> data) {
+    final int width = data['width'];
+    final int height = data['height'];
+    final Uint8List bytes = data['bytes'];
+    
+    final croppedFace = img.Image.fromBytes(width: width, height: height, bytes: bytes.buffer);
+
     var sum = 0.0;
     var sumSq = 0.0;
     var edgeSum = 0.0;
     var edgeCount = 0;
 
-    final width = croppedFace.width;
-    final height = croppedFace.height;
     final luminance = List<double>.filled(width * height, 0.0);
 
     for (var y = 0; y < height; y++) {

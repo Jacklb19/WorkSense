@@ -373,8 +373,8 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
         }
       }
 
-      // Strict Threshold for Entrance (0.87 minimum recommended for high security)
-      final threshold = 0.87; 
+      // Strict Threshold for Entrance (0.80 recommended for fluent experience)
+      final threshold = 0.80; 
 
       if (maxSim >= threshold && bestMatchId != null) {
          await _triggerEntrance(bestMatchId);

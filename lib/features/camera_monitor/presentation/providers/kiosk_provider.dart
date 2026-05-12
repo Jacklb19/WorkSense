@@ -494,7 +494,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
         
         // Run activity classification (face angles, pose, hands movement)
         final faceResult = _faceAnalyzer.analyzeSingle(largestFace);
-        final poseResult = _poseAnalyzer.analyzeSingle(closestPose);
+        final poseResult = _poseAnalyzer.analyzeSingle(closestPose, imgSize.width);
         
         if (poseResult.handsMoving) _lastMovementTime = now;
         final isInactive = now.difference(_lastMovementTime).inSeconds >=
@@ -591,7 +591,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
     final employeePose = findResult.employeePose;
 
     final faceResult = _faceAnalyzer.analyzeSingle(employeeFace);
-    final poseResult = _poseAnalyzer.analyzeSingle(employeePose);
+    final poseResult = _poseAnalyzer.analyzeSingle(employeePose, imgSize.width);
 
     if (poseResult.handsMoving) _lastMovementTime = now;
     final isInactive = now.difference(_lastMovementTime).inSeconds >=

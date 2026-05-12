@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/data/datasources/remote/supabase_datasource.dart';
 import 'package:worksense_app/data/repositories/auth_repository_impl.dart';
 import 'package:worksense_app/domain/repositories/auth_repository.dart';
@@ -104,10 +104,10 @@ class LoginNotifier extends StateNotifier<LoginState> {
   String _parseError(Object e) {
     final message = e.toString();
     if (message.contains('Invalid login credentials')) {
-      return 'Correo o contraseÃ±a incorrectos.';
+      return 'Correo o contraseña incorrectos.';
     }
     if (message.contains('network') || message.contains('SocketException')) {
-      return 'Sin conexiÃ³n a internet. Verifica tu red.';
+      return 'Sin conexión a internet. Verifica tu red.';
     }
     return 'Error inesperado. Intenta de nuevo.';
   }

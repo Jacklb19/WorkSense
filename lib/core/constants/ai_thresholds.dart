@@ -113,16 +113,16 @@ abstract final class AiThresholds {
   static const double facePaddingFactor = 0.15;
 
   /// Iluminacion minima recomendada para aceptar un crop facial.
-  static const double minFaceBrightness = 0.20;
+  static const double minFaceBrightness = 0.15;
 
   /// Iluminacion maxima antes de considerar el rostro sobreexpuesto.
   static const double maxFaceBrightness = 0.88;
 
   /// Contraste minimo normalizado del crop facial.
-  static const double minFaceContrast = 0.12;
+  static const double minFaceContrast = 0.08;
 
   /// Nitidez minima normalizada del crop facial.
-  static const double minFaceSharpness = 0.10;
+  static const double minFaceSharpness = 0.08;
 
   /// Numero de tomas rapidas por pose durante el enrolamiento.
   static const int scanBurstFrames = 5;
@@ -131,7 +131,7 @@ abstract final class AiThresholds {
   static const int scanBurstDelayMs = 120;
 
   /// Probabilidad minima para considerar que ambos ojos estan abiertos.
-  static const double minEyeOpenProbability = 0.65;
+  static const double minEyeOpenProbability = 0.55;
 
   /// Probabilidad maxima para considerar que ambos ojos estan cerrados.
   static const double maxEyeClosedProbability = 0.35;
@@ -143,7 +143,7 @@ abstract final class AiThresholds {
   static const double minSoftFaceQualityScore = 0.55;
 
   /// Frames estables requeridos antes de marcar el scanner como listo.
-  static const int liveDetectionStableFrames = 3;
+  static const int liveDetectionStableFrames = 2;
 
   /// Cobertura minima del rostro en el frame para validar presencia.
   static const double minLiveFaceAreaRatio = 0.14;

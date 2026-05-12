@@ -72,9 +72,15 @@ class ProcessSyncQueueUseCase {
         }
         errors.add('Entry ${entry.id} (${entry.targetTable }): ${e.message}');
         debugPrint('[Sync Error] $e');
+      } on NetworkException catch (e) {
+        debugPrint('[Sync] NetworkException: $e');
+        errors.add('Network error on entry ${entry.id}: $e');
+      } on SerializationException catch (e) {
+        debugPrint('[Sync] SerializationException: $e');
+        errors.add('Serialization error on entry ${entry.id}: $e');
       } catch (e) {
+        debugPrint('[Sync] Unexpected Error: $e');
         errors.add('Unexpected error on entry ${entry.id}: $e');
-        debugPrint('[Sync Unexpected Error] $e');
       }
     }
 
@@ -193,4 +199,18 @@ class SyncResult {
   bool get hasErrors => errors.isNotEmpty;
 
   SyncResult({required this.synced, required this.errors, required this.total});
+}
+
+class NetworkException implements Exception {
+  final String message;
+  NetworkException(this.message);
+  @override
+  String toString() => message;
+}
+
+class SerializationException implements Exception {
+  final String message;
+  SerializationException(this.message);
+  @override
+  String toString() => message;
 }

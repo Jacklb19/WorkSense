@@ -78,22 +78,22 @@ class EmployeeProfiler {
     ),
     ScanInstruction(
       index: 1,
-      text: 'Gira levemente la cabeza hacia tu izquierda (15-20 grados)',
+      text: 'Gira tu cabeza a la izquierda muy ligeramente',
       emoji: '',
     ),
     ScanInstruction(
       index: 2,
-      text: 'Gira levemente la cabeza hacia tu derecha (15-20 grados)',
+      text: 'Gira tu cabeza a la derecha muy ligeramente',
       emoji: '',
     ),
     ScanInstruction(
       index: 3,
-      text: 'Inclina la cabeza levemente hacia abajo (como mirando el escritorio)',
+      text: 'Inclina la cabeza ligeramente hacia abajo',
       emoji: '',
     ),
     ScanInstruction(
       index: 4,
-      text: 'Levanta levemente la cabeza (como mirando una pantalla alta)',
+      text: 'Levanta la cabeza ligeramente hacia arriba',
       emoji: '',
     ),
   ];
@@ -224,7 +224,7 @@ class EmployeeProfiler {
       );
     }
 
-    final cropQuality = _faceAnalyzer.assessCropQuality(croppedFace);
+    final cropQuality = await _faceAnalyzer.assessCropQuality(croppedFace);
     print(
       '[SCAN] CROP QUALITY - '
       'brightness: ${cropQuality.brightness.toStringAsFixed(3)}, '
@@ -408,13 +408,13 @@ class EmployeeProfiler {
       case 0:
         return yaw.abs() <= 10.0 && pitch.abs() <= 12.0;
       case 1:
-        return yaw < -12.0 && pitch.abs() <= 20.0;
+        return yaw < -5.0 && pitch.abs() <= 15.0;
       case 2:
-        return yaw > 12.0 && pitch.abs() <= 20.0;
+        return yaw > 5.0 && pitch.abs() <= 15.0;
       case 3:
-        return yaw.abs() <= 20.0 && pitch > 10.0;
+        return yaw.abs() <= 15.0 && pitch > 5.0;
       case 4:
-        return yaw.abs() <= 20.0 && pitch < -10.0;
+        return yaw.abs() <= 15.0 && pitch < -5.0;
       default:
         return true;
     }

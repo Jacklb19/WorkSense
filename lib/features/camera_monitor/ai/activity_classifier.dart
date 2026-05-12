@@ -3,9 +3,8 @@ import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/camera_monitor/ai/ai_result.dart';
 
 class ActivityClassifier {
-  // Smoothing buffer — stores last N results for majority vote
-  static const int _bufferSize = 7;
-  final List<ActivityState> _recentStates = [];
+  static const double _alpha = 0.3;
+  final Map<ActivityState, double> _stateEma = {};
 
   AiResult classify({
     required PoseAnalysisResult pose,
@@ -18,12 +17,25 @@ class ActivityClassifier {
       isInactive: isInactive,
     );
 
-    _recentStates.add(rawResult.state);
-    if (_recentStates.length > _bufferSize) {
-      _recentStates.removeAt(0);
+    if (_stateEma.isEmpty) {
+      for (final state in ActivityState.values) {
+        _stateEma[state] = state == rawResult.state ? 1.0 : 0.0;
+      }
+    } else {
+      for (final state in ActivityState.values) {
+        final double target = state == rawResult.state ? 1.0 : 0.0;
+        _stateEma[state] = (_alpha * target) + ((1 - _alpha) * _stateEma[state]!);
+      }
     }
 
-    final smoothedState = _mode(_recentStates);
+    ActivityState smoothedState = rawResult.state;
+    double maxEma = -1.0;
+    _stateEma.forEach((state, ema) {
+      if (ema > maxEma) {
+        maxEma = ema;
+        smoothedState = state;
+      }
+    });
 
     return AiResult(
       state: smoothedState,
@@ -88,21 +100,8 @@ class ActivityClassifier {
     return const AiResult(state: ActivityState.trabajando, confidence: 0.90);
   }
 
-  ActivityState _mode(List<ActivityState> states) {
-    if (states.isEmpty) return ActivityState.ausente;
-
-    final counts = <ActivityState, int>{};
-    for (final s in states) {
-      counts[s] = (counts[s] ?? 0) + 1;
-    }
-
-    return counts.entries
-        .reduce((a, b) => a.value >= b.value ? a : b)
-        .key;
-  }
-
   /// Reset smoothing buffer (call when monitoring session restarts)
   void reset() {
-    _recentStates.clear();
+    _stateEma.clear();
   }
 }

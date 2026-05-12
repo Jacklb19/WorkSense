@@ -6,11 +6,17 @@ import 'package:worksense_app/features/camera_monitor/presentation/providers/kio
 import 'package:worksense_app/data/repositories/shift_repository_impl.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
+import 'package:worksense_app/features/dashboard/domain/usecases/save_shift_use_case.dart';
 
 final shiftRepositoryProvider = Provider<ShiftRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);
   final syncRepo = ref.watch(syncRepositoryProvider);
   return ShiftRepositoryImpl(db, syncRepo);
+});
+
+final saveShiftUseCaseProvider = Provider<SaveShiftUseCase>((ref) {
+  final repo = ref.watch(shiftRepositoryProvider);
+  return SaveShiftUseCase(repo);
 });
 
 final shiftsProvider = FutureProvider<List<Shift>>((ref) async {
@@ -85,7 +91,7 @@ class ShiftFormNotifier extends StateNotifier<ShiftFormState> {
         throw Exception('Compañía no identificada.');
       }
 
-      final repo = _ref.read(shiftRepositoryProvider);
+      final saveShift = _ref.read(saveShiftUseCaseProvider);
       
       final shift = Shift(
         id: id,
@@ -102,7 +108,7 @@ class ShiftFormNotifier extends StateNotifier<ShiftFormState> {
         createdAt: DateTime.now(),
       );
 
-      await repo.createShift(shift);
+      await saveShift(shift);
 
       // Invalidate to reload the list
       _ref.invalidate(shiftsProvider);

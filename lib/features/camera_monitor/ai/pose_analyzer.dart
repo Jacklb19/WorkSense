@@ -11,26 +11,25 @@ class PoseAnalyzer {
   double? _prevRightWristX;
   double? _prevRightWristY;
 
-  /// Analiza una sola pose (para usar con el empleado identificado).
-  PoseAnalysisResult analyzeSingle(Pose? pose) {
+  PoseAnalysisResult analyzeSingle(Pose? pose, double imageWidth) {
     if (pose == null) {
       _clearPreviousPositions();
       return PoseAnalysisResult.empty;
     }
-    return _analyzeOnePose(pose);
+    return _analyzeOnePose(pose, imageWidth);
   }
 
-  PoseAnalysisResult analyze(List<Pose> poses) {
+  PoseAnalysisResult analyze(List<Pose> poses, double imageWidth) {
     if (poses.isEmpty) {
       _clearPreviousPositions();
       return PoseAnalysisResult.empty;
     }
 
     final pose = poses.first;
-    return _analyzeOnePose(pose);
+    return _analyzeOnePose(pose, imageWidth);
   }
 
-  PoseAnalysisResult _analyzeOnePose(Pose pose) {
+  PoseAnalysisResult _analyzeOnePose(Pose pose, double imageWidth) {
     final landmarks = pose.landmarks;
 
     // Check pose confidence via landmark presence scores
@@ -74,7 +73,7 @@ class PoseAnalyzer {
     // Check wrist movement
     bool handsMoving = false;
     if (leftWrist != null && rightWrist != null) {
-      handsMoving = _detectWristMovement(leftWrist, rightWrist);
+      handsMoving = _detectWristMovement(leftWrist, rightWrist, imageWidth);
       // Update stored positions
       _prevLeftWristX = leftWrist.x;
       _prevLeftWristY = leftWrist.y;
@@ -117,7 +116,7 @@ class PoseAnalyzer {
   }
 
   bool _detectWristMovement(
-      PoseLandmark leftWrist, PoseLandmark rightWrist) {
+      PoseLandmark leftWrist, PoseLandmark rightWrist, double imageWidth) {
     if (_prevLeftWristX == null ||
         _prevLeftWristY == null ||
         _prevRightWristX == null ||
@@ -135,10 +134,8 @@ class PoseAnalyzer {
     final leftMovement = math.sqrt(leftDx * leftDx + leftDy * leftDy);
     final rightMovement = math.sqrt(rightDx * rightDx + rightDy * rightDy);
 
-    // Normalize by a typical image width assumption of 640px
-    const imageWidthEstimate = 640.0;
-    final normalizedLeft = leftMovement / imageWidthEstimate;
-    final normalizedRight = rightMovement / imageWidthEstimate;
+    final normalizedLeft = leftMovement / imageWidth;
+    final normalizedRight = rightMovement / imageWidth;
 
     return normalizedLeft > AiThresholds.minWristMovement ||
         normalizedRight > AiThresholds.minWristMovement;
