@@ -32,12 +32,12 @@ class PoseAnalyzer {
   PoseAnalysisResult _analyzeOnePose(Pose pose, double imageWidth) {
     final landmarks = pose.landmarks;
 
-    // Check pose confidence via landmark presence scores
-    final nose = landmarks[PoseLandmarkType.nose];
-    final leftShoulder = landmarks[PoseLandmarkType.leftShoulder];
-    final rightShoulder = landmarks[PoseLandmarkType.rightShoulder];
-    final leftWrist = landmarks[PoseLandmarkType.leftWrist];
-    final rightWrist = landmarks[PoseLandmarkType.rightWrist];
+    // Check pose confidence via guarded reliable landmark accesses
+    final nose = _getLandmarkIfReliable(landmarks, PoseLandmarkType.nose);
+    final leftShoulder = _getLandmarkIfReliable(landmarks, PoseLandmarkType.leftShoulder);
+    final rightShoulder = _getLandmarkIfReliable(landmarks, PoseLandmarkType.rightShoulder);
+    final leftWrist = _getLandmarkIfReliable(landmarks, PoseLandmarkType.leftWrist);
+    final rightWrist = _getLandmarkIfReliable(landmarks, PoseLandmarkType.rightWrist);
 
     if (nose == null || leftShoulder == null || rightShoulder == null) {
       _clearPreviousPositions();
@@ -162,6 +162,17 @@ class PoseAnalyzer {
     }
 
     return checkWrist(leftWrist) || checkWrist(rightWrist);
+  }
+
+  /// Devuelve el landmark solo si existe y su fiabilidad (likelihood) es >= 0.6.
+  /// Esto previene detecciones erróneas causadas por mala iluminación o glitch del ML.
+  PoseLandmark? _getLandmarkIfReliable(
+      Map<PoseLandmarkType, PoseLandmark> landmarks, PoseLandmarkType type) {
+    final landmark = landmarks[type];
+    if (landmark == null || landmark.likelihood < 0.6) {
+      return null;
+    }
+    return landmark;
   }
 
   void _clearPreviousPositions() {

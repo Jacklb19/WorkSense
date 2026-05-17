@@ -157,6 +157,55 @@ class KioskState {
   }
 }
 
+// ── Activity Window Buffer ───────────────────────────────────────────────────
+
+class _WindowEntry {
+  final ActivityState state;
+  final DateTime timestamp;
+  _WindowEntry(this.state, this.timestamp);
+}
+
+class ActivityWindowBuffer {
+  final Duration windowDuration;
+  final List<_WindowEntry> _buffer = [];
+
+  ActivityWindowBuffer({this.windowDuration = const Duration(seconds: 4)});
+
+  /// Adds a new frame-level state. Returns the majority state if a full window is completed,
+  /// otherwise returns null indicating the window is still accumulating.
+  ActivityState addAndGetMajority(ActivityState state, DateTime timestamp) {
+    _buffer.add(_WindowEntry(state, timestamp));
+
+    _buffer.removeWhere((entry) => 
+        timestamp.difference(entry.timestamp) > windowDuration);
+
+    final counts = <ActivityState, int>{};
+    for (final entry in _buffer) {
+      counts[entry.state] = (counts[entry.state] ?? 0) + 1;
+    }
+
+    // [TIE-BREAK EXPLICITO]
+    // Inicializamos con el estado del frame actual (state) y su conteo.
+    // Si hay un empate absoluto con otro estado en el buffer, el > estricto 
+    // evita sobreescribirlo. Así, la balanza siempre favorece lo más reciente.
+    var majorityState = state;
+    var maxCount = counts[state] ?? 0;
+    
+    for (final entry in counts.entries) {
+      if (entry.key != state && entry.value > maxCount) {
+        maxCount = entry.value;
+        majorityState = entry.key;
+      }
+    }
+
+    return majorityState;
+  }
+
+  void reset() {
+    _buffer.clear();
+  }
+}
+
 // ── Kiosk Notifier ─────────────────────────────────────────────────────────────
 
 class KioskNotifier extends StateNotifier<KioskState> {
@@ -170,6 +219,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
   late final PoseAnalyzer _poseAnalyzer;
   late final FaceAnalyzer _faceAnalyzer;
   late final ActivityClassifier _classifier;
+  late final ActivityWindowBuffer _activityWindowBuffer;
 
   EmployeeFinder? _finder;
 
@@ -221,6 +271,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
     _poseAnalyzer = PoseAnalyzer();
     _faceAnalyzer = FaceAnalyzer();
     _classifier = ActivityClassifier();
+    _activityWindowBuffer = ActivityWindowBuffer(windowDuration: const Duration(seconds: 4));
     
     // Asegurar que el modelo TFLite esté cargado
     _embeddingService.initialize();
@@ -249,11 +300,11 @@ class KioskNotifier extends StateNotifier<KioskState> {
     final companyId = record?.companyId;
 
     if (record != null &&
-        record.faceEmbedding != null &&
+        record.faceEmbeddings != null &&
         record.bodySignature != null &&
         assignedId != null) {
       // Reconstruir el perfil desde la BD usando el serializer centralizado
-      final embeddingRaw = BiometricSerializer.deserializeEmbedding(record.faceEmbedding);
+      final embeddingRaw = BiometricSerializer.deserializeMultipleEmbeddings(record.faceEmbeddings);
       
       final bodyJson =
           (jsonDecode(record.bodySignature!) as Map<String, dynamic>)
@@ -263,7 +314,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
         final profile = EmployeeProfile(
           employeeId: assignedId,
           workstationId: workstationId,
-          faceEmbedding: embeddingRaw,
+          faceEmbeddings: embeddingRaw,
           bodySignature: BodySignature.fromJson(bodyJson),
           capturedAt: record.profileCapturedAt ?? DateTime.now(),
           sampleCount: 5,
@@ -506,11 +557,13 @@ class KioskNotifier extends StateNotifier<KioskState> {
           face: faceResult,
           isInactive: isInactive,
         );
+
+        final smoothedState = _activityWindowBuffer.addAndGetMajority(aiResult.state, now);
         
         final previousActivityState = state.currentState;
         
         state = state.copyWith(
-          currentState: aiResult.state,
+          currentState: smoothedState,
           confidence: aiResult.confidence,
           isProcessing: false,
           poses: closestPose != null ? [closestPose] : const [],
@@ -519,10 +572,12 @@ class KioskNotifier extends StateNotifier<KioskState> {
         );
         
         // Save events during active session
-        final stateChanged = aiResult.state != previousActivityState;
+        final stateChanged = smoothedState != previousActivityState;
         final saveIntervalElapsed = now.difference(_lastSaveTime) >= _saveInterval;
         if (stateChanged || saveIntervalElapsed) {
-          _saveEvent(aiResult, now,
+          _saveEvent(
+              AiResult(state: smoothedState, confidence: aiResult.confidence), 
+              now,
               identityConfidence: state.identityConfidence,
               identificationMethod: state.identificationMethod ?? 'TRACKING');
           _lastSaveTime = now;
@@ -557,6 +612,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
   void _handleAbsent(FindResult findResult, Size imgSize) {
     _consecutiveAbsentFrames++;
+    _activityWindowBuffer.reset();
     _stableEntryFrames = 0;
     if (state.sessionStatus == SessionStatus.active) {
       _requiresFreshIdentityCheck = true;
@@ -603,8 +659,11 @@ class KioskNotifier extends StateNotifier<KioskState> {
       isInactive: isInactive,
     );
 
+    final smoothedState = _activityWindowBuffer.addAndGetMajority(aiResult.state, now);
+
     final methodLabel = findResult.identifiedBy?.name.toUpperCase() ?? 'FACE';
     final previousActivityState = state.currentState;
+    
     final requiresEntryStability =
         state.sessionStatus == SessionStatus.idle ||
         state.sessionStatus == SessionStatus.entryPending;
@@ -613,7 +672,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
     // Actualizar confianza y overlays
     state = state.copyWith(
-      currentState: aiResult.state,
+      currentState: smoothedState,
       confidence: aiResult.confidence,
       identityConfidence: findResult.confidence,
       identificationMethod: methodLabel,
@@ -645,11 +704,13 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
     // CASO 2: Sesión ACTIVA — guardar logs normales
     if (state.sessionStatus == SessionStatus.active) {
-      final stateChanged = aiResult.state != previousActivityState;
+      final stateChanged = smoothedState != previousActivityState;
       final saveIntervalElapsed = now.difference(_lastSaveTime) >= _saveInterval;
       
       if (stateChanged || saveIntervalElapsed) {
-        _saveEvent(aiResult, now,
+        _saveEvent(
+            AiResult(state: smoothedState, confidence: aiResult.confidence), 
+            now,
             identityConfidence: findResult.confidence,
             identificationMethod: methodLabel);
         _lastSaveTime = now;

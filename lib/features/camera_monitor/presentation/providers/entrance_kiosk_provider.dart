@@ -197,7 +197,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
             companyId: drift.Value(w['company_id']),
             deviceId: drift.Value(w['device_id']),
             assignedEmployeeId: drift.Value(w['assigned_employee_id']),
-            faceEmbedding: drift.Value(w['face_embedding']?.toString()),
+            faceEmbeddings: drift.Value(w['face_embedding']?.toString()),
             bodySignature: drift.Value(w['body_signature']?.toString()),
             status: drift.Value(w['status'] ?? 'IDLE'),
           ));
@@ -262,9 +262,9 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
     int count = 0;
     
     for (var w in workstations) {
-      if (w.assignedEmployeeId != null && w.faceEmbedding != null) {
+      if (w.assignedEmployeeId != null && w.faceEmbeddings != null) {
         try {
-          List<dynamic> jsonList = jsonDecode(w.faceEmbedding!);
+          List<dynamic> jsonList = jsonDecode(w.faceEmbeddings!);
           List<double> embedding = jsonList.map((e) => (e as num).toDouble()).toList();
           if (embedding.isNotEmpty) {
              _employeeRegistry[w.assignedEmployeeId!] = embedding;

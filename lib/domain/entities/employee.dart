@@ -3,7 +3,7 @@ class Employee {
   final String name;
   final String companyId;
   final DateTime createdAt;
-  final List<double>? faceEmbedding;
+  final List<List<double>>? faceEmbeddings;
   final String? shiftId;
 
   const Employee({
@@ -11,7 +11,7 @@ class Employee {
     required this.name,
     required this.companyId,
     required this.createdAt,
-    this.faceEmbedding,
+    this.faceEmbeddings,
     this.shiftId,
   });
 
@@ -20,7 +20,7 @@ class Employee {
     String? name,
     String? companyId,
     DateTime? createdAt,
-    List<double>? faceEmbedding,
+    List<List<double>>? faceEmbeddings,
     String? shiftId,
   }) {
     return Employee(
@@ -28,7 +28,7 @@ class Employee {
       name: name ?? this.name,
       companyId: companyId ?? this.companyId,
       createdAt: createdAt ?? this.createdAt,
-      faceEmbedding: faceEmbedding ?? this.faceEmbedding,
+      faceEmbeddings: faceEmbeddings ?? this.faceEmbeddings,
       shiftId: shiftId ?? this.shiftId,
     );
   }
@@ -54,10 +54,10 @@ class Employee {
           name == other.name &&
           companyId == other.companyId &&
           createdAt == other.createdAt &&
-          faceEmbedding == other.faceEmbedding &&
+          faceEmbeddings == other.faceEmbeddings &&
           shiftId == other.shiftId;
 
   @override
-  int get hashCode => Object.hash(id, name, companyId, createdAt, faceEmbedding, shiftId);
+  int get hashCode => Object.hash(id, name, companyId, createdAt, faceEmbeddings, shiftId);
 }
 

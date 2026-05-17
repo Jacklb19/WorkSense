@@ -36,9 +36,9 @@ class EmployeeScanState {
   final int burstProgress;
   final int burstTotal;
 
-  const EmployeeScanState({
+  EmployeeScanState({
     this.currentSampleIndex = 0,
-    this.completedSamples = const [false, false, false, false, false],
+    List<bool>? completedSamples,
     this.frameStatus = _FrameStatus.searching,
     this.feedback = 'Posiciónate frente a la cámara',
     this.isCapturing = false,
@@ -48,7 +48,7 @@ class EmployeeScanState {
     this.isIlluminating = false,
     this.burstProgress = 0,
     this.burstTotal = AiThresholds.scanBurstFrames,
-  });
+  }) : completedSamples = completedSamples ?? List.filled(EmployeeProfiler.samplesRequired, false);
 
   int get capturedCount => completedSamples.where((s) => s).length;
 
@@ -91,6 +91,7 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
 
   CameraController? _cameraController;
   late final EmployeeProfiler _profiler;
+  late final FaceAnalyzer _faceAnalyzer;
   late final FaceDetector _liveDetector;
   late final PoseDetector _livePoseDetector;
 
@@ -103,6 +104,8 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
   int _livenessSampleIndex = 0;
   int _stableLiveFrames = 0;
   CameraImage? _lastFrame;
+  DateTime _lastQualityCheckTime = DateTime.fromMillisecondsSinceEpoch(0);
+  bool _isCheckingQuality = false;
 
   static const Map<DeviceOrientation, int> _orientationMap = {
     DeviceOrientation.portraitUp: 0,
@@ -118,9 +121,10 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
     required this.employeeId,
   })  : _repository = repository,
         _embeddingService = embeddingService,
-        super(const EmployeeScanState()) {
+        super(EmployeeScanState()) {
+    _faceAnalyzer = FaceAnalyzer();
     _profiler = EmployeeProfiler(
-      faceAnalyzer: FaceAnalyzer(),
+      faceAnalyzer: _faceAnalyzer,
       embeddingService: _embeddingService,
     );
     _liveDetector = FaceDetector(
@@ -205,7 +209,7 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
         _stableLiveFrames = 0;
         state = state.copyWith(
           frameStatus: _FrameStatus.searching,
-          feedback: 'Acércate a la cámara',
+          feedback: 'Centra tu rostro',
         );
       } else if (faces.length > 1) {
         _resetBlinkState();
@@ -232,6 +236,35 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
           );
           
           if (isCorrectPos && passesLivePresence) {
+            // [PERFORMANCE] Throttling + Lock: Máximo 1 validación cada 400ms y sin solapamiento
+            final now = DateTime.now();
+            if (!_isCheckingQuality && now.difference(_lastQualityCheckTime).inMilliseconds >= 400) {
+              _isCheckingQuality = true;
+              _lastQualityCheckTime = now;
+              
+              try {
+                final cropped = await _faceAnalyzer.cropFaceFromCameraImageAsync(image, face);
+                if (cropped != null) {
+                  final quality = await _faceAnalyzer.assessCropQuality(cropped);
+                  if (quality.overallScore < 0.70) {
+                    _stableLiveFrames = 0;
+                    if (!_disposed) {
+                      state = state.copyWith(
+                        frameStatus: _FrameStatus.error,
+                        feedback: 'Mejora la iluminación o tu posición',
+                      );
+                    }
+                    _isCheckingQuality = false;
+                    return;
+                  }
+                }
+              } catch (_) {
+                // Ignore ML Kit errors on frame dropping
+              } finally {
+                _isCheckingQuality = false;
+              }
+            }
+
             _stableLiveFrames++;
             if (_requiresBlinkChallenge) {
               _updateBlinkChallenge(face);
@@ -355,17 +388,19 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
           isIlluminating: false,
           frameStatus: _FrameStatus.searching,
           burstProgress: 0,
-          feedback: isComplete
-              ? 'Escaneo completado'
-              : EmployeeProfiler.instructions[nextIndex].text,
+          feedback: 'Buena captura ✓',
         );
         _syncLivenessState(forceReset: true);
 
         if (!isComplete) {
           await Future<void>.delayed(const Duration(milliseconds: 1500));
-        }
-
-        if (isComplete) {
+          if (!_disposed) {
+            state = state.copyWith(
+              feedback: EmployeeProfiler.instructions[nextIndex].text,
+            );
+          }
+        } else {
+          state = state.copyWith(feedback: 'Escaneo completado');
           await _buildAndSaveProfile();
         }
       } else {
@@ -403,7 +438,7 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
       await _repository.enrollEmployee(
         employeeId: employeeId,
         workstationId: workstationId,
-        faceEmbedding: profile.faceEmbedding,
+        faceEmbeddings: profile.faceEmbeddings,
         bodySignature: profile.bodySignature,
       );
     } catch (e) {
@@ -421,7 +456,7 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
     _resetBlinkState();
     _stableLiveFrames = 0;
     _livenessSampleIndex = 0;
-    state = const EmployeeScanState(cameraReady: true);
+    state = EmployeeScanState(cameraReady: true);
   }
 
   bool get _requiresBlinkChallenge => state.currentSampleIndex == 0;
@@ -972,28 +1007,14 @@ class _BottomHUD extends StatelessWidget {
               const Icon(Icons.check_circle, color: AppColors.success, size: 80),
 
             const SizedBox(height: 24),
-            // Progress dots
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                EmployeeProfiler.samplesRequired,
-                (i) => Container(
-                  width: 12,
-                  height: 12,
-                  margin: const EdgeInsets.symmetric(horizontal: 6),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: state.completedSamples[i] 
-                      ? AppColors.primaryLight 
-                      : Colors.white10,
-                    border: Border.all(
-                      color: state.currentSampleIndex == i 
-                        ? AppColors.primaryLight 
-                        : Colors.transparent,
-                      width: 2,
-                    ),
-                  ),
-                ),
+            // Progreso textual en vez de puntos
+            Text(
+              ' /  muestras',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
               ),
             ),
           ],

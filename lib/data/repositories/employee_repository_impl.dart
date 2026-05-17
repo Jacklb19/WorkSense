@@ -105,10 +105,10 @@ class EmployeeRepositoryImpl implements EmployeeRepository {
   Future<void> enrollEmployee({
     required String employeeId,
     required String workstationId,
-    required List<double> faceEmbedding,
+    required List<List<double>>? faceEmbeddings,
     required BodySignature bodySignature,
   }) async {
-    final faceEmbeddingJson = BiometricSerializer.serializeEmbedding(faceEmbedding);
+    final faceEmbeddingJson = BiometricSerializer.serializeMultipleEmbeddings(faceEmbeddings ?? []);
     final bodySignatureJson = jsonEncode(bodySignature.toJson());
     final capturedAt = DateTime.now();
 
@@ -147,7 +147,7 @@ class EmployeeRepositoryImpl implements EmployeeRepository {
       name: row.name,
       companyId: row.companyId,
       createdAt: row.createdAt,
-      faceEmbedding: BiometricSerializer.deserializeEmbedding(row.faceEmbedding),
+      faceEmbeddings: BiometricSerializer.deserializeMultipleEmbeddings(row.faceEmbeddings),
     );
   }
 }

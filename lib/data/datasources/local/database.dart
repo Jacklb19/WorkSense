@@ -19,7 +19,7 @@ class EmployeeRecords extends Table {
   TextColumn get name => text()();
   TextColumn get companyId => text()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
-  TextColumn get faceEmbedding => text().nullable()();
+  TextColumn get faceEmbeddings => text().named('face_embedding').nullable()();
   TextColumn get shiftId => text().nullable()();
 
   @override
@@ -72,7 +72,7 @@ class WorkstationRecords extends Table {
 
   // Perfil biométrico del empleado asignado
   TextColumn get assignedEmployeeId => text().nullable()();
-  TextColumn get faceEmbedding => text().nullable()();
+  TextColumn get faceEmbeddings => text().named('face_embedding').nullable()();
   TextColumn get bodySignature => text().nullable()();
   DateTimeColumn get profileCapturedAt => dateTime().nullable()();
   IntColumn get profileVersion =>
@@ -154,7 +154,7 @@ class AppDatabase extends _$AppDatabase {
         // Verificamos antes de agregar para evitar errores si la base de datos
         // está en un estado inconsistente (según roadmap)
         await migrator.addColumn(workstationRecords, workstationRecords.assignedEmployeeId);
-        await migrator.addColumn(workstationRecords, workstationRecords.faceEmbedding);
+        await migrator.addColumn(workstationRecords, workstationRecords.faceEmbeddings);
         await migrator.addColumn(workstationRecords, workstationRecords.bodySignature);
         await migrator.addColumn(workstationRecords, workstationRecords.profileCapturedAt);
         await migrator.addColumn(workstationRecords, workstationRecords.profileVersion);
@@ -167,7 +167,7 @@ class AppDatabase extends _$AppDatabase {
       if (from < 4) {
         // La migración a v4 añade el campo central de face_embedding en Employee
         // para permitir reconocimiento cross-workstation.
-        await migrator.addColumn(employeeRecords, employeeRecords.faceEmbedding);
+        await migrator.addColumn(employeeRecords, employeeRecords.faceEmbeddings);
       }
       
       if (from < 5) {
@@ -297,7 +297,7 @@ class AppDatabase extends _$AppDatabase {
   Future<void> updateEmployeeEmbedding(String employeeId, String faceEmbeddingJson) =>
       (update(employeeRecords)..where((t) => t.id.equals(employeeId)))
           .write(EmployeeRecordsCompanion(
-        faceEmbedding: Value(faceEmbeddingJson),
+        faceEmbeddings: Value(faceEmbeddingJson),
       ));
 
   Future<void> deleteEmployeeRecord(String id) =>
@@ -327,7 +327,7 @@ class AppDatabase extends _$AppDatabase {
       (update(workstationRecords)..where((t) => t.id.equals(workstationId)))
           .write(WorkstationRecordsCompanion(
         assignedEmployeeId: Value(employeeId),
-        faceEmbedding: Value(faceEmbeddingJson),
+        faceEmbeddings: Value(faceEmbeddingJson),
         bodySignature: Value(bodySignatureJson),
         profileCapturedAt: Value(DateTime.now()),
         profileVersion: const Value(1),
@@ -337,7 +337,7 @@ class AppDatabase extends _$AppDatabase {
       (update(workstationRecords)..where((t) => t.id.equals(workstationId)))
           .write(const WorkstationRecordsCompanion(
         assignedEmployeeId: Value(null),
-        faceEmbedding: Value(null),
+        faceEmbeddings: Value(null),
         bodySignature: Value(null),
         profileCapturedAt: Value(null),
         profileVersion: Value(0),
@@ -347,7 +347,7 @@ class AppDatabase extends _$AppDatabase {
       (update(workstationRecords)..where((t) => t.assignedEmployeeId.equals(employeeId)))
           .write(const WorkstationRecordsCompanion(
         assignedEmployeeId: Value(null),
-        faceEmbedding: Value(null),
+        faceEmbeddings: Value(null),
         bodySignature: Value(null),
         profileCapturedAt: Value(null),
         profileVersion: Value(0),

@@ -114,6 +114,26 @@ import 'package:flutter/foundation.dart';
     });
   }
 
+  /// Helper tipado que compara el embedding actual contra una lista de embeddings almacenados.
+  /// Prepara el terreno para el uso de múltiples muestras (Improvement 2) sin requerir \'dynamic\'.
+  double _compareAgainstMultiple(List<double> liveEmbedding, List<List<double>> storedEmbeddings) {
+    if (liveEmbedding.isEmpty || storedEmbeddings.isEmpty) return 0.0;
+    
+    double maxScore = 0.0;
+    const double threshold = 0.85;
+
+    for (final stored in storedEmbeddings) {
+      if (stored.isEmpty || liveEmbedding.length != stored.length) continue;
+      
+      final score = EmployeeProfile.cosineSimilarity(liveEmbedding, stored);
+      if (score > maxScore) {
+        maxScore = score;
+      }
+    }
+
+    return maxScore >= threshold ? maxScore : 0.0;
+  }
+
   _IsolatedFindResult _computeFindInFrameWorker(_FindInFrameParams params) {
     int? currentLockedTrackingId = params.lockedTrackingId;
     final bool multiplePeople = params.faces.length > 1;
@@ -134,7 +154,7 @@ import 'package:flutter/foundation.dart';
 
       if (tracked != null) {
         final faceScore = tracked.rawEmbedding.any((v) => v != 0.0)
-            ? EmployeeProfile.cosineSimilarity(tracked.rawEmbedding, params.profile.faceEmbedding)
+            ? _compareAgainstMultiple(tracked.rawEmbedding, params.profile.faceEmbeddings)
             : null;
 
         _PoseData? closestPose;
@@ -177,9 +197,9 @@ import 'package:flutter/foundation.dart';
     IdentificationMethod bestMethod = IdentificationMethod.faceEmbedding;
 
     for (final face in params.faces) {
-      final faceScore = EmployeeProfile.cosineSimilarity(
+      final faceScore = _compareAgainstMultiple(
         face.rawEmbedding,
-        params.profile.faceEmbedding,
+        params.profile.faceEmbeddings,
       );
 
       _PoseData? closestPose;

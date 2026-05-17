@@ -66,7 +66,7 @@ class SampleAssessment {
 }
 
 class EmployeeProfiler {
-  static const int samplesRequired = 5;
+  static const int samplesRequired = 15;
   static const double minFaceConfidence = 0.40;
   static const double minPoseConfidence = 0.30;
 
@@ -235,9 +235,17 @@ class EmployeeProfiler {
       'feedback: ${cropQuality.feedback}',
     );
 
+    // Strict Quality Gate
+    if (cropQuality.overallScore < 0.70) {
+      return SampleAssessment(
+        result: SampleResult.lowConfidence,
+        feedback: 'Mejora la iluminación o tu posición',
+      );
+    }
+
     final canSoftAcceptCrop = !cropQuality.passes &&
         cropQuality.feedback == 'Quedate quieto un momento' &&
-        cropQuality.overallScore >= AiThresholds.minSoftFaceQualityScore &&
+        cropQuality.overallScore >= 0.70 &&
         faceConf >= 0.68 &&
         poseConf >= minPoseConfidence;
 
@@ -287,14 +295,7 @@ class EmployeeProfiler {
       'Se necesitan $samplesRequired muestras antes de buildProfile()',
     );
 
-    final length = _faceEmbeddings.first.length;
-    final avgEmbedding = List<double>.filled(length, 0.0);
-    for (final emb in _faceEmbeddings) {
-      for (int i = 0; i < length; i++) {
-        avgEmbedding[i] += emb[i] / samplesRequired;
-      }
-    }
-    final normalizedEmbedding = EmployeeProfile.normalizeVector(avgEmbedding);
+    final List<List<double>> storedEmbeddings = List.from(_faceEmbeddings);
 
     final avgBody = _bodySignatures.isEmpty
         ? BodySignature.zero
@@ -324,7 +325,7 @@ class EmployeeProfiler {
     return EmployeeProfile(
       employeeId: employeeId,
       workstationId: workstationId,
-      faceEmbedding: normalizedEmbedding,
+      faceEmbeddings: storedEmbeddings,
       bodySignature: avgBody,
       capturedAt: DateTime.now(),
       sampleCount: samplesRequired,

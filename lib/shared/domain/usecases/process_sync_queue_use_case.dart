@@ -122,7 +122,7 @@ class ProcessSyncQueueUseCase {
             longitude: w['longitude'],
             geofenceRadius: (w['geofence_radius'] as num?)?.toDouble() ?? 50.0,
             assignedEmployeeId: w['assigned_employee_id'],
-            faceEmbedding: w['face_embedding']?.toString(), // AQUÍ ESTÁ EL EMBEDDING DEL KIOSCO
+            faceEmbeddings: w['face_embedding']?.toString(), // AQUÍ ESTÁ EL EMBEDDING DEL KIOSCO
             bodySignature: w['body_signature']?.toString(),
             profileCapturedAt: w['profile_captured_at'] != null ? DateTime.parse(w['profile_captured_at']) : null,
             profileVersion: w['profile_version'] ?? 0,
@@ -151,7 +151,7 @@ class ProcessSyncQueueUseCase {
             name: e['name'] ?? 'Desconocido',
             companyId: e['company_id'],
             createdAt: e['created_at'] != null ? DateTime.parse(e['created_at']) : DateTime.now(),
-            faceEmbedding: localEmp?.faceEmbedding, 
+            faceEmbeddings: localEmp?.faceEmbeddings, 
             shiftId: e['shift_id'] ?? localEmp?.shiftId,
           )
         );
