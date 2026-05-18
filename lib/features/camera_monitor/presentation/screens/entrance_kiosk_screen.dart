@@ -118,10 +118,10 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
   }
 
   Widget _buildScannerHUD(EntranceKioskState state) {
-    final isDetecting = state.statusMessage.startsWith('Detectando');
+    final isVerifying = state.phase == KioskPhase.verifying;
     final borderColor = state.phase == KioskPhase.cooldown
         ? AppColors.warning
-        : isDetecting
+        : isVerifying
             ? AppColors.feedbackCapturing
             : AppColors.primary;
 
@@ -159,7 +159,14 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                           strokeWidth: 3,
                         ),
                       )
-                    : null,
+                    : isVerifying
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.feedbackCapturing,
+                              strokeWidth: 3,
+                            ),
+                          )
+                        : null,
               );
             },
           ),
@@ -188,7 +195,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (isDetecting)
+                if (isVerifying)
                   const SizedBox(
                     width: 24, height: 24,
                     child: CircularProgressIndicator(

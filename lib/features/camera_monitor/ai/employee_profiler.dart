@@ -66,35 +66,40 @@ class SampleAssessment {
 }
 
 class EmployeeProfiler {
-  static const int samplesRequired = 15;
+  static const int samplesRequired = 6;
   static const double minFaceConfidence = 0.40;
   static const double minPoseConfidence = 0.30;
 
   static const List<ScanInstruction> instructions = [
     ScanInstruction(
       index: 0,
-      text: 'Mira directo a la camara en tu posicion normal de trabajo',
-      emoji: '',
+      text: 'Mira directo a la camara',
+      emoji: '😐',
     ),
     ScanInstruction(
       index: 1,
-      text: 'Gira tu cabeza a la izquierda muy ligeramente',
-      emoji: '',
+      text: 'Gira levemente la cabeza a tu izquierda',
+      emoji: '👈',
     ),
     ScanInstruction(
       index: 2,
-      text: 'Gira tu cabeza a la derecha muy ligeramente',
-      emoji: '',
+      text: 'Gira levemente la cabeza a tu derecha',
+      emoji: '👉',
     ),
     ScanInstruction(
       index: 3,
-      text: 'Inclina la cabeza ligeramente hacia abajo',
-      emoji: '',
+      text: 'Levanta levemente la cabeza',
+      emoji: '👆',
     ),
     ScanInstruction(
       index: 4,
-      text: 'Levanta la cabeza ligeramente hacia arriba',
-      emoji: '',
+      text: 'Inclina levemente la cabeza hacia abajo',
+      emoji: '👇',
+    ),
+    ScanInstruction(
+      index: 5,
+      text: 'De frente otra vez para confirmar',
+      emoji: '😐',
     ),
   ];
 
@@ -203,7 +208,7 @@ class EmployeeProfiler {
     }
 
     final currentIdx = _faceEmbeddings.length;
-    if (!_isPositionCorrectForSample(face, currentIdx)) {
+    if (currentIdx < instructions.length && !_isPositionCorrectForSample(face, currentIdx)) {
       return SampleAssessment(
         result: SampleResult.wrongPosition,
         feedback: instructions[currentIdx].text,
@@ -235,19 +240,19 @@ class EmployeeProfiler {
       'feedback: ${cropQuality.feedback}',
     );
 
-    // Strict Quality Gate
-    if (cropQuality.overallScore < 0.70) {
+    // Quality Gate — centralizado desde AiThresholds
+    if (cropQuality.overallScore < AiThresholds.enrollMinCropQuality) {
       return SampleAssessment(
         result: SampleResult.lowConfidence,
         feedback: 'Mejora la iluminación o tu posición',
       );
     }
 
+    // Soft-accept: si el crop no pasa las reglas individuales pero el score
+    // global y la confianza facial son aceptables, lo dejamos pasar.
     final canSoftAcceptCrop = !cropQuality.passes &&
-        cropQuality.feedback == 'Quedate quieto un momento' &&
-        cropQuality.overallScore >= 0.70 &&
-        faceConf >= 0.68 &&
-        poseConf >= minPoseConfidence;
+        cropQuality.overallScore >= AiThresholds.enrollMinCropQuality &&
+        faceConf >= AiThresholds.enrollSoftAcceptFaceConf;
 
     if (!cropQuality.passes && !canSoftAcceptCrop) {
       return SampleAssessment(
@@ -257,7 +262,7 @@ class EmployeeProfiler {
     }
 
     if (canSoftAcceptCrop) {
-      print('[SCAN] Soft-accepting sharpness gate for stable frontal sample.');
+      print('[SCAN] Soft-accepting crop for enrollment (quality=${cropQuality.overallScore.toStringAsFixed(2)}, faceConf=${faceConf.toStringAsFixed(2)}).');
     }
 
     List<double> embedding;
@@ -406,16 +411,18 @@ class EmployeeProfiler {
     final pitch = face.headEulerAngleX ?? 0.0;
 
     switch (sampleIndex) {
-      case 0:
-        return yaw.abs() <= 10.0 && pitch.abs() <= 12.0;
-      case 1:
-        return yaw < -5.0 && pitch.abs() <= 15.0;
-      case 2:
-        return yaw > 5.0 && pitch.abs() <= 15.0;
-      case 3:
-        return yaw.abs() <= 15.0 && pitch > 5.0;
-      case 4:
-        return yaw.abs() <= 15.0 && pitch < -5.0;
+      case 0: // Frente
+        return yaw.abs() <= 12.0 && pitch.abs() <= 14.0;
+      case 1: // Izquierda (yaw negativo = izquierda del sujeto)
+        return yaw < -4.0 && pitch.abs() <= 18.0;
+      case 2: // Derecha
+        return yaw > 4.0 && pitch.abs() <= 18.0;
+      case 3: // Arriba (pitch negativo = cabeza arriba en ML Kit)
+        return yaw.abs() <= 18.0 && pitch < -3.0;
+      case 4: // Abajo (pitch positivo = cabeza abajo)
+        return yaw.abs() <= 18.0 && pitch > 3.0;
+      case 5: // Frente otra vez
+        return yaw.abs() <= 12.0 && pitch.abs() <= 14.0;
       default:
         return true;
     }

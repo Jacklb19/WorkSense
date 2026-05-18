@@ -23,6 +23,7 @@
 import 'package:flutter/foundation.dart';
   import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
   import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
+  import 'package:worksense_app/core/constants/ai_thresholds.dart';
   import 'package:worksense_app/features/camera_monitor/ai/body_signature.dart';
   import 'package:worksense_app/features/camera_monitor/ai/employee_profile.dart';
 
@@ -120,7 +121,9 @@ import 'package:flutter/foundation.dart';
     if (liveEmbedding.isEmpty || storedEmbeddings.isEmpty) return 0.0;
     
     double maxScore = 0.0;
-    const double threshold = 0.85;
+    // Use tracking-mode floor: lower than fresh identification threshold
+    // because tracking ID already provides continuity context.
+    const double threshold = AiThresholds.monitorTrackingEmbeddingFloor;
 
     for (final stored in storedEmbeddings) {
       if (stored.isEmpty || liveEmbedding.length != stored.length) continue;
@@ -275,7 +278,7 @@ import 'package:flutter/foundation.dart';
     int _consecutiveMisses = 0;
     DateTime? _lastFoundTime;
 
-    static const int _maxConsecutiveMisses = 5;
+    static const int _maxConsecutiveMisses = AiThresholds.monitorMaxConsecutiveMisses;
 
     EmployeeFinder(this._profile);
 

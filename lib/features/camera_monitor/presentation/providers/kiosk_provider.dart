@@ -232,6 +232,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
   DateTime _lastBlinkTime = DateTime.now();
   static const Duration _maxTimeWithoutBlink = Duration(seconds: 40);
   int _consecutiveAbsentFrames = 0;
+  int _consecutiveFaceMissFrames = 0;
   int _stableEntryFrames = 0;
   bool _requiresFreshIdentityCheck = true;
   
@@ -244,9 +245,17 @@ class KioskNotifier extends StateNotifier<KioskState> {
   static const Duration _saveInterval = Duration(
     seconds: AiThresholds.defaultAnalysisIntervalSeconds,
   );
-  static const Duration _reidInterval = Duration(
-    seconds: AiThresholds.reidIntervalSeconds,
-  );
+
+  /// Dynamic re-ID interval: longer during stable active sessions,
+  /// shorter when there's ambiguity or fresh check needed.
+  Duration get _currentReidInterval {
+    if (state.sessionStatus == SessionStatus.active &&
+        !_requiresFreshIdentityCheck &&
+        _consecutiveFaceMissFrames == 0) {
+      return const Duration(seconds: AiThresholds.monitorStableReidSeconds);
+    }
+    return const Duration(seconds: AiThresholds.monitorAmbiguousReidSeconds);
+  }
 
   static const Map<DeviceOrientation, int> _orientationMap = {
     DeviceOrientation.portraitUp: 0,
@@ -480,18 +489,32 @@ class KioskNotifier extends StateNotifier<KioskState> {
       final bool needsIdentification = state.sessionStatus == SessionStatus.idle || 
                                        state.sessionStatus == SessionStatus.entryPending;
       final bool hasIntruder = allFaces.length > 1;
-      final bool shouldReid = now.difference(_lastReidTime) >= _reidInterval;
+      final bool shouldReid = now.difference(_lastReidTime) >= _currentReidInterval;
       final bool shouldGenerateEmbeddings =
           needsIdentification ||
           shouldReid ||
           hasIntruder ||
           _requiresFreshIdentityCheck;
 
+      // Grace period: only flag fresh identity check after consecutive misses
+      // exceed the threshold, not on every single miss frame.
       if (state.sessionStatus == SessionStatus.active) {
-        if (allFaces.isEmpty || allFaces.length > 1) {
+        if (allFaces.isEmpty) {
+          _consecutiveFaceMissFrames++;
+          if (_consecutiveFaceMissFrames >= AiThresholds.monitorGracePeriodFrames) {
+            _requiresFreshIdentityCheck = true;
+          }
+        } else if (allFaces.length > 1) {
+          // Multiple faces: immediate revalidation concern
           _requiresFreshIdentityCheck = true;
+          _consecutiveFaceMissFrames = 0;
         } else if (!_finder!.isTrackingLockedTo(allFaces.first)) {
-          _requiresFreshIdentityCheck = true;
+          _consecutiveFaceMissFrames++;
+          if (_consecutiveFaceMissFrames >= AiThresholds.monitorGracePeriodFrames) {
+            _requiresFreshIdentityCheck = true;
+          }
+        } else {
+          _consecutiveFaceMissFrames = 0;
         }
       }
       
@@ -612,10 +635,18 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
   void _handleAbsent(FindResult findResult, Size imgSize) {
     _consecutiveAbsentFrames++;
-    _activityWindowBuffer.reset();
     _stableEntryFrames = 0;
+
+    // Only flag fresh identity check after grace period, not on first miss
     if (state.sessionStatus == SessionStatus.active) {
-      _requiresFreshIdentityCheck = true;
+      _consecutiveFaceMissFrames++;
+      if (_consecutiveFaceMissFrames >= AiThresholds.monitorGracePeriodFrames) {
+        _requiresFreshIdentityCheck = true;
+        _activityWindowBuffer.reset();
+      }
+      // Keep partial identity confidence during grace period
+    } else {
+      _activityWindowBuffer.reset();
     }
     
     // Only cancel entryPending/exitPending after several consecutive absent frames.
@@ -628,11 +659,17 @@ class KioskNotifier extends StateNotifier<KioskState> {
       debugPrint('[MONITOR] Cancelled pending after $_consecutiveAbsentFrames absent frames.');
     }
 
+    // Progressive confidence degradation instead of immediate zero
+    final degradedConfidence = state.sessionStatus == SessionStatus.active &&
+            _consecutiveAbsentFrames < AiThresholds.monitorMaxConsecutiveMisses
+        ? (state.identityConfidence * 0.85).clamp(0.0, 1.0)
+        : 0.0;
+
     state = state.copyWith(
       currentState: findResult.status == FindStatus.absent
           ? ActivityState.ausente
           : ActivityState.fueraDelArea,
-      identityConfidence: 0.0,
+      identityConfidence: degradedConfidence,
       isProcessing: false,
       poses: const [],
       faces: const [],
@@ -643,6 +680,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
   void _handleFound(FindResult findResult, List<Face> allFaces, List<Pose> allPoses, Size imgSize, DateTime now) {
     _requiresFreshIdentityCheck = false;
+    _consecutiveFaceMissFrames = 0;
     final employeeFace = findResult.employeeFace!;
     final employeePose = findResult.employeePose;
 

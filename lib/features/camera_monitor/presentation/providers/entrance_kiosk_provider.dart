@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:worksense_app/core/constants/ai_thresholds.dart';
+import 'package:worksense_app/core/utils/biometric_utils.dart';
 
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/features/camera_monitor/ai/employee_profile.dart';
@@ -26,6 +27,8 @@ enum KioskPhase {
   initializing,
   /// Camera active, scanning faces
   scanning,
+  /// Blink passed, actively evaluating identity across multiple frames
+  verifying,
   /// Face recognized – showing welcome overlay
   welcome,
   /// Cooldown after welcome before re-enabling scanning
@@ -89,7 +92,16 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   bool _disposed = false;
   bool _hasBlinked = false;
   DateTime _lastAnalysisTime = DateTime.fromMillisecondsSinceEpoch(0);
-  static const Duration _analysisInterval = Duration(milliseconds: 300);
+
+  // ── Evidence window for multi-frame identity confirmation ──
+  /// Best score seen per employee across the current evidence window.
+  final Map<String, double> _evidenceBestScores = {};
+  /// Count of frames where each employee exceeded the match threshold.
+  final Map<String, int> _evidenceConfirmations = {};
+  /// Total frames evaluated in the current evidence window.
+  int _evidenceFrameCount = 0;
+  /// Number of near-match retries used in the current attempt.
+  int _nearMatchRetries = 0;
   
   static const Map<DeviceOrientation, int> _orientationMap = {
     DeviceOrientation.portraitUp: 0,
@@ -98,8 +110,8 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
     DeviceOrientation.landscapeRight: 270,
   };
 
-  // Cached registry: employeeId -> embedding
-  final Map<String, List<double>> _employeeRegistry = {};
+  // Cached registry: employeeId -> embeddings
+  final Map<String, List<List<double>>> _employeeRegistry = {};
   // Cached names: employeeId -> employee name
   final Map<String, String> _employeeNames = {};
   // Cached workstation names: employeeId -> workstation name
@@ -206,10 +218,9 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
           if (w['assigned_employee_id'] != null && w['face_embedding'] != null) {
             try {
               final embStr = w['face_embedding'].toString();
-              List<dynamic> jsonList = jsonDecode(embStr);
-              List<double> embedding = jsonList.map((e) => (e as num).toDouble()).toList();
-              if (embedding.isNotEmpty) {
-                _employeeRegistry[w['assigned_employee_id']] = embedding;
+              final embeddings = BiometricSerializer.deserializeMultipleEmbeddings(embStr);
+              if (embeddings != null && embeddings.isNotEmpty) {
+                _employeeRegistry[w['assigned_employee_id']] = embeddings;
                 _workstationNames[w['assigned_employee_id']] = w['name'] ?? 'Estación';
                 _workstationIds[w['assigned_employee_id']] = w['id'];
                 count++;
@@ -264,10 +275,9 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
     for (var w in workstations) {
       if (w.assignedEmployeeId != null && w.faceEmbeddings != null) {
         try {
-          List<dynamic> jsonList = jsonDecode(w.faceEmbeddings!);
-          List<double> embedding = jsonList.map((e) => (e as num).toDouble()).toList();
-          if (embedding.isNotEmpty) {
-             _employeeRegistry[w.assignedEmployeeId!] = embedding;
+          final embeddings = BiometricSerializer.deserializeMultipleEmbeddings(w.faceEmbeddings!);
+          if (embeddings != null && embeddings.isNotEmpty) {
+             _employeeRegistry[w.assignedEmployeeId!] = embeddings;
              _workstationNames[w.assignedEmployeeId!] = w.name;
              _workstationIds[w.assignedEmployeeId!] = w.id;
              count++;
@@ -283,11 +293,11 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   void _startImageStream() {
     _cameraController?.startImageStream((image) {
       if (_disposed || _isAnalyzing) return;
-      // Only process frames during scanning phase
-      if (state.phase != KioskPhase.scanning) return;
+      // Only process frames during scanning or verifying phase
+      if (state.phase != KioskPhase.scanning && state.phase != KioskPhase.verifying) return;
       
       final now = DateTime.now();
-      if (now.difference(_lastAnalysisTime) < _analysisInterval) return;
+      if (now.difference(_lastAnalysisTime).inMilliseconds < AiThresholds.entranceFrameIntervalMs) return;
 
       _isAnalyzing = true;
       _lastAnalysisTime = now;
@@ -302,7 +312,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   }
 
   Future<void> _processFrame(CameraImage image) async {
-    if (state.phase != KioskPhase.scanning) return;
+    if (state.phase != KioskPhase.scanning && state.phase != KioskPhase.verifying) return;
     
     try {
       final inputImage = _buildInputImage(image);
@@ -310,9 +320,21 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
       final faces = await _faceDetector.processImage(inputImage);
       if (faces.isEmpty || _disposed) {
+        // No face: if we were verifying, don't hard-reset — tolerate brief dropouts
+        if (state.phase == KioskPhase.verifying) {
+          _evidenceFrameCount++;
+          if (_evidenceFrameCount >= AiThresholds.entranceEvidenceWindowSize) {
+            _resetEvidence();
+            state = state.copyWith(
+              statusMessage: 'Rostro no reconocido',
+              phase: KioskPhase.scanning,
+            );
+          }
+          return;
+        }
         if (state.statusMessage != 'Recepción Activa') {
            state = state.copyWith(statusMessage: 'Recepción Activa');
-           _hasBlinked = false; // Reset blink
+           _hasBlinked = false;
         }
         return;
       }
@@ -320,71 +342,144 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
       final largestFace = faces.reduce((a, b) => 
         (a.boundingBox.width * a.boundingBox.height) > (b.boundingBox.width * b.boundingBox.height) ? a : b);
 
-      // --- CENTERING & LIVENESS RULES ---
-      // Check distance (size ratio)
+      // --- PRESENCE VALIDATION (decoupled from identity) ---
       final widthRatio = largestFace.boundingBox.width / image.width;
-      if (widthRatio < 0.25) {
+      if (widthRatio < AiThresholds.entranceMinFaceWidthRatio) {
         state = state.copyWith(statusMessage: 'Acércate a la cámara');
-        _hasBlinked = false;
+        // Don't reset blink or evidence for momentary distance issues
         return;
       }
       
-      // Check angles
-      if ((largestFace.headEulerAngleY?.abs() ?? 0) > 12 || (largestFace.headEulerAngleX?.abs() ?? 0) > 12) {
+      if ((largestFace.headEulerAngleY?.abs() ?? 0) > AiThresholds.entranceMaxHeadAngle ||
+          (largestFace.headEulerAngleX?.abs() ?? 0) > AiThresholds.entranceMaxHeadAngle) {
         state = state.copyWith(statusMessage: 'Mira directamente de frente');
-        _hasBlinked = false;
         return;
       }
 
-      // Blink Challenge
+      // --- BLINK CHALLENGE (one-time gate, not reset on bad frames) ---
       if (!_hasBlinked) {
         final leftEyeOpen = largestFace.leftEyeOpenProbability ?? 1.0;
         final rightEyeOpen = largestFace.rightEyeOpenProbability ?? 1.0;
         
-        debugPrint('[ENTRANCE] Eyes: L=${leftEyeOpen.toStringAsFixed(2)} R=${rightEyeOpen.toStringAsFixed(2)}');
-        
-        if (leftEyeOpen < 0.45 && rightEyeOpen < 0.45) {
+        if (leftEyeOpen < AiThresholds.entranceBlinkClosedThreshold &&
+            rightEyeOpen < AiThresholds.entranceBlinkClosedThreshold) {
           _hasBlinked = true;
-          state = state.copyWith(statusMessage: 'Verificado ✓ Identificando...');
+          _resetEvidence();
+          state = state.copyWith(
+            statusMessage: 'Verificado ✓ Identificando...',
+            phase: KioskPhase.verifying,
+          );
         } else {
           state = state.copyWith(statusMessage: 'Parpadea para verificar');
-          return; // Wait for blink
+          return;
         }
       }
 
+      // --- IDENTITY EVALUATION (evidence window) ---
       final cropped = await _faceAnalyzer.cropFaceFromCameraImageAsync(image, largestFace);
       if (cropped == null) return;
 
       final incomingEmb = await _embeddingService.generateEmbedding(cropped);
       
       if (_employeeRegistry.isEmpty) {
-        state = state.copyWith(statusMessage: 'No hay empleados en BD. Sincroniza app o crea empleados.');
+        state = state.copyWith(statusMessage: 'No hay empleados registrados.');
         return;
       }
 
-      String? bestMatchId;
-      double maxSim = 0.0;
+      // Compare against all employees and all their stored embeddings
+      String? frameBestId;
+      double frameBestSim = 0.0;
 
       for (var entry in _employeeRegistry.entries) {
-        final sim = EmployeeProfile.cosineSimilarity(entry.value, incomingEmb);
-        if (sim > maxSim) {
-          maxSim = sim;
-          bestMatchId = entry.key;
+        double maxEmpSim = 0.0;
+        for (final storedEmb in entry.value) {
+          if (storedEmb.isEmpty || storedEmb.length != incomingEmb.length) continue;
+          final sim = EmployeeProfile.cosineSimilarity(storedEmb, incomingEmb);
+          if (sim > maxEmpSim) maxEmpSim = sim;
+        }
+        
+        // Track best score ever seen for this employee in the window
+        final prevBest = _evidenceBestScores[entry.key] ?? 0.0;
+        if (maxEmpSim > prevBest) {
+          _evidenceBestScores[entry.key] = maxEmpSim;
+        }
+
+        // Count confirmations (frames above threshold)
+        if (maxEmpSim >= AiThresholds.entranceMatchThreshold) {
+          _evidenceConfirmations[entry.key] = (_evidenceConfirmations[entry.key] ?? 0) + 1;
+        }
+
+        if (maxEmpSim > frameBestSim) {
+          frameBestSim = maxEmpSim;
+          frameBestId = entry.key;
         }
       }
 
-      // Strict Threshold for Entrance (0.80 recommended for fluent experience)
-      final threshold = 0.80; 
+      _evidenceFrameCount++;
+      debugPrint('[ENTRANCE] Frame $_evidenceFrameCount/${AiThresholds.entranceEvidenceWindowSize} — '
+          'best: ${frameBestSim.toStringAsFixed(3)} (${frameBestId ?? "?"}) | '
+          'confirmations: ${_evidenceConfirmations}');
 
-      if (maxSim >= threshold && bestMatchId != null) {
-         await _triggerEntrance(bestMatchId);
+      // Check if any employee reached required confirmations
+      for (var entry in _evidenceConfirmations.entries) {
+        if (entry.value >= AiThresholds.entranceRequiredConfirmations) {
+          debugPrint('[ENTRANCE] ✅ Match confirmed for ${entry.key} '
+              'with ${entry.value} confirmations, best=${_evidenceBestScores[entry.key]?.toStringAsFixed(3)}');
+          _resetEvidence();
+          await _triggerEntrance(entry.key);
+          return;
+        }
+      }
+
+      // Update status during verification
+      if (frameBestSim >= AiThresholds.entranceMatchThreshold) {
+        state = state.copyWith(statusMessage: 'Confirmando acceso...');
+      } else if (frameBestSim >= AiThresholds.entranceMatchThreshold - AiThresholds.entranceNearMatchMargin) {
+        state = state.copyWith(statusMessage: 'Verificando identidad...');
       } else {
-         state = state.copyWith(statusMessage: 'Rostro desconocido (Sim: %)');
-         _hasBlinked = false; // Require new blink on fail
+        state = state.copyWith(statusMessage: 'Identificando...');
+      }
+
+      // Check if evidence window exhausted
+      if (_evidenceFrameCount >= AiThresholds.entranceEvidenceWindowSize) {
+        // Check if there's a near-match that deserves one more try
+        final topEmployee = _evidenceBestScores.entries.fold<MapEntry<String, double>?>(
+          null,
+          (best, e) => best == null || e.value > best.value ? e : best,
+        );
+        
+        if (topEmployee != null &&
+            topEmployee.value >= AiThresholds.entranceMatchThreshold - AiThresholds.entranceNearMatchMargin &&
+            (_evidenceConfirmations[topEmployee.key] ?? 0) >= 1 &&
+            _nearMatchRetries < AiThresholds.entranceMaxNearMatchRetries) {
+          // Near match with at least 1 confirmation — extend window once
+          _nearMatchRetries++;
+          _evidenceFrameCount = 0; // Reset frame counter for a clean extra window
+          debugPrint('[ENTRANCE] Near-match retry #$_nearMatchRetries for ${topEmployee.key} '
+              '(best=${topEmployee.value.toStringAsFixed(3)})');
+          return;
+        }
+
+        // No match found
+        debugPrint('[ENTRANCE] ❌ No match after ${AiThresholds.entranceEvidenceWindowSize} frames. '
+            'Best: ${topEmployee?.value.toStringAsFixed(3)} for ${topEmployee?.key}');
+        _resetEvidence();
+        _hasBlinked = false;
+        state = state.copyWith(
+          statusMessage: 'Rostro no reconocido',
+          phase: KioskPhase.scanning,
+        );
       }
     } catch (e) {
-      debugPrint('[ENTRANCE] Error: ');
+      debugPrint('[ENTRANCE] Error: $e');
     }
+  }
+
+  void _resetEvidence() {
+    _evidenceBestScores.clear();
+    _evidenceConfirmations.clear();
+    _evidenceFrameCount = 0;
+    _nearMatchRetries = 0;
   }
 
   Future<void> _triggerEntrance(String employeeId) async {
