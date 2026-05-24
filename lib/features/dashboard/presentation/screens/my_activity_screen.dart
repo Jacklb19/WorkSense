@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/widgets/activity_event_tile.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
@@ -26,7 +28,7 @@ class MyActivityScreen extends ConsumerWidget {
                 centerTitle: false,
               ),
               SliverPadding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppDimensions.spacingXxl),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) => ActivityEventTile(event: events[index]),
@@ -51,11 +53,11 @@ class _EmptyActivityView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.history_toggle_off, size: 64, color: Colors.white10),
-          SizedBox(height: 16),
-          Text('SIN REGISTROS', style: TextStyle(color: Colors.white24, fontWeight: FontWeight.bold, letterSpacing: 2)),
-          SizedBox(height: 8),
-          Text('La actividad reciente aparecerá en este log.', style: TextStyle(color: Colors.white12, fontSize: 12)),
+          Icon(Icons.history_toggle_off, size: AppDimensions.iconEmptyStateLg, color: AppColors.white10),
+          SizedBox(height: AppDimensions.spacingXxl),
+          Text('SIN REGISTROS', style: TextStyle(color: AppColors.white24, fontWeight: FontWeight.bold, letterSpacing: 2)),
+          SizedBox(height: AppDimensions.spacingMd),
+          Text('La actividad reciente aparecerá en este log.', style: TextStyle(color: AppColors.white12, fontSize: AppDimensions.fontCaption)),
         ],
       ),
     );

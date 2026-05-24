@@ -133,8 +133,8 @@ class ActivityOverlayPainter extends CustomPainter {
   }
 
   void _drawOutsideAreaOverlay(Canvas canvas, Size size) {
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = Colors.black45);
-    _drawCenteredText(canvas, 'EMPLEADO FUERA DE CÁMARA', Offset(size.width/2, size.height/2), const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 2), size);
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = AppColors.black45);
+    _drawCenteredText(canvas, 'EMPLEADO FUERA DE CÁMARA', Offset(size.width/2, size.height/2), const TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 2), size);
   }
 
   void _drawIdentityHUD(Canvas canvas, Size size) {
@@ -144,7 +144,7 @@ class ActivityOverlayPainter extends CustomPainter {
     final tp = TextPainter(
       text: TextSpan(
         children: [
-          TextSpan(text: '$icon $label  ', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.normal)),
+          TextSpan(text: '$icon $label  ', style: const TextStyle(color: AppColors.white, fontSize: 10, fontWeight: FontWeight.normal)),
           TextSpan(text: '${(identityConfidence*100).toInt()}%', style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900)),
         ],
       ),

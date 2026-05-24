@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -176,7 +177,7 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Turno registrado exitosamente'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         context.pop();
@@ -188,7 +189,7 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
         title: const Text('Configurar Horario'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing24, vertical: AppDimensions.spacing32),
         child: Form(
           key: _formKey,
           child: Column(
@@ -200,7 +201,7 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
                   color: AppColors.primary, fontWeight: FontWeight.bold, letterSpacing: 1.2
                 )
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppDimensions.spacing20),
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -212,13 +213,13 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
               ),
               
               // ── Work Hours Section ───────────────────────────────
-              const SizedBox(height: 40),
+              const SizedBox(height: AppDimensions.spacing40),
               Text('JORNADA LABORAL', 
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: AppColors.primary, fontWeight: FontWeight.bold, letterSpacing: 1.2
                 )
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppDimensions.spacing20),
               
               Row(
                 children: [
@@ -233,7 +234,7 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: AppDimensions.spacingXxl),
                   Expanded(
                     child: _TimeCard(
                       title: 'SALIDA',
@@ -249,8 +250,8 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
               ),
 
               // ── Break / Lunch Section ────────────────────────────
-              const SizedBox(height: 32),
-              SwitchListTile(
+const SizedBox(height: AppDimensions.spacingXxl),
+                SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text('RECESO / ALMUERZO', 
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -264,7 +265,7 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
               ),
 
               if (_hasBreak) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: AppDimensions.spacingXxl),
                 Row(
                   children: [
                     Expanded(
@@ -279,7 +280,7 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: AppDimensions.spacingXxl),
                     Expanded(
                       child: _TimeCard(
                         title: 'FIN RECESO',
@@ -297,19 +298,19 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
               ],
               
               // ── Submit ────────────────────────────────────────────
-              const SizedBox(height: 56),
+              const SizedBox(height: AppDimensions.spacingXxl),
               FilledButton(
                 onPressed: formState.isLoading ? null : _handleSubmit,
                 style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, 60)),
                 child: formState.isLoading 
-                  ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
+                  ? const CircularProgressIndicator(color: AppColors.white, strokeWidth: AppDimensions.progressStrokeWidth) 
                   : const Text('GUARDAR TURNO'),
               ),
               if (formState.errorMessage != null) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: AppDimensions.spacingXxl),
                 Text(formState.errorMessage!, 
                   textAlign: TextAlign.center, 
-                  style: const TextStyle(color: Colors.redAccent, fontSize: 13)
+                  style: const TextStyle(color: AppColors.error, fontSize: AppDimensions.fontBody)
                 ),
               ],
             ],
@@ -356,24 +357,24 @@ class _TimeCard extends StatelessWidget {
     
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingXxl, horizontal: AppDimensions.spacingLg),
         decoration: BoxDecoration(
           color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
           border: Border.all(color: AppColors.glassBorder),
         ),
         child: Column(
           children: [
-            Text(title, style: const TextStyle(color: AppColors.grey500, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-            const SizedBox(height: 8),
+            Text(title, style: const TextStyle(color: AppColors.grey500, fontSize: AppDimensions.fontSm, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+            const SizedBox(height: AppDimensions.spacingMd),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.access_time, size: 18, color: color),
-                const SizedBox(width: 8),
-                Text(timeStr, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: Colors.white)),
+                Icon(Icons.access_time, size: AppDimensions.iconSm, color: color),
+                const SizedBox(width: AppDimensions.spacingMd),
+                Text(timeStr, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: AppColors.white)),
               ],
             ),
           ],

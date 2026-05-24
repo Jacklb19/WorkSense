@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/dashboard/domain/entities/daily_work_summary.dart';
@@ -75,7 +76,7 @@ class MyHoursScreen extends ConsumerWidget {
                             child: Text(
                               _activitySectionTitle,
                               style: TextStyle(
-                                color: Colors.white54,
+                                color: AppColors.white54,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 1.2,
@@ -105,7 +106,7 @@ class MyHoursScreen extends ConsumerWidget {
                             child: Text(
                               _historySectionTitle,
                               style: TextStyle(
-                                color: Colors.white54,
+                                color: AppColors.white54,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 1.2,
@@ -154,7 +155,7 @@ class MyHoursScreen extends ConsumerWidget {
           decoration: BoxDecoration(
             color: AppColors.cardDark,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            border: Border.all(color: AppColors.white.withValues(alpha: 0.06)),
           ),
           child: Column(
             children: [
@@ -173,24 +174,24 @@ class MyHoursScreen extends ConsumerWidget {
                     child: Text(
                       state.label,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.white,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
                   Text(
                     _fmtDur(dur),
-                    style: const TextStyle(color: Colors.white70),
+                    style: const TextStyle(color: AppColors.white70),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
                 child: LinearProgressIndicator(
                   value: pct,
-                  minHeight: 8,
-                  backgroundColor: Colors.white.withValues(alpha: 0.05),
+                  minHeight: AppDimensions.progressBarHeight,
+                  backgroundColor: AppColors.white5,
                   color: state.color,
                 ),
               ),
@@ -241,7 +242,7 @@ class _SummaryHeroCard extends StatelessWidget {
           const Text(
             'RESUMEN DE LA JORNADA',
             style: TextStyle(
-              color: Colors.white70,
+              color: AppColors.white70,
               fontSize: 11,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.2,
@@ -251,7 +252,7 @@ class _SummaryHeroCard extends StatelessWidget {
           Text(
             '${HoursFormatters.formatMinutes(worked)} trabajados',
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.white,
               fontSize: 28,
               fontWeight: FontWeight.w900,
             ),
@@ -261,16 +262,16 @@ class _SummaryHeroCard extends StatelessWidget {
             expected > 0
                 ? 'Meta del dia: ${HoursFormatters.formatMinutes(expected)}'
                 : 'Aún no hay una meta de turno configurada',
-            style: const TextStyle(color: Colors.white70, height: 1.35),
+            style: const TextStyle(color: AppColors.white70, height: 1.35),
           ),
           const SizedBox(height: 18),
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
               value: ratio,
-              minHeight: 10,
-              backgroundColor: Colors.white.withValues(alpha: 0.18),
-              color: Colors.white,
+              minHeight: AppDimensions.progressBarHeight,
+              backgroundColor: AppColors.white.withValues(alpha: 0.18),
+              color: AppColors.white,
             ),
           ),
           const SizedBox(height: 12),
@@ -305,7 +306,7 @@ class _HeroChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
+        color: AppColors.white.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -314,7 +315,7 @@ class _HeroChip extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              color: Colors.white70,
+              color: AppColors.white70,
               fontSize: 10,
               fontWeight: FontWeight.w700,
             ),
@@ -323,7 +324,7 @@ class _HeroChip extends StatelessWidget {
           Text(
             value,
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.white,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -365,8 +366,8 @@ class _MetricsGrid extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: AppColors.cardDark,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
+            border: Border.all(color: AppColors.white.withValues(alpha: 0.06)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,14 +377,14 @@ class _MetricsGrid extends StatelessWidget {
               Text(
                 item.value,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
                 ),
               ),
               Text(
                 item.label,
-                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                style: const TextStyle(color: AppColors.white54, fontSize: 12),
               ),
             ],
           ),
@@ -412,7 +413,7 @@ class _AnomaliesCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.warning.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
         border: Border.all(color: AppColors.warning.withValues(alpha: 0.18)),
       ),
       child: Column(
@@ -425,7 +426,7 @@ class _AnomaliesCard extends StatelessWidget {
               Text(
                 'Aspectos para revisar',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
@@ -438,7 +439,7 @@ class _AnomaliesCard extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 '• ${HoursFormatters.formatAnomalyLabel(anomaly)}',
-                style: const TextStyle(color: Colors.white70, height: 1.35),
+                style: const TextStyle(color: AppColors.white70, height: 1.35),
               ),
             ),
           ),
@@ -460,7 +461,7 @@ class _ActivityOverviewCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -504,7 +505,7 @@ class _HistoryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         children: [
@@ -525,14 +526,14 @@ class _HistoryCard extends StatelessWidget {
                 Text(
                   dateLabel,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.white,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${HoursFormatters.formatMinutes(summary.workedMinutes)} trabajados de ${HoursFormatters.formatMinutes(summary.expectedMinutes)} esperados',
-                  style: const TextStyle(color: Colors.white60, fontSize: 12),
+                  style: const TextStyle(color: AppColors.white60, fontSize: 12),
                 ),
               ],
             ),
@@ -543,7 +544,7 @@ class _HistoryCard extends StatelessWidget {
               Text(
                 '${(summary.completionRatio * 100).round()}%',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.white,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -579,12 +580,12 @@ class _ActivityPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, size: 20, color: AppColors.primaryLight),
+        Icon(icon, size: AppDimensions.iconMd, color: AppColors.primaryLight),
         const SizedBox(height: 8),
         Text(
           value,
           style: const TextStyle(
-            color: Colors.white,
+            color: AppColors.white,
             fontSize: 17,
             fontWeight: FontWeight.w900,
           ),
@@ -593,7 +594,7 @@ class _ActivityPill extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            color: Colors.white54,
+            color: AppColors.white54,
             fontSize: 10,
             fontWeight: FontWeight.w800,
           ),
@@ -620,19 +621,19 @@ class _EmptyHoursView extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: AppColors.cardDark,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                border: Border.all(color: AppColors.white5),
               ),
               child: const Icon(
                 Icons.access_time_rounded,
-                size: 40,
-                color: Colors.white24,
+                size: AppDimensions.iconHuge,
+                color: AppColors.white24,
               ),
             ),
             const SizedBox(height: 24),
             const Text(
               'AUN NO HAY HORAS CONSOLIDADAS',
               style: TextStyle(
-                color: Colors.white30,
+                color: AppColors.white30,
                 fontSize: 15,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1.4,
@@ -643,7 +644,7 @@ class _EmptyHoursView extends ConsumerWidget {
             const Text(
               'Tu resumen aparecera automaticamente cuando se registren sesiones y actividad durante la jornada.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white38, fontSize: 13, height: 1.5),
+              style: TextStyle(color: AppColors.white38, fontSize: 13, height: 1.5),
             ),
             const SizedBox(height: 28),
             OutlinedButton.icon(
@@ -654,8 +655,8 @@ class _EmptyHoursView extends ConsumerWidget {
               icon: const Icon(Icons.refresh, size: 16),
               label: const Text('Actualizar'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white54,
-                side: const BorderSide(color: Colors.white12),
+                foregroundColor: AppColors.white54,
+                side: const BorderSide(color: AppColors.white12),
               ),
             ),
           ],

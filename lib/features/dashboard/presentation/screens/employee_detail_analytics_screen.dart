@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/dashboard/domain/entities/employee_analytics.dart';
@@ -186,11 +187,11 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
           children: [
             // State color dot
             Container(
-              width: 12,
-              height: 12,
+              width: AppDimensions.stateBreakdownDotSize,
+                height: AppDimensions.stateBreakdownDotSize,
               decoration: BoxDecoration(
                 color: entry.key.color,
-                borderRadius: BorderRadius.circular(3),
+                borderRadius: BorderRadius.circular(AppDimensions.radiusXs),
               ),
             ),
             const SizedBox(width: 12),
@@ -208,12 +209,12 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
             Expanded(
               flex: 5,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(3),
+                borderRadius: BorderRadius.circular(AppDimensions.radiusXs),
                 child: LinearProgressIndicator(
                   value: pct,
                   backgroundColor: AppColors.grey200,
                   color: entry.key.color,
-                  minHeight: 8,
+                  minHeight: AppDimensions.progressBarHeight,
                 ),
               ),
             ),
@@ -221,7 +222,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
 
             // Percentage + duration
             SizedBox(
-              width: 80,
+              width: AppDimensions.stateBreakdownPercentageWidth,
               child: Text(
                 '${(pct * 100).round()}% · ${_fmtDur(entry.value)}',
                 style: const TextStyle(
@@ -250,19 +251,19 @@ class _SummaryHeader extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppDimensions.spacingXxl),
       child: Card(
         elevation: 1,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusXxl)),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppDimensions.spacingXxl),
           child: Column(
             children: [
               // Avatar + name
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 24,
+                    radius: AppDimensions.avatarRadiusMd,
                     backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                     child: Text(
                       analytics.employee.displayName.isNotEmpty
@@ -271,7 +272,7 @@ class _SummaryHeader extends StatelessWidget {
                       style: const TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,
-                        fontSize: 22,
+                        fontSize: AppDimensions.fontHeadlineLg,
                       ),
                     ),
                   ),
@@ -302,13 +303,13 @@ class _SummaryHeader extends StatelessWidget {
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: analytics.lastState!.color.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
                       ),
                       child: Text(
                         analytics.lastState!.label,
                         style: TextStyle(
                           color: analytics.lastState!.color,
-                          fontSize: 11,
+fontSize: AppDimensions.fontSm,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -371,7 +372,7 @@ class _StatChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, size: 22, color: AppColors.primary),
+        Icon(icon, size: AppDimensions.statChipIconSize, color: AppColors.primary),
         const SizedBox(height: 4),
         Text(
           value,
@@ -383,7 +384,7 @@ class _StatChip extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 10,
+            fontSize: AppDimensions.fontCaption,
             color: AppColors.grey500,
           ),
         ),
@@ -437,7 +438,7 @@ class _EmptyDetailView extends StatelessWidget {
         children: [
           const Icon(
             Icons.person_search_outlined,
-            size: 64,
+            size: AppDimensions.iconEmptyStateLg,
             color: AppColors.grey300,
           ),
           const SizedBox(height: 16),

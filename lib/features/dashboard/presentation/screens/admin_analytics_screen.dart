@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/dashboard/domain/entities/employee_analytics.dart';
@@ -67,14 +68,14 @@ class AdminAnalyticsScreen extends ConsumerWidget {
               loading: () => const AppLoadingWidget(),
               error: (e, _) => Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
+padding: const EdgeInsets.all(AppDimensions.spacing24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(
                         Icons.error_outline,
                         color: AppColors.error,
-                        size: 48,
+                        size: AppDimensions.iconEmptyState,
                       ),
                       const SizedBox(height: 16),
                       Text('Error: $e',
@@ -117,7 +118,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppDimensions.radiusRound)),
       ),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.all(24),
@@ -140,7 +141,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                       height: 16,
                       decoration: BoxDecoration(
                         color: s.color,
-                        borderRadius: BorderRadius.circular(4),
+borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -205,12 +206,12 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
 
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusXxl)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppDimensions.spacingXxl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -218,7 +219,7 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 20,
+                    radius: AppDimensions.avatarRadiusSm,
                     backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                     child: Text(
                       emp.name.isNotEmpty
@@ -227,7 +228,7 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
                       style: const TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                        fontSize: AppDimensions.fontTitleLg,
                       ),
                     ),
                   ),
@@ -296,7 +297,7 @@ class _DistributionBar extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
       child: SizedBox(
-        height: 10,
+        height: AppDimensions.distributionBarHeight,
         child: Row(
           children: segments.map((entry) {
             final fraction = entry.value.inSeconds / totalSec;
@@ -335,18 +336,18 @@ class _TopStatesRow extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 8,
-                height: 8,
+                width: AppDimensions.stateIndicatorSize,
+                height: AppDimensions.stateIndicatorSize,
                 decoration: BoxDecoration(
                   color: entry.key.color,
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusXxs),
                 ),
               ),
               const SizedBox(width: 4),
               Text(
                 '${entry.key.label} $pct%',
                 style: const TextStyle(
-                  fontSize: 10,
+                  fontSize: AppDimensions.fontXs,
                   color: AppColors.grey600,
                 ),
               ),
@@ -369,8 +370,8 @@ class _StateDot extends StatelessWidget {
     return Tooltip(
       message: state.label,
       child: Container(
-        width: 12,
-        height: 12,
+width: AppDimensions.stateBreakdownDotSize,
+                      height: AppDimensions.stateBreakdownDotSize,
         decoration: BoxDecoration(
           color: state.color,
           shape: BoxShape.circle,
@@ -393,7 +394,7 @@ class _EmptyView extends StatelessWidget {
         children: [
           const Icon(
             Icons.bar_chart_outlined,
-            size: 64,
+            size: AppDimensions.iconEmptyStateLg,
             color: AppColors.grey300,
           ),
           const SizedBox(height: 16),

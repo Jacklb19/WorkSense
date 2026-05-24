@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import 'package:worksense_app/core/constants/app_constants.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/workstation.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
@@ -189,7 +190,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
       data: (employees) {
         if (employees.isEmpty) {
           return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.0),
+            padding: EdgeInsets.symmetric(vertical: AppDimensions.spacingMd),
             child: Text(
               AppStrings.noEmployeesRegistered,
               style: TextStyle(
@@ -236,7 +237,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppDimensions.spacingXxl),
         child: Form(
           key: _formKey,
           child: Column(
@@ -252,7 +253,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
                     ? AppStrings.workstationNameRequired
                     : null,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppDimensions.spacingXxl),
               TextFormField(
                 controller: _deviceIdController,
                 decoration: const InputDecoration(
@@ -263,33 +264,32 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
                     ? AppStrings.deviceIdRequired
                     : null,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppDimensions.spacingXxl),
               _buildEmployeeSelector(),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppDimensions.spacing24),
               const Text(
                 AppStrings.geolocation,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppDimensions.fontTitle),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppDimensions.spacingMd),
               OutlinedButton.icon(
                 onPressed: _isLoadingLocation ? null : _getCurrentLocation,
                 icon: _isLoadingLocation
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                    ? const SizedBox(width: AppDimensions.iconXs,
+                        height: AppDimensions.iconXs,
+                        child: CircularProgressIndicator(strokeWidth: AppDimensions.progressStrokeWidth),
                       )
                     : const Icon(Icons.location_on),
                 label: const Text(AppStrings.useCurrentLocation),
               ),
               if (_latitude != null && _longitude != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: AppDimensions.spacingMd),
                 Text(
                   'Ubicacion: $_latitude, $_longitude',
                   style: const TextStyle(color: AppColors.success),
                 ),
               ],
-              const SizedBox(height: 24),
+              const SizedBox(height: AppDimensions.spacing24),
               Text(
                 'Radio de geovalla: ${_geofenceRadius.toInt()} m',
                 style: const TextStyle(fontWeight: FontWeight.bold),
@@ -305,17 +305,17 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
                   setState(() => _geofenceRadius = value);
                 },
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppDimensions.spacing24),
               const Text(
                 'Zona de deteccion del puesto',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppDimensions.fontTitle),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppDimensions.spacingMd),
               Text(
                 _selectedRoiPreset.description,
-                style: const TextStyle(color: Colors.black54),
+                style: const TextStyle(color: AppColors.black54),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppDimensions.spacingLg),
               DropdownButtonFormField<_RoiPreset>(
                 initialValue: _selectedRoiPreset,
                 decoration: const InputDecoration(
@@ -336,12 +336,12 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
                   setState(() => _selectedRoiPreset = value);
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppDimensions.spacingLg),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppDimensions.spacingLg),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
                   border: Border.all(
                     color: AppColors.primary.withValues(alpha: 0.15),
                   ),
@@ -351,22 +351,22 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
                   'para concentrar la deteccion continua en la zona util del puesto.',
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppDimensions.spacing32),
               FilledButton(
                 onPressed: _isSaving ? null : _submit,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingXxl),
                 ),
                 child: _isSaving
                     ? const SizedBox(
-                        width: 24,
-                        height: 24,
+                        width: AppDimensions.iconLg,
+                        height: AppDimensions.iconLg,
                         child: CircularProgressIndicator(color: AppColors.white),
                       )
                     : const Text(
                         AppStrings.saveWorkstation,
-                        style: TextStyle(fontSize: 16),
+                        style: TextStyle(fontSize: AppDimensions.fontTitle),
                       ),
               ),
             ],

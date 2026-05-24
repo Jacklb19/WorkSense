@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
@@ -36,7 +37,7 @@ class EmployeesListScreen extends ConsumerWidget {
           return ListView.separated(
             itemCount: employees.length,
             separatorBuilder: (_, __) =>
-                const Divider(height: 1, indent: 72),
+                const Divider(height: 1, indent: AppDimensions.dividerIndent),
             itemBuilder: (context, index) {
               final employee = employees[index];
               return ListTile(
@@ -56,7 +57,7 @@ class EmployeesListScreen extends ConsumerWidget {
                 subtitle: Text(
                   'Registrado el ${DateFormat('dd/MM/yyyy').format(employee.createdAt)}',
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: AppDimensions.fontCaption,
                     color: AppColors.grey500,
                   ),
                 ),
@@ -80,8 +81,8 @@ class EmployeesListScreen extends ConsumerWidget {
                       child: Row(
                         children: [
                           Icon(Icons.edit_outlined,
-                              color: AppColors.primary, size: 18),
-                          SizedBox(width: 8),
+                              color: AppColors.primary, size: AppDimensions.iconSm),
+                          SizedBox(width: AppDimensions.spacingMd),
                           Text('Editar'),
                         ],
                       ),
@@ -91,8 +92,8 @@ class EmployeesListScreen extends ConsumerWidget {
                       child: Row(
                         children: [
                           Icon(Icons.delete_outline,
-                              color: AppColors.error, size: 18),
-                          SizedBox(width: 8),
+                              color: AppColors.error, size: AppDimensions.iconSm),
+                          SizedBox(width: AppDimensions.spacingMd),
                           Text(
                             AppStrings.delete,
                             style: TextStyle(color: AppColors.error),
@@ -193,20 +194,20 @@ class _EmptyEmployeesView extends StatelessWidget {
         children: [
           const Icon(
             Icons.people_outline,
-            size: 64,
+            size: AppDimensions.iconEmptyStateLg,
             color: AppColors.grey300,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDimensions.spacingXxl),
           Text(
             AppStrings.noEmployees,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: AppColors.grey500,
                 ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDimensions.spacingMd),
           const Text(
             AppStrings.addEmployeeHint,
-            style: TextStyle(color: AppColors.grey400, fontSize: 13),
+            style: TextStyle(color: AppColors.grey400, fontSize: AppDimensions.fontBody),
           ),
         ],
       ),

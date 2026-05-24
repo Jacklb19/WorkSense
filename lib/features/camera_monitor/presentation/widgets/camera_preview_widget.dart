@@ -100,7 +100,7 @@ class CameraErrorWidget extends StatelessWidget {
               Text(
                 message,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.white,
                   fontSize: 14,
                 ),
                 textAlign: TextAlign.center,
@@ -112,8 +112,8 @@ class CameraErrorWidget extends StatelessWidget {
                   icon: const Icon(Icons.refresh),
                   label: const Text('Reintentar'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white38),
+                    foregroundColor: AppColors.white,
+                    side: const BorderSide(color: AppColors.white38),
                   ),
                 ),
               ],

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/admin_analytics_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/widgets/employee_dashboard_card.dart';
@@ -44,7 +45,7 @@ class AdminDashboardScreen extends ConsumerWidget {
               ),
               actions: [
                 SyncIndicatorWidget(),
-                SizedBox(width: 16),
+                SizedBox(width: AppDimensions.spacingXxl),
               ],
             ),
             employeesAsync.when(
@@ -63,7 +64,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                 return SliverMainAxisGroup(
                   slivers: [
                     SliverPadding(
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(AppDimensions.spacing24),
                       sliver: SliverToBoxAdapter(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,7 +77,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                                 letterSpacing: 1.2,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppDimensions.spacingMd),
                             Text(
                               'Tus trabajadores',
                               style: theme.textTheme.headlineSmall?.copyWith(
@@ -88,14 +89,14 @@ class AdminDashboardScreen extends ConsumerWidget {
                       ),
                     ),
                     SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing24),
                       sliver: SliverGrid(
                         gridDelegate:
                             const SliverGridDelegateWithMaxCrossAxisExtent(
                           maxCrossAxisExtent: 350,
                           mainAxisExtent: 180,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
+                          mainAxisSpacing: AppDimensions.spacingXxl,
+                          crossAxisSpacing: AppDimensions.spacingXxl,
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) =>
@@ -124,7 +125,7 @@ class AdminDashboardScreen extends ConsumerWidget {
             icon: const Icon(Icons.desktop_windows),
             label: const Text('VER ESTACIONES'),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDimensions.spacingXxl),
           FloatingActionButton.extended(
             heroTag: 'entrance_btn',
             onPressed: () => context.push(AppRoutes.entrance),
@@ -148,23 +149,23 @@ class _EmptyEmployeesView extends ConsumerWidget {
     final theme = Theme.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppDimensions.spacing32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
               Icons.people_outline,
-              size: 64,
+              size: AppDimensions.iconEmptyStateLg,
               color: AppColors.grey300,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppDimensions.spacingXxl),
             Text(
               'No hay colaboradores',
               style: theme.textTheme.titleLarge?.copyWith(
                 color: AppColors.grey600,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppDimensions.spacingMd),
             Text(
               'Registra a tus empleados para administrar su asistencia.',
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -172,7 +173,7 @@ class _EmptyEmployeesView extends ConsumerWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppDimensions.spacing24),
             FilledButton.icon(
               onPressed: () => context.push(AppRoutes.employeeNew),
               icon: const Icon(Icons.add),
@@ -194,26 +195,26 @@ class _ErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppDimensions.spacing24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
               Icons.error_outline,
               color: AppColors.error,
-              size: 48,
+              size: AppDimensions.iconEmptyState,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppDimensions.spacingXxl),
             Text(
               AppStrings.errorLoadingData,
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppDimensions.spacingMd),
             Text(
               error,
               style: const TextStyle(
                 color: AppColors.grey500,
-                fontSize: 12,
+                fontSize: AppDimensions.fontCaption,
               ),
               textAlign: TextAlign.center,
             ),

@@ -682,7 +682,7 @@
       });
 
       return Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.black,
         body: Stack(
           fit: StackFit.expand,
           children: [
@@ -740,9 +740,9 @@
               center: Alignment.center,
               radius: 0.8,
               colors: [
-                Colors.transparent,
-                Colors.black.withValues(alpha: 0.2),
-                Colors.black.withValues(alpha: 0.6),
+                AppColors.transparent,
+                AppColors.black.withValues(alpha: 0.2),
+                AppColors.black.withValues(alpha: 0.6),
               ],
               stops: const [0.5, 0.8, 1.0],
             ),
@@ -764,9 +764,9 @@
               center: Alignment.center,
               radius: 0.9,
               colors: [
-                Colors.white.withValues(alpha: 0.70),
-                Colors.white.withValues(alpha: 0.32),
-                Colors.white.withValues(alpha: 0.10),
+                AppColors.white.withValues(alpha: 0.70),
+                AppColors.white.withValues(alpha: 0.32),
+                AppColors.white.withValues(alpha: 0.10),
               ],
               stops: const [0.0, 0.55, 1.0],
             ),
@@ -789,7 +789,7 @@
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
+            colors: [AppColors.black.withValues(alpha: 0.8), AppColors.transparent],
           ),
         ),
         child: SafeArea(
@@ -798,7 +798,7 @@
             children: [
               IconButton(
                 onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close, color: Colors.white),
+                icon: const Icon(Icons.close, color: AppColors.white),
               ),
               const SizedBox(width: 12),
               Column(
@@ -817,7 +817,7 @@
                   Text(
                     'Progreso: $current / $total muestras',
                     style: const TextStyle(
-                      color: Colors.white70,
+                      color: AppColors.white70,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -837,7 +837,7 @@
 
     Color get _color {
       switch (status) {
-        case FrameStatus.searching: return Colors.white38;
+        case FrameStatus.searching: return AppColors.white38;
         case FrameStatus.detected: return AppColors.feedbackDetected;
         case FrameStatus.error: return AppColors.feedbackError;
         case FrameStatus.capturing: return AppColors.feedbackCapturing;
@@ -917,7 +917,7 @@
           gradient: LinearGradient(
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
-            colors: [Colors.black.withValues(alpha: 0.9), Colors.transparent],
+            colors: [AppColors.black.withValues(alpha: 0.9), AppColors.transparent],
           ),
         ),
         child: SafeArea(
@@ -941,7 +941,7 @@
                 Text(
                   'RAFAGA ${state.burstProgress}/${state.burstTotal}',
                   style: const TextStyle(
-                    color: Colors.white70,
+                    color: AppColors.white70,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.2,
@@ -961,12 +961,12 @@
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: canCapture ? Colors.white : Colors.white24,
+                        color: canCapture ? AppColors.white : AppColors.white24,
                         width: 4,
                       ),
                       color: canCapture
                           ? AppColors.primary.withValues(alpha: 0.2)
-                          : Colors.transparent,
+                          : AppColors.transparent,
                     ),
                     child: Center(
                       child: Container(
@@ -974,7 +974,7 @@
                         width: 60,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: canCapture ? Colors.white : Colors.white10,
+                          color: canCapture ? AppColors.white : AppColors.white10,
                         ),
                         child: state.isCapturing 
                           ? const Padding(
@@ -983,7 +983,7 @@
                             )
                           : Icon(
                               Icons.fingerprint, 
-                              color: canCapture ? AppColors.primary : Colors.white24, 
+                              color: canCapture ? AppColors.primary : AppColors.white24, 
                               size: 32
                             ),
                       ),
@@ -998,7 +998,7 @@
               Text(
                 '${state.capturedCount} / ${EmployeeProfiler.samplesRequired} muestras',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
@@ -1014,7 +1014,7 @@
       switch (status) {
         case FrameStatus.detected: return AppColors.feedbackDetected;
         case FrameStatus.error: return AppColors.feedbackError;
-        default: return Colors.white70;
+        default: return AppColors.white70;
       }
     }
   }

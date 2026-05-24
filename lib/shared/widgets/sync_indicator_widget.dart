@@ -89,7 +89,7 @@ class _Badge extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
       child: Text(
         count > 99 ? '99+' : '$count',
-        style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+        style: const TextStyle(color: AppColors.white, fontSize: 8, fontWeight: FontWeight.bold),
         textAlign: TextAlign.center,
       ),
     );

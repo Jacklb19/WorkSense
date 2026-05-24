@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 
 class AppErrorWidget extends StatelessWidget {
   final String message;
@@ -18,34 +19,26 @@ class AppErrorWidget extends StatelessWidget {
     final theme = Theme.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppDimensions.spacing24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: AppColors.error,
-              size: 48,
-            ),
-            const SizedBox(height: 16),
+            Icon(icon, color: AppColors.error, size: AppDimensions.iconEmptyState),
+            const SizedBox(height: AppDimensions.spacingXxl),
             Text(
               'Algo salió mal',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppDimensions.spacingMd),
             Text(
               message,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.grey500,
-              ),
+              style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.grey500),
               textAlign: TextAlign.center,
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
             ),
             if (onRetry != null) ...[
-              const SizedBox(height: 20),
+              const SizedBox(height: AppDimensions.spacing20),
               FilledButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
@@ -59,43 +52,30 @@ class AppErrorWidget extends StatelessWidget {
   }
 }
 
-/// Inline error banner (not full-screen)
 class ErrorBannerWidget extends StatelessWidget {
   final String message;
   final VoidCallback? onDismiss;
 
-  const ErrorBannerWidget({
-    super.key,
-    required this.message,
-    this.onDismiss,
-  });
+  const ErrorBannerWidget({super.key, required this.message, this.onDismiss});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.all(AppDimensions.spacingXxl),
+      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacingLg),
       decoration: BoxDecoration(
         color: AppColors.errorBg,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
         border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, color: AppColors.error, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(
-                color: AppColors.error,
-                fontSize: 13,
-              ),
-            ),
-          ),
+          const Icon(Icons.error_outline, color: AppColors.error, size: AppDimensions.iconSm),
+          const SizedBox(width: AppDimensions.spacingMd),
+          Expanded(child: Text(message, style: const TextStyle(color: AppColors.error, fontSize: 13))),
           if (onDismiss != null)
             IconButton(
-              icon: const Icon(Icons.close, size: 16),
+              icon: const Icon(Icons.close, size: AppDimensions.iconXs),
               color: AppColors.error,
               onPressed: onDismiss,
               padding: EdgeInsets.zero,

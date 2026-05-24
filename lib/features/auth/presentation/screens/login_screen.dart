@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 
@@ -58,9 +59,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 40.0),
+              padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing40),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
+                constraints: const BoxConstraints(maxWidth: AppDimensions.loginMaxWidth),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -76,41 +77,41 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             keyboardType: TextInputType.emailAddress,
                             decoration: const InputDecoration(
                               labelText: 'CORREO DE ACCESO',
-                              prefixIcon: Icon(Icons.alternate_email, size: 20),
+                              prefixIcon: Icon(Icons.alternate_email, size: AppDimensions.iconMd),
                             ),
                             validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: AppDimensions.spacing20),
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
                             decoration: InputDecoration(
                               labelText: 'CONTRASEÑA',
-                              prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                              prefixIcon: const Icon(Icons.lock_outline, size: AppDimensions.iconMd),
                               suffixIcon: IconButton(
-                                icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off, size: 18),
+                                icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off, size: AppDimensions.iconSm),
                                 onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                               ),
                             ),
                             validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
                           ),
                           if (loginState.errorMessage != null) ...[
-                            const SizedBox(height: 16),
-                            Text(loginState.errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
+                            const SizedBox(height: AppDimensions.spacingXxl),
+                            Text(loginState.errorMessage!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.error, fontSize: AppDimensions.fontCaption)),
                           ],
-                          const SizedBox(height: 40),
+                          const SizedBox(height: AppDimensions.spacing40),
                           FilledButton(
                             onPressed: loginState.isLoading ? null : _handleLogin,
                             style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, 56)),
                             child: loginState.isLoading
-                                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                ? SizedBox(height: AppDimensions.progressIndicatorSize, width: AppDimensions.progressIndicatorSize, child: CircularProgressIndicator(strokeWidth: AppDimensions.progressStrokeWidth, color: AppColors.white))
                                 : const Text('INICIAR SESIÓN', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 48),
-                    const Text('WORKSENSE SYSTEM v2.0', style: TextStyle(color: Colors.white10, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                    const SizedBox(height: AppDimensions.spacing48),
+                    const Text('WORKSENSE SYSTEM v2.0', style: TextStyle(color: AppColors.white10, fontSize: AppDimensions.fontXs, fontWeight: FontWeight.bold, letterSpacing: 2)),
                   ],
                 ),
               ),
@@ -125,27 +126,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Column(
       children: [
         Container(
-          width: 80,
-          height: 80,
+          width: AppDimensions.loginLogoSize,
+          height: AppDimensions.loginLogoSize,
           decoration: BoxDecoration(
             color: AppColors.backgroundDark,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(AppDimensions.loginLogoRadius),
             border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
             boxShadow: [
               BoxShadow(color: AppColors.primary.withValues(alpha: 0.1), blurRadius: 20, spreadRadius: 5),
             ],
           ),
-          child: const Icon(Icons.remove_red_eye, color: AppColors.primary, size: 40),
+          child: const Icon(Icons.remove_red_eye, color: AppColors.primary, size: AppDimensions.iconHuge),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: AppDimensions.spacing24),
         const Text(
           'WORKSENSE',
-          style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 4),
+          style: TextStyle(color: AppColors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 4),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppDimensions.spacingMd),
         Text(
           'BIOMETRIC CONTROL INTERFACE',
-          style: TextStyle(color: AppColors.primary.withValues(alpha: 0.5), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2),
+          style: TextStyle(color: AppColors.primary.withValues(alpha: 0.5), fontSize: AppDimensions.fontXs, fontWeight: FontWeight.bold, letterSpacing: 2),
         ),
       ],
     );

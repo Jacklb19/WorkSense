@@ -86,7 +86,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
     final isWelcome = state.phase == KioskPhase.welcome;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.black,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -103,8 +103,8 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
           AnimatedContainer(
             duration: const Duration(milliseconds: 400),
             color: isWelcome
-                ? Colors.black.withValues(alpha: 0.75)
-                : Colors.black.withValues(alpha: 0.4),
+                ? AppColors.black.withValues(alpha: 0.75)
+                : AppColors.black.withValues(alpha: 0.4),
           ),
 
           // Scanner HUD (visible when scanning or cooldown)
@@ -188,7 +188,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
+                  color: AppColors.black.withValues(alpha: 0.3),
                   blurRadius: 15,
                   offset: const Offset(0, 5),
                 )
@@ -210,7 +210,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                     state.phase == KioskPhase.scanning
                         ? Icons.face_retouching_natural
                         : Icons.hourglass_top,
-                    color: Colors.white70,
+                    color: AppColors.white70,
                     size: 28,
                   ),
                    
@@ -219,7 +219,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                   child: Text(
                     state.statusMessage,
                     style: const TextStyle(
-                      color: Colors.white, 
+                      color: AppColors.white, 
                       fontSize: 18, 
                       fontWeight: FontWeight.bold
                     ),
@@ -256,8 +256,8 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Color(0xFF43A047),
-                          Color(0xFF2E7D32),
+                          AppColors.success,
+                          AppColors.successDark,
                         ],
                       ),
                       boxShadow: [
@@ -270,7 +270,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                     ),
                     child: const Icon(
                       Icons.check_rounded,
-                      color: Colors.white,
+                      color: AppColors.white,
                       size: 64,
                     ),
                   ),
@@ -281,7 +281,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                   const Text(
                     '¡ÉXITO!',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 6,
@@ -294,7 +294,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                   Text(
                     state.statusMessage,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.white,
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0,
@@ -337,7 +337,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                             const Text(
                               'ESTACIÓN DE TRABAJO',
                               style: TextStyle(
-                                color: Colors.white54,
+                                color: AppColors.white54,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 1.5,
@@ -347,7 +347,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                             Text(
                               state.matchedWorkstationName ?? 'Activada',
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: AppColors.white,
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -405,15 +405,15 @@ class _TopBar extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            icon: const Icon(Icons.arrow_back, color: AppColors.white),
             onPressed: () => context.pop(),
           ),
           const SizedBox(width: 16),
           const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('WORKSENSE', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 2)),
-              Text('Kiosco de Acceso Frontal', style: TextStyle(color: Colors.white70, fontSize: 14)),
+              Text('WORKSENSE', style: TextStyle(color: AppColors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 2)),
+              Text('Kiosco de Acceso Frontal', style: TextStyle(color: AppColors.white70, fontSize: 14)),
             ],
           )
         ],

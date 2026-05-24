@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 
 class AppLoadingWidget extends StatelessWidget {
   final String? message;
@@ -12,17 +13,12 @@ class AppLoadingWidget extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const CircularProgressIndicator(
-            color: AppColors.primary,
-          ),
+          const CircularProgressIndicator(color: AppColors.primary),
           if (message != null) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: AppDimensions.spacingXxl),
             Text(
               message!,
-              style: const TextStyle(
-                color: AppColors.grey500,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: AppColors.grey500, fontSize: 14),
               textAlign: TextAlign.center,
             ),
           ],
@@ -32,14 +28,13 @@ class AppLoadingWidget extends StatelessWidget {
   }
 }
 
-/// Slim loading indicator for inline use
 class InlineLoadingWidget extends StatelessWidget {
   final double size;
   final Color? color;
 
   const InlineLoadingWidget({
     super.key,
-    this.size = 20,
+    this.size = AppDimensions.progressIndicatorSize,
     this.color,
   });
 
@@ -49,7 +44,7 @@ class InlineLoadingWidget extends StatelessWidget {
       width: size,
       height: size,
       child: CircularProgressIndicator(
-        strokeWidth: 2,
+        strokeWidth: AppDimensions.progressStrokeWidth,
         color: color ?? AppColors.primary,
       ),
     );

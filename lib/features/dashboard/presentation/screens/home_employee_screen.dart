@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
@@ -30,20 +32,20 @@ class HomeEmployeeScreen extends ConsumerWidget {
             return Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.person, size: 80, color: Colors.blueAccent),
-                const SizedBox(height: 16),
+                const Icon(Icons.person, size: AppDimensions.iconLogo, color: AppColors.primaryLight),
+                const SizedBox(height: AppDimensions.spacingXxl),
                 Text(
                   AppStrings.welcome,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 if (currentUser.user?.email != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppDimensions.spacingMd),
                   Text(
                     currentUser.user!.email!,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ],
-                const SizedBox(height: 24),
+                const SizedBox(height: AppDimensions.spacing24),
                 const Text(AppStrings.scheduleAndActivityHint),
               ],
             );

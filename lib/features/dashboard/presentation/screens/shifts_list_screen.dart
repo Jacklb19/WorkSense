@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
@@ -29,27 +30,27 @@ class ShiftsListScreen extends ConsumerWidget {
             }
 
             return ListView.separated(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppDimensions.spacingXxl),
               itemCount: shifts.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, __) => const SizedBox(height: AppDimensions.spacingLg),
               itemBuilder: (context, index) {
                 final shift = shifts[index];
                 final String startStr = '${shift.startTime.hour}:${shift.startTime.minute.toString().padLeft(2, '0')}';
                 final String endStr = '${shift.endTime.hour}:${shift.endTime.minute.toString().padLeft(2, '0')}';
                 
                 return Card(
-                  elevation: 2,
+                  elevation: AppDimensions.cardElevation,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
                     side: const BorderSide(color: AppColors.glassBorder),
                   ),
                   child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing24, vertical: AppDimensions.spacingLg),
                     leading: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(AppDimensions.spacingLg),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
                       ),
                       child: const Icon(Icons.schedule, color: AppColors.primary),
                     ),
@@ -58,7 +59,7 @@ class ShiftsListScreen extends ConsumerWidget {
                       style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
+                      padding: const EdgeInsets.only(top: AppDimensions.spacingXs),
                       child: Text(
                         '$startStr - $endStr',
                         style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.grey500),
@@ -94,13 +95,13 @@ class _EmptyShiftsView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.event_busy, size: 64, color: AppColors.grey300),
-          const SizedBox(height: 16),
+          const Icon(Icons.event_busy, size: AppDimensions.iconEmptyStateLg, color: AppColors.grey300),
+          const SizedBox(height: AppDimensions.spacingXxl),
           Text(
             'No hay turnos registrados',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.grey500),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDimensions.spacingMd),
           Text(
             'Crea tu primer horario laboral \npara asignarlo a tus empleados.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.grey400),

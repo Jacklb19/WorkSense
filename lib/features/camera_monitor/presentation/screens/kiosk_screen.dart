@@ -97,7 +97,7 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.black,
         body: Stack(
           fit: StackFit.expand,
           children: [
@@ -146,7 +146,7 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
                 title: '¿FINALIZAR?',
                 subtitle: 'Confirmar cierre de jornada',
                 icon: Icons.logout,
-                color: Colors.orange,
+                color: AppColors.warning,
                 actionLabel: 'CERRAR SESIÓN',
                 onConfirm: ref.read(kioskProvider.notifier).approveExit,
                 onCancel: ref.read(kioskProvider.notifier).cancelApproval,
@@ -207,7 +207,7 @@ class _IdentifyingHUD extends StatelessWidget {
                const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryLight)),
                const SizedBox(width: 12),
             ],
-            const Text('SCANNER ACTIVO', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+            const Text('SCANNER ACTIVO', style: TextStyle(color: AppColors.white, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
           ],
         ),
       ),
@@ -227,15 +227,15 @@ class _KioskTopHUD extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent]),
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [AppColors.black.withValues(alpha: 0.8), AppColors.transparent]),
       ),
       child: SafeArea(
         bottom: false,
         child: Row(
           children: [
-            IconButton(onPressed: onBack, icon: const Icon(Icons.close, color: Colors.white70)),
+            IconButton(onPressed: onBack, icon: const Icon(Icons.close, color: AppColors.white70)),
             const SizedBox(width: 8),
-            const Text('WORKSENSE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
+            const Text('WORKSENSE', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
             const Spacer(),
             Flexible(
               child: Container(
@@ -267,7 +267,7 @@ class _KioskBottomHUD extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent]),
+        gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [AppColors.black.withValues(alpha: 0.8), AppColors.transparent]),
       ),
       child: SafeArea(
         top: false,
@@ -282,7 +282,7 @@ class _KioskBottomHUD extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onExit,
                 style: FilledButton.styleFrom(
-                  backgroundColor: Colors.white10,
+                  backgroundColor: AppColors.white10,
                 ),
                 icon: const Icon(Icons.power_settings_new, size: 18),
                 label: const Text('SALIR', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
@@ -312,7 +312,7 @@ class _SessionActionOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black.withValues(alpha: 0.9),
+      color: AppColors.black.withValues(alpha: 0.9),
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(40.0),
@@ -325,9 +325,9 @@ class _SessionActionOverlay extends StatelessWidget {
                 child: Icon(icon, size: 64, color: color),
               ),
               const SizedBox(height: 32),
-              Text(title, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 2)),
+              Text(title, style: const TextStyle(color: AppColors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 2)),
               const SizedBox(height: 12),
-              Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 16)),
+              Text(subtitle, style: const TextStyle(color: AppColors.white70, fontSize: 16)),
               const SizedBox(height: 56),
               FilledButton(
                 onPressed: onConfirm,
@@ -335,7 +335,7 @@ class _SessionActionOverlay extends StatelessWidget {
                 child: Text(actionLabel, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
               ),
               const SizedBox(height: 16),
-              TextButton(onPressed: onCancel, child: const Text('CANCELAR', style: TextStyle(color: Colors.white38))),
+              TextButton(onPressed: onCancel, child: const Text('CANCELAR', style: TextStyle(color: AppColors.white38))),
             ],
           ),
         ),
@@ -347,7 +347,7 @@ class _SessionActionOverlay extends StatelessWidget {
 class _LoadingView extends StatelessWidget {
   const _LoadingView();
   @override
-  Widget build(BuildContext context) => Container(color: Colors.black, child: const Center(child: CircularProgressIndicator(color: AppColors.primary)));
+  Widget build(BuildContext context) => Container(color: AppColors.black, child: const Center(child: CircularProgressIndicator(color: AppColors.primary)));
 }
 
 class _NoProfileView extends StatelessWidget {
@@ -361,17 +361,17 @@ class _NoProfileView extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasEmployee = assignedEmployeeId != null;
     return Container(
-      color: Colors.black,
+      color: AppColors.black,
       padding: const EdgeInsets.all(40),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(hasEmployee ? Icons.face : Icons.person_off, size: 80, color: hasEmployee ? AppColors.primary : Colors.white24),
+            Icon(hasEmployee ? Icons.face : Icons.person_off, size: 80, color: hasEmployee ? AppColors.primary : AppColors.white24),
             const SizedBox(height: 32),
-            Text(hasEmployee ? 'ENROLAMIENTO PENDIENTE' : 'SIN ASIGNACIÓN', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+            Text(hasEmployee ? 'ENROLAMIENTO PENDIENTE' : 'SIN ASIGNACIÓN', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
             const SizedBox(height: 16),
-            Text(hasEmployee ? 'Se requiere una captura facial inicial para habilitar el reconocimiento en tiempo real.' : 'No hay un empleado asignado a este puesto de trabajo.', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white60, fontSize: 14)),
+            Text(hasEmployee ? 'Se requiere una captura facial inicial para habilitar el reconocimiento en tiempo real.' : 'No hay un empleado asignado a este puesto de trabajo.', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.white60, fontSize: 14)),
             const SizedBox(height: 48),
             if (hasEmployee)
               FilledButton.icon(
@@ -409,7 +409,7 @@ class _WaitingStandbyView extends StatelessWidget {
   Widget build(BuildContext context) {
     bool isBreak = status == 'BREAK';
     return Container(
-      color: Colors.black,
+      color: AppColors.black,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -417,13 +417,13 @@ class _WaitingStandbyView extends StatelessWidget {
             Icon(
               isBreak ? Icons.free_breakfast : Icons.bedtime, 
               size: 80, 
-              color: isBreak ? Colors.orange : AppColors.primary
+              color: isBreak ? AppColors.warning : AppColors.primary
             ),
             const SizedBox(height: 32),
             Text(
               isBreak ? 'EN PAUSA' : 'EN ESPERA',
               style: const TextStyle(
-                color: Colors.white, 
+                color: AppColors.white, 
                 fontSize: 24, 
                 fontWeight: FontWeight.w900, 
                 letterSpacing: 2
@@ -434,10 +434,10 @@ class _WaitingStandbyView extends StatelessWidget {
               isBreak 
                 ? 'El monitoreo está pausado por descanso.' 
                 : 'Esperando escaneo en el Kiosco de Entrada...',
-              style: const TextStyle(color: Colors.white70, fontSize: 16),
+              style: const TextStyle(color: AppColors.white70, fontSize: 16),
             ),
             const SizedBox(height: 64),
-            const CircularProgressIndicator(color: Colors.white24),
+            const CircularProgressIndicator(color: AppColors.white24),
           ],
         ),
       ),

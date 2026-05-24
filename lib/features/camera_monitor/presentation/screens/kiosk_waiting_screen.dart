@@ -44,7 +44,7 @@ class KioskWaitingScreen extends ConsumerWidget {
                 'CONFIGURAR DISPOSITIVO',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.5,
@@ -54,7 +54,7 @@ class KioskWaitingScreen extends ConsumerWidget {
               const Text(
                 'Selecciona la función que este dispositivo cumplirá en la oficina.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white60, fontSize: 14, height: 1.5),
+                style: TextStyle(color: AppColors.white60, fontSize: 14, height: 1.5),
               ),
               const SizedBox(height: 48),
               
@@ -70,7 +70,7 @@ class KioskWaitingScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               
-              const Text('O asigna este dispositivo a un monitor personal:', textAlign: TextAlign.center, style: TextStyle(color: Colors.white60)),
+              const Text('O asigna este dispositivo a un monitor personal:', textAlign: TextAlign.center, style: TextStyle(color: AppColors.white60)),
               const SizedBox(height: 16),
               
               // Monitor de Puesto
@@ -90,13 +90,13 @@ class KioskWaitingScreen extends ConsumerWidget {
                         dropdownColor: AppColors.cardDark,
                         hint: const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('Selecciona una cámara / puesto...', style: TextStyle(color: Colors.white54)),
+                          child: Text('Selecciona una cámara / puesto...', style: TextStyle(color: AppColors.white54)),
                         ),
                         items: workstations.map((ws) => DropdownMenuItem(
                           value: ws.id,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(ws.name, style: const TextStyle(color: Colors.white)),
+                            child: Text(ws.name, style: const TextStyle(color: AppColors.white)),
                           ),
                         )).toList(),
                         onChanged: (id) {
@@ -109,7 +109,7 @@ class KioskWaitingScreen extends ConsumerWidget {
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Text('Error: $e', style: const TextStyle(color: Colors.red)),
+                error: (e, _) => Text('Error: $e', style: const TextStyle(color: AppColors.error)),
               ),
               
               const Spacer(),
@@ -120,8 +120,8 @@ class KioskWaitingScreen extends ConsumerWidget {
                   icon: const Icon(Icons.logout),
                   label: const Text('CERRAR SESIÓN DEL DISPOSITIVO'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white54,
-                    side: const BorderSide(color: Colors.white12),
+                    foregroundColor: AppColors.white54,
+                    side: const BorderSide(color: AppColors.white12),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                 ),

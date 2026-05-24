@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
@@ -31,9 +32,9 @@ class EmployeeDashboardCard extends ConsumerWidget {
     final analyticsAsync = ref.watch(employeeDetailProvider(employee.id));
 
     return Card(
-      elevation: 2,
+      elevation: AppDimensions.cardElevation,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
         side: BorderSide(
           color: AppColors.primary.withValues(alpha: 0.3),
           width: 1,
@@ -43,9 +44,9 @@ class EmployeeDashboardCard extends ConsumerWidget {
         onTap: () {
           context.push(AppRoutes.analyticsDetail.replaceFirst(':employeeId', employee.id));
         },
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(AppDimensions.spacingXxl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -53,16 +54,16 @@ class EmployeeDashboardCard extends ConsumerWidget {
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 24,
+                    radius: AppDimensions.avatarRadiusMd,
                     backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                     child: Text(
                       employee.displayName.isNotEmpty
                           ? employee.displayName[0].toUpperCase()
                           : '?',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppColors.primary),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: AppDimensions.fontHeadline, color: AppColors.primary),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: AppDimensions.spacingXxl),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,16 +78,16 @@ class EmployeeDashboardCard extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         // Badge de ID (simulado) o cargo
-                        const SizedBox(height: 4),
+                        const SizedBox(height: AppDimensions.spacingXs),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingSm, vertical: AppDimensions.spacingXxs),
                           decoration: BoxDecoration(
                             color: AppColors.cardDark,
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
                           ),
                           child: Text(
                             'EMP-${employee.id.substring(0, 4).toUpperCase()}',
-                            style: const TextStyle(fontSize: 10, color: AppColors.primary, letterSpacing: 1),
+                            style: const TextStyle(fontSize: AppDimensions.fontXs, color: AppColors.primary, letterSpacing: 1),
                           ),
                         ),
                       ],
@@ -99,8 +100,8 @@ class EmployeeDashboardCard extends ConsumerWidget {
               // Estado del Turno Asignado
               Row(
                 children: [
-                  const Icon(Icons.schedule, size: 16, color: AppColors.grey400),
-                  const SizedBox(width: 8),
+                  const Icon(Icons.schedule, size: AppDimensions.iconXs, color: AppColors.grey400),
+                  const SizedBox(width: AppDimensions.spacingMd),
                   Expanded(
                     child: Text(
                       currentShift != null 
@@ -114,7 +115,7 @@ class EmployeeDashboardCard extends ConsumerWidget {
                 ],
               ),
               
-              const SizedBox(height: 8),
+              const SizedBox(height: AppDimensions.spacingMd),
 
               // Analíticas en tiempo real
               analyticsAsync.when(
@@ -122,8 +123,8 @@ class EmployeeDashboardCard extends ConsumerWidget {
                   if (analytics != null && analytics.hasData) {
                     return Row(
                       children: [
-                        const Icon(Icons.bar_chart, size: 16, color: AppColors.grey400),
-                        const SizedBox(width: 8),
+                        const Icon(Icons.bar_chart, size: AppDimensions.iconXs, color: AppColors.grey400),
+                        const SizedBox(width: AppDimensions.spacingMd),
                         Expanded(
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -131,7 +132,7 @@ class EmployeeDashboardCard extends ConsumerWidget {
                               StateBadgeWidget(state: analytics.lastState!),
                               Text(
                                 '${analytics.totalTrackedTime.inMinutes}min activos',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                style: const TextStyle(fontSize: AppDimensions.fontCaption, fontWeight: FontWeight.bold, color: AppColors.primary),
                               )
                             ],
                           ),
@@ -149,8 +150,8 @@ class EmployeeDashboardCard extends ConsumerWidget {
                             : 'Último acceso ${timeFormat.format(latest.clockInTime)} - ${timeFormat.format(latest.clockOutTime!)}';
                         return Row(
                           children: [
-                            const Icon(Icons.badge_outlined, size: 16, color: AppColors.grey400),
-                            const SizedBox(width: 8),
+                            const Icon(Icons.badge_outlined, size: AppDimensions.iconXs, color: AppColors.grey400),
+                            const SizedBox(width: AppDimensions.spacingMd),
                             Expanded(
                               child: Text(
                                 attendanceLabel,
@@ -168,8 +169,8 @@ class EmployeeDashboardCard extends ConsumerWidget {
 
                       return Row(
                         children: [
-                          const Icon(Icons.bar_chart, size: 16, color: AppColors.grey400),
-                          const SizedBox(width: 8),
+                          const Icon(Icons.bar_chart, size: AppDimensions.iconXs, color: AppColors.grey400),
+                          const SizedBox(width: AppDimensions.spacingMd),
                           Text(
                             'Sin datos de actividad hoy',
                             style: theme.textTheme.bodySmall?.copyWith(
@@ -181,15 +182,15 @@ class EmployeeDashboardCard extends ConsumerWidget {
                     },
                     loading: () => const Center(
                       child: SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        height: AppDimensions.progressIndicatorSize,
+                        width: AppDimensions.progressIndicatorSize,
+                        child: CircularProgressIndicator(strokeWidth: AppDimensions.progressStrokeWidth),
                       ),
                     ),
                     error: (_, __) => Row(
                       children: [
-                        const Icon(Icons.bar_chart, size: 16, color: AppColors.grey400),
-                        const SizedBox(width: 8),
+                        const Icon(Icons.bar_chart, size: AppDimensions.iconXs, color: AppColors.grey400),
+                        const SizedBox(width: AppDimensions.spacingMd),
                         Text(
                           'Sin datos de actividad hoy',
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -200,8 +201,8 @@ class EmployeeDashboardCard extends ConsumerWidget {
                     ),
                   );
                 },
-                loading: () => const Center(child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))),
-                error: (e, _) => const Text('Error al cargar', style: TextStyle(color: Colors.red, fontSize: 12)),
+                loading: () => const Center(child: SizedBox(height: AppDimensions.progressIndicatorSize, width: AppDimensions.progressIndicatorSize, child: CircularProgressIndicator(strokeWidth: AppDimensions.progressStrokeWidth))),
+                error: (e, _) => const Text('Error al cargar', style: TextStyle(color: AppColors.error, fontSize: AppDimensions.fontCaption)),
               ),
             ],
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
@@ -125,10 +126,10 @@ class _ActivityHistoryScreenState
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius:
-            BorderRadius.vertical(top: Radius.circular(16)),
+            BorderRadius.vertical(top: Radius.circular(AppDimensions.radiusRound)),
       ),
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppDimensions.spacing24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,7 +190,7 @@ class _EmptyHistoryView extends StatelessWidget {
         children: [
           const Icon(
             Icons.history_toggle_off,
-            size: 64,
+            size: AppDimensions.iconEmptyStateLg,
             color: AppColors.grey300,
           ),
           const SizedBox(height: 16),
