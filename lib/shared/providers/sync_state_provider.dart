@@ -31,23 +31,27 @@ final syncNotifierProvider =
   final useCase = ref.watch(processSyncQueueProvider);
   final notifier = SyncNotifier(useCase);
 
-  // Auto-sync al recuperar conexiÃ³n
+  // Auto-sync al recuperar conexión (solo si está logueado)
   ref.listen<bool>(isOnlineProvider, (previous, isOnline) {
-    if (isOnline && (previous == null || !previous)) {
+    final currentUser = ref.read(currentUserProvider);
+    final isLoggedIn = currentUser.valueOrNull?.user != null;
+    if (isOnline && (previous == null || !previous) && isLoggedIn) {
       notifier.sync();
     }
   });
 
-  // Auto-sync al detectar nuevos elementos en la cola (cada 5s segÃºn el provider)
+  // Auto-sync al detectar nuevos elementos en la cola (cada 5s según el provider)
   ref.listen<AsyncValue<int>>(pendingSyncCountProvider, (previous, next) {
+    final currentUser = ref.read(currentUserProvider);
+    final isLoggedIn = currentUser.valueOrNull?.user != null;
     final count = next.valueOrNull ?? 0;
     final isOnline = ref.read(isOnlineProvider);
-    if (count > 0 && isOnline) {
+    if (count > 0 && isOnline && isLoggedIn) {
       notifier.sync();
     }
   });
 
-  // Auto-sync al iniciar sesiÃ³n
+  // Auto-sync al iniciar sesión
   ref.listen<AsyncValue<CurrentUser>>(currentUserProvider, (previous, next) {
     final wasLoggedOut = previous?.valueOrNull?.user == null;
     final isNowLoggedIn = next.valueOrNull?.user != null;

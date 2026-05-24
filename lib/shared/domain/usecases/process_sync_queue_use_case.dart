@@ -26,6 +26,10 @@ class ProcessSyncQueueUseCase {
       debugPrint('[Sync ENGINE] Iniciando procesamiento de ${pending.length} items pendientes...');
     }
 
+    // Resolve companyId early for filtering
+    final companyId = await _resolveCompanyId();
+    debugPrint('[Sync ENGINE] companyId resolved: $companyId');
+
     final batchEvents = pending
         .where(
           (e) =>
@@ -97,11 +101,12 @@ class ProcessSyncQueueUseCase {
       }
     }
 
-    await _pushComputedSummaries(errors);
+    // Get companyId for filtering computed summaries
+    await _pushComputedSummaries(errors, companyId);
     await _applyLocalRawEventsTtl();
 
     try {
-      await _performPull(errors);
+      await _performPull(errors, companyId);
     } catch (e) {
       debugPrint('[Sync PULL] ERROR al ejecutar Pull: $e');
       errors.add('Pull Error: $e');
@@ -116,7 +121,7 @@ class ProcessSyncQueueUseCase {
     return result;
   }
 
-  Future<void> _pushComputedSummaries(List<String> errors) async {
+  Future<void> _pushComputedSummaries(List<String> errors, String companyId) async {
     final reconciler = WorktimeReconciler(_db);
     await reconciler.buildDailySummaryPayloads();
     await reconciler.buildActivityRollupPayloads();
@@ -127,12 +132,19 @@ class ProcessSyncQueueUseCase {
     for (final summaryRow in summaries) {
       final summary = jsonDecode(summaryRow['payload_json'] as String)
           as Map<String, dynamic>;
+      
+      // Skip if company_id doesn't match current user
+      if (summary['company_id'] != companyId) {
+        debugPrint('[Sync PUSH] Skipping daily summary with wrong company_id: ${summary['company_id']}');
+        await _db.markDailySummaryPayloadSynced(summaryRow['id'] as String);
+        continue;
+      }
+      
       try {
         await _remote.upsert('daily_work_summaries', summary);
         await _db.markDailySummaryPayloadSynced(summaryRow['id'] as String);
       } catch (e) {
         final msg = e.toString();
-        // FK violation o tabla inexistente: marcar como synced para no reintentar
         if (msg.contains('23503') || msg.contains('PGRST205') || msg.contains('42501')) {
           await _db.markDailySummaryPayloadSynced(summaryRow['id'] as String);
         }
@@ -143,6 +155,14 @@ class ProcessSyncQueueUseCase {
     for (final rollupRow in rollups) {
       final rollup = jsonDecode(rollupRow['payload_json'] as String)
           as Map<String, dynamic>;
+      
+      // Skip if company_id doesn't match current user
+      if (rollup['company_id'] != companyId) {
+        debugPrint('[Sync PUSH] Skipping activity rollup with wrong company_id: ${rollup['company_id']}');
+        await _db.markActivityRollupPayloadSynced(rollupRow['id'] as String);
+        continue;
+      }
+      
       try {
         await _remote.upsert('activity_rollups', rollup);
         await _db.markActivityRollupPayloadSynced(rollupRow['id'] as String);
@@ -165,85 +185,58 @@ class ProcessSyncQueueUseCase {
     await _db.deleteActivityEntriesByIds(oldSynced.map((entry) => entry.id));
   }
 
-  Future<void> _performPull(List<String> errors) async {
+Future<String> _resolveCompanyId() async {
+    // Priority 1: fetchCurrentEmployee (includes fallback logic)
+    final currentUser = await _remote.fetchCurrentEmployee();
+    if (currentUser != null && currentUser['company_id'] != null) {
+      return currentUser['company_id'] as String;
+    }
+
+    // Priority 2: fetch from employees table directly
     final userId = _remote.currentUserId;
-    debugPrint('[Sync PULL] currentUserId: "$userId"');
-    
-    String? companyId = _remote.currentCompanyId;
-    debugPrint('[Sync PULL] Compañía resuelta desde remote (currentCompanyId): "$companyId"');
-
-    // Fallback 1: BD local — buscar el registro del usuario actual en employee_records
-    if (companyId == null || companyId == AppConstants.defaultCompanyId || companyId.isEmpty) {
-      final userId = _remote.currentUserId;
-      if (userId != null) {
-        final localEmployee = await _db.getEmployeeRecordById(userId);
-        if (localEmployee != null &&
-            localEmployee.companyId.isNotEmpty &&
-            localEmployee.companyId != AppConstants.defaultCompanyId) {
-          companyId = localEmployee.companyId;
-          debugPrint('[Sync PULL] Compañía resuelta desde BD local (employee_records): "$companyId"');
-        }
-      }
-    }
-
-    // Fallback 2: fetchCurrentEmployee() remoto
-    if (companyId == null || companyId == AppConstants.defaultCompanyId || companyId.isEmpty) {
+    if (userId != null) {
       try {
-        final currentUser = await _remote.fetchCurrentEmployee();
-        debugPrint('[Sync PULL] fetchCurrentEmployee raw response: $currentUser');
-        companyId = currentUser?['company_id'] as String?;
-        debugPrint('[Sync PULL] Compañía resuelta desde empleado actual (remoto): "$companyId"');
-      } catch (e) {
-        debugPrint('[Sync PULL] Error en fetchCurrentEmployee: $e');
-      }
-    }
-
-    // Fallback 3: consultar public.employees directamente (misma lógica que currentUserProvider)
-    if (companyId == null || companyId == AppConstants.defaultCompanyId || companyId.isEmpty) {
-      try {
-        final userId = _remote.currentUserId;
-        if (userId != null) {
-          final row = await Supabase.instance.client
-              .from('employees')
-              .select('company_id')
-              .eq('id', userId)
-              .maybeSingle();
-          debugPrint('[Sync PULL] employees query raw response: $row');
-          companyId = row?['company_id']?.toString();
-          debugPrint('[Sync PULL] Compañía resuelta desde employees remoto: "$companyId"');
+        final row = await Supabase.instance.client
+            .from('employees')
+            .select('company_id')
+            .eq('id', userId)
+            .maybeSingle();
+        final companyId = row?['company_id']?.toString();
+        if (companyId != null && companyId != AppConstants.defaultCompanyId) {
+          return companyId;
         }
-      } catch (e) {
-        debugPrint('[Sync PULL] Error consultando employees remoto: $e');
-      }
+      } catch (_) {}
     }
 
-    // Fallback 4: inferir desde cualquier workstation o employee ya almacenado localmente
-    if (companyId == null || companyId == AppConstants.defaultCompanyId || companyId.isEmpty) {
-      final allWorkstations = await _db.getAllWorkstationRecords();
-      final wsCompany = allWorkstations
-          .map((w) => w.companyId)
-          .where((c) => c.isNotEmpty && c != AppConstants.defaultCompanyId)
-          .firstOrNull;
-      if (wsCompany != null) {
-        companyId = wsCompany;
-        debugPrint('[Sync PULL] Compañía inferida desde workstation local: "$companyId"');
-      }
+    // Priority 3: infer from local workstations
+    final allWorkstations = await _db.getAllWorkstationRecords();
+    final wsCompany = allWorkstations
+        .map((w) => w.companyId)
+        .where((c) => c.isNotEmpty && c != AppConstants.defaultCompanyId)
+        .firstOrNull;
+    if (wsCompany != null) return wsCompany;
+
+    // Priority 4: infer from local employees
+    final allEmployees = await _db.getAllEmployeeRecords();
+    final empCompany = allEmployees
+        .map((e) => e.companyId)
+        .where((c) => c.isNotEmpty && c != AppConstants.defaultCompanyId)
+        .firstOrNull;
+    if (empCompany != null) return empCompany;
+
+    return AppConstants.defaultCompanyId;
+  }
+
+Future<void> _performPull(List<String> errors, String companyId) async {
+    debugPrint('[Sync PULL] Using companyId: "$companyId"');
+
+    if (companyId == AppConstants.defaultCompanyId || companyId.isEmpty) {
+      errors.add('CRITICAL: No se pudo determinar companyId para el usuario. Verifique que el usuario tenga company_id en metadatos JWT o registro en public.employees.');
+      debugPrint('[Sync PULL] ERROR: companyId no puede ser determinado. Abortando sync pull.');
+      return;
     }
 
-    if (companyId == null || companyId == AppConstants.defaultCompanyId || companyId.isEmpty) {
-      final allEmployees = await _db.getAllEmployeeRecords();
-      final empCompany = allEmployees
-          .map((e) => e.companyId)
-          .where((c) => c.isNotEmpty && c != AppConstants.defaultCompanyId)
-          .firstOrNull;
-      if (empCompany != null) {
-        companyId = empCompany;
-        debugPrint('[Sync PULL] Compañía inferida desde employee local: "$companyId"');
-      }
-    }
-    final canApplyDestructivePull =
-        companyId != null && companyId.isNotEmpty && companyId != AppConstants.defaultCompanyId;
-    debugPrint('[Sync PULL] canApplyDestructivePull: $canApplyDestructivePull');
+    debugPrint('[Sync PULL] companyId validado, procediendo con Pull...');
 
     final pendingSyncEntries = await _db.getPendingSyncQueueEntries();
 
@@ -253,21 +246,17 @@ class ProcessSyncQueueUseCase {
     debugPrint('[Sync PULL] Workstations remotas recuperadas: ${remoteWorkstationIds.toList()}');
 
     final localWorkstations = await _db.getAllWorkstationRecords();
-    if (canApplyDestructivePull) {
-      final pendingWorkstationIds = pendingSyncEntries
-          .where((e) => e.targetTable == 'workstations')
-          .map((e) => e.recordId)
-          .toSet();
-      for (final localW in localWorkstations) {
-        if (!remoteWorkstationIds.contains(localW.id) &&
-            !pendingWorkstationIds.contains(localW.id)) {
-          await (_db.delete(_db.workstationRecords)
-                ..where((t) => t.id.equals(localW.id)))
-              .go();
-        }
+    final pendingWorkstationIds = pendingSyncEntries
+        .where((e) => e.targetTable == 'workstations')
+        .map((e) => e.recordId)
+        .toSet();
+    for (final localW in localWorkstations) {
+      if (!remoteWorkstationIds.contains(localW.id) &&
+          !pendingWorkstationIds.contains(localW.id)) {
+        await (_db.delete(_db.workstationRecords)
+              ..where((t) => t.id.equals(localW.id)))
+            .go();
       }
-    } else {
-      errors.add('Pull ejecutado en modo seguro: companyId inválido para borrado destructivo.');
     }
 
     for (final w in remoteWorkstations) {
@@ -298,17 +287,15 @@ class ProcessSyncQueueUseCase {
     final remoteEmployees = await _remote.fetchAllEmployees(companyId);
     final remoteEmployeeIds = remoteEmployees.map((e) => e['id'] as String).toSet();
 
-    if (canApplyDestructivePull) {
-      final pendingEmployeeIds = pendingSyncEntries
-          .where((e) => e.targetTable == 'employees')
-          .map((e) => e.recordId)
-          .toSet();
-      final localEmployees = await _db.select(_db.employeeRecords).get();
-      for (final localE in localEmployees) {
-        if (!remoteEmployeeIds.contains(localE.id) &&
-            !pendingEmployeeIds.contains(localE.id)) {
-          await _db.deleteEmployeeRecord(localE.id);
-        }
+    final pendingEmployeeIds = pendingSyncEntries
+        .where((e) => e.targetTable == 'employees')
+        .map((e) => e.recordId)
+        .toSet();
+    final localEmployees = await _db.select(_db.employeeRecords).get();
+    for (final localE in localEmployees) {
+      if (!remoteEmployeeIds.contains(localE.id) &&
+          !pendingEmployeeIds.contains(localE.id)) {
+        await _db.deleteEmployeeRecord(localE.id);
       }
     }
 

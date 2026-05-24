@@ -30,9 +30,10 @@ final deleteWorkstationUseCaseProvider = Provider<DeleteWorkstationUseCase>((ref
   return DeleteWorkstationUseCase(repository);
 });
 
-final workstationsProvider = StreamProvider<List<Workstation>>((ref) {
+final workstationsProvider = StreamProvider.autoDispose<List<Workstation>>((ref) {
   final repo = ref.watch(workstationRepositoryProvider);
-  final companyId = ref.watch(currentUserProvider).valueOrNull?.companyId;
+  final currentUser = ref.watch(currentUserProvider);
+  final companyId = currentUser.valueOrNull?.companyId;
   if (companyId == null || companyId.isEmpty) {
     return Stream.value(const []);
   }

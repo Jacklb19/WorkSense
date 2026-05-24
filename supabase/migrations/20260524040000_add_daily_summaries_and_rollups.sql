@@ -26,13 +26,13 @@ CREATE TABLE IF NOT EXISTS public.daily_work_summaries (
 -- Enable RLS and add policies for daily_work_summaries
 ALTER TABLE public.daily_work_summaries ENABLE ROW LEVEL SECURITY;
 
--- Permitir todas las operaciones a usuarios autenticados (app es cliente confiable)
-CREATE POLICY "Allow all for authenticated users"
+DROP POLICY IF EXISTS "Allow all for authenticated users" ON public.daily_work_summaries;
+CREATE POLICY "daily_work_summaries_company_isolation"
   ON public.daily_work_summaries
   FOR ALL
   TO authenticated
-  USING (true)
-  WITH CHECK (true);
+  USING (company_id = public.get_current_user_company_id())
+  WITH CHECK (company_id = public.get_current_user_company_id());
 
 CREATE TABLE IF NOT EXISTS public.activity_rollups (
   id text NOT NULL,
@@ -56,10 +56,10 @@ CREATE TABLE IF NOT EXISTS public.activity_rollups (
 -- Enable RLS and add policies for activity_rollups
 ALTER TABLE public.activity_rollups ENABLE ROW LEVEL SECURITY;
 
--- Permitir todas las operaciones a usuarios autenticados (app es cliente confiable)
-CREATE POLICY "Allow all for authenticated users"
+DROP POLICY IF EXISTS "Allow all for authenticated users" ON public.activity_rollups;
+CREATE POLICY "activity_rollups_company_isolation"
   ON public.activity_rollups
   FOR ALL
   TO authenticated
-  USING (true)
-  WITH CHECK (true);
+  USING (company_id = public.get_current_user_company_id())
+  WITH CHECK (company_id = public.get_current_user_company_id());

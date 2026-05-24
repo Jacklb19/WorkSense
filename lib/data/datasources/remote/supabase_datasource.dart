@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:worksense_app/core/constants/app_constants.dart';
 import 'package:worksense_app/domain/entities/app_role.dart';
@@ -224,9 +225,12 @@ String? get currentCompanyId {
     if (user == null) return null;
     final meta = user.appMetadata;
     final userMeta = user.userMetadata;
+    debugPrint('[SupabaseDataSource] appMetadata: $meta');
+    debugPrint('[SupabaseDataSource] userMetadata: $userMeta');
     final companyId =
         _getMetadataKey(meta, 'company_id') ??
         _getMetadataKey(userMeta, 'company_id');
+    debugPrint('[SupabaseDataSource] _getMetadataKey result: $companyId');
     if (companyId == null || companyId.isEmpty || companyId == AppConstants.defaultCompanyId) {
       return null;
     }
@@ -246,6 +250,8 @@ String? get currentCompanyId {
 
   Future<List<Map<String, dynamic>>> fetchAllEmployees(String? companyId) async {
     try {
+      // Con RLS, si companyId es null, la policy filtrará por JWT igualmente
+      // Pero añadimos filtro explícito para claridad y logs
       var query = _client.from('employees').select();
       if (companyId != null && companyId != AppConstants.defaultCompanyId) {
         query = query.eq('company_id', companyId);
