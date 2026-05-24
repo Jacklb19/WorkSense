@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:worksense_app/core/constants/app_strings.dart';
-import 'package:worksense_app/shared/providers/auth_provider.dart';
-import 'package:worksense_app/shared/providers/current_user_provider.dart';
+
+import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/constants/app_strings.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/providers/auth_provider.dart';
+import '../../../../shared/providers/current_user_provider.dart';
 
 class HomeEmployeeScreen extends ConsumerWidget {
   const HomeEmployeeScreen({super.key});
@@ -10,6 +13,7 @@ class HomeEmployeeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userState = ref.watch(currentUserProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -30,26 +34,51 @@ class HomeEmployeeScreen extends ConsumerWidget {
             return Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.person, size: 80, color: Colors.blueAccent),
-                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(AppDimensions.spacing24),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withAlpha(20),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.primary.withAlpha(50),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.person,
+                    size: AppDimensions.iconHero,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: AppDimensions.spacing24),
                 Text(
                   AppStrings.welcome,
-                  style: Theme.of(context).textTheme.headlineMedium,
+                  style: theme.textTheme.headlineMedium,
                 ),
                 if (currentUser.user?.email != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppDimensions.spacingMd),
                   Text(
                     currentUser.user!.email!,
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
-                const SizedBox(height: 24),
-                const Text(AppStrings.scheduleAndActivityHint),
+                const SizedBox(height: AppDimensions.spacing32),
+                Text(
+                  AppStrings.scheduleAndActivityHint,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ],
             );
           },
-          loading: () => const CircularProgressIndicator(),
-          error: (error, _) => Text('Error: $error'),
+          loading: () =>
+              const CircularProgressIndicator(color: AppColors.primary),
+          error: (error, _) => Text(
+            'Error: $error',
+            style: const TextStyle(color: AppColors.error),
+          ),
         ),
       ),
     );

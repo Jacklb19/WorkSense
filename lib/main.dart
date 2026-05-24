@@ -50,7 +50,7 @@ class WorkSenseApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'WorkSense', // Documented exception: app title kept here, handled locally.
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
+      theme: AppTheme.dark,
       darkTheme: AppTheme.dark,
       routerConfig: router,
     );

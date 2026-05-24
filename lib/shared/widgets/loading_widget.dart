@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+
+import '../../core/constants/app_dimensions.dart';
+import '../../core/theme/app_colors.dart';
 
 class AppLoadingWidget extends StatelessWidget {
   final String? message;
@@ -12,17 +15,22 @@ class AppLoadingWidget extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const CircularProgressIndicator(
-            color: AppColors.primary,
-          ),
+          const SizedBox(
+            width: 40,
+            height: 40,
+            child: CircularProgressIndicator(
+              strokeWidth: AppDimensions.progressStrokeWidth,
+              color: AppColors.primary,
+            ),
+          ).animate(onInit: (controller) => controller.repeat())
+            .rotate(duration: 1000.ms),
           if (message != null) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: AppDimensions.spacingXxl),
             Text(
               message!,
-              style: const TextStyle(
-                color: AppColors.grey500,
-                fontSize: 14,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -32,14 +40,13 @@ class AppLoadingWidget extends StatelessWidget {
   }
 }
 
-/// Slim loading indicator for inline use
 class InlineLoadingWidget extends StatelessWidget {
   final double size;
   final Color? color;
 
   const InlineLoadingWidget({
     super.key,
-    this.size = 20,
+    this.size = 20.0,
     this.color,
   });
 
@@ -49,7 +56,7 @@ class InlineLoadingWidget extends StatelessWidget {
       width: size,
       height: size,
       child: CircularProgressIndicator(
-        strokeWidth: 2,
+        strokeWidth: AppDimensions.progressStrokeWidth,
         color: color ?? AppColors.primary,
       ),
     );

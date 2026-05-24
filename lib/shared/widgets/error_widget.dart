@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
+
+import '../../core/constants/app_dimensions.dart';
+import '../../core/theme/app_colors.dart';
 
 class AppErrorWidget extends StatelessWidget {
   final String message;
@@ -16,36 +18,39 @@ class AppErrorWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppDimensions.spacing24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: AppColors.error,
-              size: 48,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Algo salió mal',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+            Container(
+              padding: const EdgeInsets.all(AppDimensions.spacingXl),
+              decoration: BoxDecoration(
+                color: AppColors.errorSoft,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
+                border: Border.all(color: AppColors.error.withAlpha(50)),
+              ),
+              child: Icon(
+                icon,
+                color: AppColors.error,
+                size: AppDimensions.iconEmptyState,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppDimensions.spacingXxl),
             Text(
               message,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.grey500,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
             ),
             if (onRetry != null) ...[
-              const SizedBox(height: 20),
+              const SizedBox(height: AppDimensions.spacing20),
               FilledButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
@@ -59,7 +64,6 @@ class AppErrorWidget extends StatelessWidget {
   }
 }
 
-/// Inline error banner (not full-screen)
 class ErrorBannerWidget extends StatelessWidget {
   final String message;
   final VoidCallback? onDismiss;
@@ -73,24 +77,26 @@ class ErrorBannerWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.all(AppDimensions.spacingXxl),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimensions.spacingXxl,
+        vertical: AppDimensions.spacingLg,
+      ),
       decoration: BoxDecoration(
-        color: AppColors.errorBg,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+        color: AppColors.errorSoft,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        border: Border.all(color: AppColors.error.withAlpha(76)),
       ),
       child: Row(
         children: [
           const Icon(Icons.error_outline, color: AppColors.error, size: 18),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppDimensions.spacingMd),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: AppColors.error,
-                fontSize: 13,
-              ),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.error,
+                  ),
             ),
           ),
           if (onDismiss != null)
