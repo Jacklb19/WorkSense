@@ -4,3 +4,7 @@ export 'app_section_header.dart';
 export 'app_empty_state.dart';
 export 'app_stat_chip.dart';
 export 'app_gradient_button.dart';
+export 'section_label.dart';
+export 'kiosk_overlay_container.dart';
+export 'kiosk_top_bar.dart';
+export 'delete_confirmation_dialog.dart';

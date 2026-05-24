@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 
@@ -13,51 +14,59 @@ class StateBadgeWidget extends StatelessWidget {
     required this.state,
     this.confidence,
     this.showConfidence = false,
-    this.fontSize = 13.0,
+    this.fontSize = AppDimensions.fontBody,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: state.color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: state.color.withValues(alpha: 0.5),
-          width: 1,
+    return Semantics(
+      label: showConfidence && confidence != null
+          ? '${state.label}, confianza ${(confidence! * 100).toStringAsFixed(0)}%'
+          : state.label,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.spacingXxl,
+          vertical: AppDimensions.spacingSm,
         ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _StateIndicatorDot(color: state.color),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              state.label,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              style: TextStyle(
-                fontSize: fontSize,
-                fontWeight: FontWeight.w600,
-                color: state.color,
-                letterSpacing: 0.3,
-              ),
-            ),
+        decoration: BoxDecoration(
+          color: state.color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
+          border: Border.all(
+            color: state.color.withValues(alpha: 0.5),
+            width: 1,
           ),
-          if (showConfidence && confidence != null) ...[
-            const SizedBox(width: 6),
-            Text(
-              '${(confidence! * 100).toStringAsFixed(0)}%',
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: fontSize - 1,
-                color: state.color.withValues(alpha: 0.7),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _StateIndicatorDot(color: state.color, stateLabel: state.label),
+            const SizedBox(width: AppDimensions.spacingSm),
+            Flexible(
+              child: Text(
+                state.label,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w600,
+                  color: state.color,
+                  letterSpacing: 0.3,
+                ),
               ),
             ),
+            if (showConfidence && confidence != null) ...[
+              const SizedBox(width: AppDimensions.spacingSm),
+              Text(
+                '${(confidence! * 100).toStringAsFixed(0)}%',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: fontSize - 1,
+                  color: state.color.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -65,24 +74,29 @@ class StateBadgeWidget extends StatelessWidget {
 
 class _StateIndicatorDot extends StatelessWidget {
   final Color color;
+  final String stateLabel;
 
-  const _StateIndicatorDot({required this.color});
+  const _StateIndicatorDot({required this.color, required this.stateLabel});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.4),
-            blurRadius: 4,
-            spreadRadius: 1,
-          ),
-        ],
+    return Semantics(
+      label: '$stateLabel indicator',
+      excludeSemantics: true,
+      child: Container(
+        width: AppDimensions.stateIndicatorSize,
+        height: AppDimensions.stateIndicatorSize,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.4),
+              blurRadius: AppDimensions.stateDotBlurRadius,
+              spreadRadius: AppDimensions.stateDotSpreadRadius,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -101,39 +115,45 @@ class KioskStateBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.overlayBadgeBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: state.color, width: 2),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            state.emoji,
-            style: const TextStyle(fontSize: 32),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            state.label,
-            style: TextStyle(
-              color: state.color,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              letterSpacing: 1.0,
+    return Semantics(
+      label: '${state.label}, confianza ${(confidence * 100).toStringAsFixed(0)}%',
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.spacing20,
+          vertical: AppDimensions.spacingXxl,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.overlayBadgeBg,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+          border: Border.all(color: state.color, width: 2),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              state.emoji,
+              style: const TextStyle(fontSize: AppDimensions.fontDisplay),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${(confidence * 100).toStringAsFixed(0)}%',
-            style: const TextStyle(
-              color: AppColors.white70,
-              fontSize: 12,
+            const SizedBox(height: AppDimensions.spacingXs),
+            Text(
+              state.label,
+              style: TextStyle(
+                color: state.color,
+                fontWeight: FontWeight.bold,
+                fontSize: AppDimensions.fontTitle,
+                letterSpacing: 1.0,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: AppDimensions.spacingXs),
+            Text(
+              '${(confidence * 100).toStringAsFixed(0)}%',
+              style: const TextStyle(
+                color: AppColors.white70,
+                fontSize: AppDimensions.fontCaption,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

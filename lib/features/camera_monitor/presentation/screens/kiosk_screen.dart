@@ -14,6 +14,8 @@ import 'package:worksense_app/features/camera_monitor/presentation/widgets/camer
 import 'package:worksense_app/features/camera_monitor/presentation/widgets/state_badge_widget.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/employee_scan_screen.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
+import 'package:worksense_app/shared/widgets/styled/kiosk_top_bar.dart';
+import 'package:worksense_app/shared/widgets/styled/kiosk_overlay_container.dart';
 
 class KioskScreen extends ConsumerStatefulWidget {
   final String? workstationId;
@@ -153,8 +155,8 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
                 onCancel: ref.read(kioskProvider.notifier).cancelApproval,
               )
             else if (kioskState.sessionStatus == SessionStatus.active) ...[
-                Positioned(top: 0, left: 0, right: 0, 
-                  child: _KioskTopHUD(
+                Positioned(top: 0, left: 0, right: 0,
+                  child: KioskTopBar(
                     workstationId: kioskState.workstationId,
                     isProcessing: kioskState.isProcessing,
                     onBack: () async {
@@ -174,7 +176,7 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
                   ),
                 ),
             ] else if (kioskState.workstationStatus == 'ACTIVE') ...[
-               Positioned(top: 64, left: 0, right: 0,
+               Positioned(top: AppDimensions.spacing64, left: 0, right: 0,
                  child: _IdentifyingHUD(isProcessing: kioskState.isProcessing),
                ),
             ],
@@ -193,10 +195,13 @@ class _IdentifyingHUD extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing20, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.spacing20,
+          vertical: AppDimensions.spacing10,
+        ),
         decoration: BoxDecoration(
           color: AppColors.overlayBadgeBg,
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusContainer),
           border: Border.all(
             color: AppColors.primary.withValues(alpha: 0.3),
           ),
@@ -205,48 +210,23 @@ class _IdentifyingHUD extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isProcessing) ...[
-               const SizedBox(width: AppDimensions.spacingXl, height: AppDimensions.spacingXl, child: CircularProgressIndicator(strokeWidth: AppDimensions.progressStrokeWidth, color: AppColors.primaryLight)),
+               const SizedBox(
+                 width: AppDimensions.spacingXl,
+                 height: AppDimensions.spacingXl,
+                 child: CircularProgressIndicator(
+                   strokeWidth: AppDimensions.progressStrokeWidth,
+                   color: AppColors.primaryLight,
+                 ),
+               ),
                const SizedBox(width: AppDimensions.spacingLg),
             ],
-            const Text('SCANNER ACTIVO', style: TextStyle(color: AppColors.white, fontSize: AppDimensions.fontSm, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _KioskTopHUD extends StatelessWidget {
-  final String workstationId;
-  final bool isProcessing;
-  final VoidCallback onBack;
-
-  const _KioskTopHUD({required this.workstationId, required this.isProcessing, required this.onBack});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing24, vertical: AppDimensions.spacingXxl),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [AppColors.black.withValues(alpha: 0.8), AppColors.transparent]),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          children: [
-            IconButton(onPressed: onBack, icon: const Icon(Icons.close, color: AppColors.white70)),
-            const SizedBox(width: AppDimensions.spacingMd),
-            const Text('WORKSENSE', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w900, fontSize: AppDimensions.fontTitle, letterSpacing: 1.0)),
-            const Spacer(),
-            Flexible(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: AppDimensions.spacingXs),
-                decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(AppDimensions.radiusLg), border: Border.all(color: AppColors.primary.withValues(alpha: 0.5))),
-                child: Text(
-                  workstationId.length > 8 ? '${workstationId.substring(0, 8)}…' : workstationId,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.primaryLight, fontSize: AppDimensions.fontXs, fontWeight: FontWeight.w700),
-                ),
+            const Text(
+              'SCANNER ACTIVO',
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: AppDimensions.fontSm,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
               ),
             ),
           ],
@@ -265,11 +245,10 @@ class _KioskBottomHUD extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing24, vertical: AppDimensions.spacing20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [AppColors.black.withValues(alpha: 0.8), AppColors.transparent]),
-      ),
+    return KioskOverlayContainer(
+      alignment: Alignment.bottomCenter,
+      horizontalPadding: AppDimensions.spacing24,
+      verticalPadding: AppDimensions.spacing20,
       child: SafeArea(
         top: false,
         child: Column(
@@ -277,16 +256,26 @@ class _KioskBottomHUD extends StatelessWidget {
           children: [
             StateBadgeWidget(state: state, confidence: confidence, showConfidence: true),
             const SizedBox(height: AppDimensions.spacingLg),
-            SizedBox(
-              width: double.infinity,
-              height: 44,
-              child: FilledButton.icon(
-                onPressed: onExit,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.white10,
+            Semantics(
+              label: 'Salir del monitor',
+              button: true,
+              child: SizedBox(
+                width: double.infinity,
+                height: AppDimensions.spacing44,
+                child: FilledButton.icon(
+                  onPressed: onExit,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.white10,
+                  ),
+                  icon: const Icon(Icons.power_settings_new, size: AppDimensions.iconSm),
+                  label: const Text(
+                    'SALIR',
+                    style: TextStyle(
+                      fontSize: AppDimensions.fontCaption,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-                icon: const Icon(Icons.power_settings_new, size: AppDimensions.iconSm),
-                label: const Text('SALIR', style: TextStyle(fontSize: AppDimensions.fontCaption, fontWeight: FontWeight.w700)),
               ),
             ),
           ],
@@ -322,21 +311,52 @@ class _SessionActionOverlay extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(AppDimensions.spacing24),
-                decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle, border: Border.all(color: color.withValues(alpha: 0.3), width: 2)),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
+                ),
                 child: Icon(icon, size: AppDimensions.iconEmptyStateLg, color: color),
               ),
               const SizedBox(height: AppDimensions.spacing32),
-              Text(title, style: const TextStyle(color: AppColors.white, fontSize: AppDimensions.fontDisplay, fontWeight: FontWeight.w900, letterSpacing: 2)),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.white,
+                  fontSize: AppDimensions.fontDisplay,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                ),
+              ),
               const SizedBox(height: AppDimensions.spacingLg),
-              Text(subtitle, style: const TextStyle(color: AppColors.white70, fontSize: AppDimensions.fontTitle)),
-              const SizedBox(height: 56),
-              FilledButton(
-                onPressed: onConfirm,
-                style: FilledButton.styleFrom(backgroundColor: color, minimumSize: const Size(double.infinity, 64)),
-                child: Text(actionLabel, style: const TextStyle(fontSize: AppDimensions.fontTitle, fontWeight: FontWeight.w800)),
+              Text(
+                subtitle,
+                style: const TextStyle(color: AppColors.white70, fontSize: AppDimensions.fontTitle),
+              ),
+              const SizedBox(height: AppDimensions.spacing56),
+              Semantics(
+                label: actionLabel,
+                button: true,
+                child: FilledButton(
+                  onPressed: onConfirm,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: color,
+                    minimumSize: const Size(double.infinity, AppDimensions.spacing64),
+                  ),
+                  child: Text(
+                    actionLabel,
+                    style: const TextStyle(
+                      fontSize: AppDimensions.fontTitle,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: AppDimensions.spacingXxl),
-              TextButton(onPressed: onCancel, child: const Text('CANCELAR', style: TextStyle(color: AppColors.white38))),
+              TextButton(
+                onPressed: onCancel,
+                child: const Text('CANCELAR', style: TextStyle(color: AppColors.white38)),
+              ),
             ],
           ),
         ),
@@ -348,7 +368,10 @@ class _SessionActionOverlay extends StatelessWidget {
 class _LoadingView extends StatelessWidget {
   const _LoadingView();
   @override
-  Widget build(BuildContext context) => Container(color: AppColors.black, child: const Center(child: CircularProgressIndicator(color: AppColors.primary)));
+  Widget build(BuildContext context) => Container(
+    color: AppColors.black,
+    child: const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+  );
 }
 
 class _NoProfileView extends StatelessWidget {
@@ -356,7 +379,11 @@ class _NoProfileView extends StatelessWidget {
   final String? assignedEmployeeId;
   final VoidCallback onScanComplete;
 
-  const _NoProfileView({required this.workstationId, required this.assignedEmployeeId, required this.onScanComplete});
+  const _NoProfileView({
+    required this.workstationId,
+    required this.assignedEmployeeId,
+    required this.onScanComplete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -368,17 +395,52 @@ class _NoProfileView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(hasEmployee ? Icons.face : Icons.person_off, size: AppDimensions.iconLogo, color: hasEmployee ? AppColors.primary : AppColors.white24),
+            Icon(
+              hasEmployee ? Icons.face : Icons.person_off,
+              size: AppDimensions.iconLogo,
+              color: hasEmployee ? AppColors.primary : AppColors.white24,
+            ),
             const SizedBox(height: AppDimensions.spacing32),
-            Text(hasEmployee ? 'ENROLAMIENTO PENDIENTE' : 'SIN ASIGNACIÓN', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.white, fontSize: AppDimensions.fontTitleLg, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+            Text(
+              hasEmployee ? 'ENROLAMIENTO PENDIENTE' : 'SIN ASIGNACIÓN',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.white,
+                fontSize: AppDimensions.fontTitleLg,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+              ),
+            ),
             const SizedBox(height: AppDimensions.spacingXxl),
-            Text(hasEmployee ? 'Se requiere una captura facial inicial para habilitar el reconocimiento en tiempo real.' : 'No hay un empleado asignado a este puesto de trabajo.', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.white60, fontSize: AppDimensions.fontBodyMd)),
+            Text(
+              hasEmployee
+                  ? 'Se requiere una captura facial inicial para habilitar el reconocimiento en tiempo real.'
+                  : 'No hay un empleado asignado a este puesto de trabajo.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.white60, fontSize: AppDimensions.fontBodyMd),
+            ),
             const SizedBox(height: AppDimensions.spacing48),
             if (hasEmployee)
-              FilledButton.icon(
-                icon: const Icon(Icons.camera_alt),
-                label: const Text('EMPEZAR CAPTURA'),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EmployeeScanScreen(workstationId: workstationId, employeeId: assignedEmployeeId!, onComplete: () { Navigator.pop(context); onScanComplete(); }))),
+              Semantics(
+                label: 'Empezar captura facial del empleado',
+                button: true,
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text('EMPEZAR CAPTURA'),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EmployeeScanScreen(
+                        workstationId: workstationId,
+                        employeeId: assignedEmployeeId!,
+                        onComplete: () {
+                          Navigator.pop(context);
+                          onScanComplete();
+                        },
+                      ),
+                    ),
+                  ),
+                ),
               ),
           ],
         ),
@@ -409,40 +471,45 @@ class _WaitingStandbyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     bool isBreak = status == 'BREAK';
-    return Container(
-      color: AppColors.black,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isBreak ? Icons.free_breakfast : Icons.bedtime, 
-              size: AppDimensions.iconLogo, 
-              color: isBreak ? AppColors.warning : AppColors.primary
-            ),
-            const SizedBox(height: AppDimensions.spacing32),
-            Text(
-              isBreak ? 'EN PAUSA' : 'EN ESPERA',
-              style: const TextStyle(
-                color: AppColors.white, 
-                fontSize: AppDimensions.fontDisplay, 
-                fontWeight: FontWeight.w900, 
-                letterSpacing: 2
+    return Semantics(
+      label: isBreak ? 'Monitor en pausa por descanso' : 'Monitor en espera de escaneo',
+      child: Container(
+        color: AppColors.black,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isBreak ? Icons.free_breakfast : Icons.bedtime, 
+                size: AppDimensions.iconLogo, 
+                color: isBreak ? AppColors.warning : AppColors.primary,
               ),
-            ),
-            const SizedBox(height: AppDimensions.spacingXxl),
-            Text(
-              isBreak 
-                ? 'El monitoreo está pausado por descanso.' 
-                : 'Esperando escaneo en el Kiosco de Entrada...',
-              style: const TextStyle(color: AppColors.white70, fontSize: AppDimensions.fontTitle),
-            ),
-            const SizedBox(height: 64),
-            const CircularProgressIndicator(color: AppColors.white24),
-          ],
+              const SizedBox(height: AppDimensions.spacing32),
+              Text(
+                isBreak ? 'EN PAUSA' : 'EN ESPERA',
+                style: const TextStyle(
+                  color: AppColors.white, 
+                  fontSize: AppDimensions.fontDisplay, 
+                  fontWeight: FontWeight.w900, 
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: AppDimensions.spacingXxl),
+              Text(
+                isBreak 
+                  ? 'El monitoreo está pausado por descanso.' 
+                  : 'Esperando escaneo en el Kiosco de Entrada...',
+                style: const TextStyle(
+                  color: AppColors.white70,
+                  fontSize: AppDimensions.fontTitle,
+                ),
+              ),
+              const SizedBox(height: AppDimensions.spacing64),
+              const CircularProgressIndicator(color: AppColors.white24),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-

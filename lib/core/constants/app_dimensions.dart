@@ -13,11 +13,20 @@ abstract final class AppDimensions {
   static const double spacingLg = 12.0;
   static const double spacingXl = 14.0;
   static const double spacingXxl = 16.0;
+  static const double spacing10 = 10.0;
+  static const double spacing18 = 18.0;
   static const double spacing20 = 20.0;
+  static const double spacing22 = 22.0;
   static const double spacing24 = 24.0;
+  static const double spacing28 = 28.0;
   static const double spacing32 = 32.0;
   static const double spacing40 = 40.0;
+  static const double spacing44 = 44.0;
   static const double spacing48 = 48.0;
+  static const double spacing56 = 56.0;
+  static const double spacing64 = 64.0;
+  static const double spacing80 = 80.0;
+  static const double spacing92 = 92.0;
 
   // ─────────────────────────────────────────────────────────
   // BORDER RADIUS
@@ -31,6 +40,12 @@ abstract final class AppDimensions {
   static const double radiusXxl = 12.0;
   static const double radiusRound = 16.0;
   static const double radiusPill = 20.0;
+  static const double radiusCard = 14.0;
+  static const double radiusCardLg = 18.0;
+  static const double radiusCardXl = 22.0;
+  static const double radiusCardXxl = 28.0;
+  static const double radiusContainer = 30.0;
+  static const double radiusInfinity = 999.0;
 
   // ─────────────────────────────────────────────────────────
   // FONT SIZES
@@ -43,9 +58,11 @@ abstract final class AppDimensions {
   static const double fontBodyMd = 14.0;
   static const double fontSubtitle = 15.0;
   static const double fontTitle = 16.0;
+  static const double fontBodyLg = 17.0;
   static const double fontTitleLg = 18.0;
   static const double fontHeadline = 20.0;
   static const double fontHeadlineLg = 22.0;
+  static const double fontDisplaySm = 28.0;
   static const double fontDisplay = 32.0;
   static const double fontDisplayLg = 48.0;
 

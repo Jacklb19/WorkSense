@@ -8,6 +8,7 @@ import 'package:worksense_app/features/dashboard/domain/entities/employee_analyt
 import 'package:worksense_app/features/dashboard/presentation/helpers/hours_formatters.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
+import 'package:worksense_app/shared/widgets/styled/styled.dart';
 
 class MyHoursScreen extends ConsumerWidget {
   const MyHoursScreen({super.key});
@@ -71,17 +72,9 @@ class MyHoursScreen extends ConsumerWidget {
                         ),
                       if (analytics != null && analytics.hasData) ...[
                         const SliverPadding(
-                          padding: EdgeInsets.fromLTRB(AppDimensions.spacing20, 18, AppDimensions.spacing20, AppDimensions.spacingMd),
+                          padding: EdgeInsets.fromLTRB(AppDimensions.spacing20, AppDimensions.spacing18, AppDimensions.spacing20, AppDimensions.spacingMd),
                           sliver: SliverToBoxAdapter(
-                            child: Text(
-                              _activitySectionTitle,
-                              style: TextStyle(
-                                color: AppColors.white54,
-                                fontSize: AppDimensions.fontSm,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
+                            child: SectionLabel(label: _activitySectionTitle),
                           ),
                         ),
                         SliverPadding(
@@ -101,21 +94,13 @@ class MyHoursScreen extends ConsumerWidget {
                       ],
                       if (summaries.isNotEmpty) ...[
                         const SliverPadding(
-                          padding: EdgeInsets.fromLTRB(AppDimensions.spacing20, 10, AppDimensions.spacing20, AppDimensions.spacingMd),
+                          padding: EdgeInsets.fromLTRB(AppDimensions.spacing20, AppDimensions.spacing10, AppDimensions.spacing20, AppDimensions.spacingMd),
                           sliver: SliverToBoxAdapter(
-                            child: Text(
-                              _historySectionTitle,
-                              style: TextStyle(
-                                color: AppColors.white54,
-                                fontSize: AppDimensions.fontSm,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
+                            child: SectionLabel(label: _historySectionTitle),
                           ),
                         ),
                         SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(AppDimensions.spacing20, AppDimensions.spacingMd, AppDimensions.spacing20, 28),
+                          padding: const EdgeInsets.fromLTRB(AppDimensions.spacing20, AppDimensions.spacingMd, AppDimensions.spacing20, AppDimensions.spacing28),
                           sliver: SliverList.separated(
                             itemCount: summaries.take(5).length,
                             separatorBuilder: (_, __) => const SizedBox(height: AppDimensions.spacingLg),
@@ -149,12 +134,12 @@ class MyHoursScreen extends ConsumerWidget {
       if (dur.inSeconds == 0) return const SizedBox.shrink();
 
       return Padding(
-        padding: const EdgeInsets.only(bottom: 18),
+        padding: const EdgeInsets.only(bottom: AppDimensions.spacing18),
         child: Container(
           padding: const EdgeInsets.all(AppDimensions.spacingXxl),
           decoration: BoxDecoration(
             color: AppColors.cardDark,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusCardLg),
             border: Border.all(color: AppColors.white.withValues(alpha: 0.06)),
           ),
           child: Column(
@@ -162,14 +147,14 @@ class MyHoursScreen extends ConsumerWidget {
               Row(
                 children: [
                   Container(
-                    width: 10,
-                    height: 10,
+                    width: AppDimensions.spacing10,
+                    height: AppDimensions.spacing10,
                     decoration: BoxDecoration(
                       color: state.color,
                       shape: BoxShape.circle,
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppDimensions.spacing10),
                   Expanded(
                     child: Text(
                       state.label,
@@ -188,11 +173,15 @@ class MyHoursScreen extends ConsumerWidget {
               const SizedBox(height: AppDimensions.spacingLg),
               ClipRRect(
                 borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-                child: LinearProgressIndicator(
-                  value: pct,
-                  minHeight: AppDimensions.progressBarHeight,
-                  backgroundColor: AppColors.white5,
-                  color: state.color,
+                child: Semantics(
+                  label: 'Progreso de ${state.label}: ${(pct * 100).round()}%',
+                  value: '${(pct * 100).round()}%',
+                  child: LinearProgressIndicator(
+                    value: pct,
+                    minHeight: AppDimensions.progressBarHeight,
+                    backgroundColor: AppColors.white5,
+                    color: state.color,
+                  ),
                 ),
               ),
             ],
@@ -217,7 +206,7 @@ class _SummaryHeroCard extends StatelessWidget {
     final ratio = summary?.completionRatio ?? 0;
 
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(AppDimensions.spacing22),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -227,7 +216,7 @@ class _SummaryHeroCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCardXxl),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.20),
@@ -253,7 +242,7 @@ class _SummaryHeroCard extends StatelessWidget {
             '${HoursFormatters.formatMinutes(worked)} trabajados',
             style: const TextStyle(
               color: AppColors.white,
-              fontSize: 28,
+              fontSize: AppDimensions.fontDisplaySm,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -264,14 +253,18 @@ class _SummaryHeroCard extends StatelessWidget {
                 : 'Aún no hay una meta de turno configurada',
             style: const TextStyle(color: AppColors.white70, height: 1.35),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: AppDimensions.spacing18),
           ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: ratio,
-              minHeight: AppDimensions.progressBarHeight,
-              backgroundColor: AppColors.white.withValues(alpha: 0.18),
-              color: AppColors.white,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusInfinity),
+            child: Semantics(
+              label: 'Progreso de cumplimiento: ${(ratio * 100).round()}%',
+              value: '${(ratio * 100).round()}%',
+              child: LinearProgressIndicator(
+                value: ratio,
+                minHeight: AppDimensions.progressBarHeight,
+                backgroundColor: AppColors.white.withValues(alpha: 0.18),
+                color: AppColors.white,
+              ),
             ),
           ),
           const SizedBox(height: AppDimensions.spacingLg),
@@ -281,7 +274,7 @@ class _SummaryHeroCard extends StatelessWidget {
                 label: 'Cumplimiento',
                 value: '${(ratio * 100).round()}%',
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: AppDimensions.spacing10),
               _HeroChip(
                 label: 'Estado',
                 value: (summary?.hasAnomalies ?? false) ? 'Revisar' : 'OK',
@@ -304,10 +297,10 @@ class _HeroChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingLg, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingLg, vertical: AppDimensions.spacing10),
       decoration: BoxDecoration(
         color: AppColors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -410,11 +403,11 @@ class _AnomaliesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(AppDimensions.spacing18),
       decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.10),
+        color: AppColors.warningSoft,
         borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.18)),
+        border: Border.all(color: AppColors.warningSoft),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -422,7 +415,7 @@ class _AnomaliesCard extends StatelessWidget {
           const Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: AppColors.warning),
-              SizedBox(width: 10),
+              SizedBox(width: AppDimensions.spacing10),
               Text(
                 'Aspectos para revisar',
                 style: TextStyle(
@@ -457,10 +450,10 @@ class _ActivityOverviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(AppDimensions.spacing18),
       decoration: BoxDecoration(
         color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCardXl),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
@@ -504,7 +497,7 @@ class _HistoryCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppDimensions.spacingXxl),
       decoration: BoxDecoration(
         color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCardLg),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
@@ -514,7 +507,7 @@ class _HistoryCard extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
             ),
             child: const Icon(Icons.calendar_today_rounded, color: AppColors.primaryLight, size: AppDimensions.iconSm),
           ),
@@ -586,7 +579,7 @@ class _ActivityPill extends StatelessWidget {
           value,
           style: const TextStyle(
             color: AppColors.white,
-            fontSize: 17,
+            fontSize: AppDimensions.fontBodyLg,
             fontWeight: FontWeight.w900,
           ),
         ),
@@ -609,57 +602,61 @@ class _EmptyHoursView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.spacing40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 92,
-              height: 92,
-              decoration: BoxDecoration(
-                color: AppColors.cardDark,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.white5),
+    return Semantics(
+      label: 'Sin datos de horas consolidadas',
+      liveRegion: true,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppDimensions.spacing40),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 92,
+                height: 92,
+                decoration: BoxDecoration(
+                  color: AppColors.cardDark,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.white5),
+                ),
+                child: const Icon(
+                  Icons.access_time_rounded,
+                  size: AppDimensions.iconHuge,
+                  color: AppColors.white24,
+                ),
               ),
-              child: const Icon(
-                Icons.access_time_rounded,
-                size: AppDimensions.iconHuge,
-                color: AppColors.white24,
+              const SizedBox(height: AppDimensions.spacing24),
+              const Text(
+                'AUN NO HAY HORAS CONSOLIDADAS',
+                style: TextStyle(
+                  color: AppColors.white30,
+                  fontSize: AppDimensions.fontSubtitle,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.4,
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: AppDimensions.spacing24),
-            const Text(
-              'AUN NO HAY HORAS CONSOLIDADAS',
-              style: TextStyle(
-                color: AppColors.white30,
-                fontSize: AppDimensions.fontSubtitle,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.4,
+              const SizedBox(height: AppDimensions.spacingLg),
+              const Text(
+                'Tu resumen aparecera automaticamente cuando se registren sesiones y actividad durante la jornada.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.white38, fontSize: AppDimensions.fontBody, height: 1.5),
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppDimensions.spacingLg),
-            const Text(
-              'Tu resumen aparecera automaticamente cuando se registren sesiones y actividad durante la jornada.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.white38, fontSize: AppDimensions.fontBody, height: 1.5),
-            ),
-            const SizedBox(height: 28),
-            OutlinedButton.icon(
-              onPressed: () {
-                ref.invalidate(employeeTodaySummaryProvider);
-                ref.invalidate(employeeTodayAnalyticsProvider);
-              },
-              icon: const Icon(Icons.refresh, size: AppDimensions.iconXs),
-              label: const Text('Actualizar'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.white54,
-                side: const BorderSide(color: AppColors.white12),
+              const SizedBox(height: AppDimensions.spacing28),
+              OutlinedButton.icon(
+                onPressed: () {
+                  ref.invalidate(employeeTodaySummaryProvider);
+                  ref.invalidate(employeeTodayAnalyticsProvider);
+                },
+                icon: const Icon(Icons.refresh, size: AppDimensions.iconXs),
+                label: const Text('Actualizar'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.white54,
+                  side: const BorderSide(color: AppColors.white12),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
