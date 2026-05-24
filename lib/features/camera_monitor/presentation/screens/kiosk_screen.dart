@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
@@ -192,7 +193,7 @@ class _IdentifyingHUD extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing20, vertical: 10),
         decoration: BoxDecoration(
           color: AppColors.overlayBadgeBg,
           borderRadius: BorderRadius.circular(30),
@@ -204,10 +205,10 @@ class _IdentifyingHUD extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isProcessing) ...[
-               const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryLight)),
-               const SizedBox(width: 12),
+               const SizedBox(width: AppDimensions.spacingXl, height: AppDimensions.spacingXl, child: CircularProgressIndicator(strokeWidth: AppDimensions.progressStrokeWidth, color: AppColors.primaryLight)),
+               const SizedBox(width: AppDimensions.spacingLg),
             ],
-            const Text('SCANNER ACTIVO', style: TextStyle(color: AppColors.white, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+            const Text('SCANNER ACTIVO', style: TextStyle(color: AppColors.white, fontSize: AppDimensions.fontSm, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
           ],
         ),
       ),
@@ -225,7 +226,7 @@ class _KioskTopHUD extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing24, vertical: AppDimensions.spacingXxl),
       decoration: BoxDecoration(
         gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [AppColors.black.withValues(alpha: 0.8), AppColors.transparent]),
       ),
@@ -234,17 +235,17 @@ class _KioskTopHUD extends StatelessWidget {
         child: Row(
           children: [
             IconButton(onPressed: onBack, icon: const Icon(Icons.close, color: AppColors.white70)),
-            const SizedBox(width: 8),
-            const Text('WORKSENSE', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
+            const SizedBox(width: AppDimensions.spacingMd),
+            const Text('WORKSENSE', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w900, fontSize: AppDimensions.fontTitle, letterSpacing: 1.0)),
             const Spacer(),
             Flexible(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.primary.withValues(alpha: 0.5))),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: AppDimensions.spacingXs),
+                decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(AppDimensions.radiusLg), border: Border.all(color: AppColors.primary.withValues(alpha: 0.5))),
                 child: Text(
                   workstationId.length > 8 ? '${workstationId.substring(0, 8)}…' : workstationId,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.primaryLight, fontSize: 10, fontWeight: FontWeight.w700),
+                  style: const TextStyle(color: AppColors.primaryLight, fontSize: AppDimensions.fontXs, fontWeight: FontWeight.w700),
                 ),
               ),
             ),
@@ -265,7 +266,7 @@ class _KioskBottomHUD extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing24, vertical: AppDimensions.spacing20),
       decoration: BoxDecoration(
         gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [AppColors.black.withValues(alpha: 0.8), AppColors.transparent]),
       ),
@@ -275,7 +276,7 @@ class _KioskBottomHUD extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             StateBadgeWidget(state: state, confidence: confidence, showConfidence: true),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppDimensions.spacingLg),
             SizedBox(
               width: double.infinity,
               height: 44,
@@ -284,8 +285,8 @@ class _KioskBottomHUD extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.white10,
                 ),
-                icon: const Icon(Icons.power_settings_new, size: 18),
-                label: const Text('SALIR', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                icon: const Icon(Icons.power_settings_new, size: AppDimensions.iconSm),
+                label: const Text('SALIR', style: TextStyle(fontSize: AppDimensions.fontCaption, fontWeight: FontWeight.w700)),
               ),
             ),
           ],
@@ -315,26 +316,26 @@ class _SessionActionOverlay extends StatelessWidget {
       color: AppColors.black.withValues(alpha: 0.9),
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.all(40.0),
+          padding: const EdgeInsets.all(AppDimensions.spacing40),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppDimensions.spacing24),
                 decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle, border: Border.all(color: color.withValues(alpha: 0.3), width: 2)),
-                child: Icon(icon, size: 64, color: color),
+                child: Icon(icon, size: AppDimensions.iconEmptyStateLg, color: color),
               ),
-              const SizedBox(height: 32),
-              Text(title, style: const TextStyle(color: AppColors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 2)),
-              const SizedBox(height: 12),
-              Text(subtitle, style: const TextStyle(color: AppColors.white70, fontSize: 16)),
+              const SizedBox(height: AppDimensions.spacing32),
+              Text(title, style: const TextStyle(color: AppColors.white, fontSize: AppDimensions.fontDisplay, fontWeight: FontWeight.w900, letterSpacing: 2)),
+              const SizedBox(height: AppDimensions.spacingLg),
+              Text(subtitle, style: const TextStyle(color: AppColors.white70, fontSize: AppDimensions.fontTitle)),
               const SizedBox(height: 56),
               FilledButton(
                 onPressed: onConfirm,
                 style: FilledButton.styleFrom(backgroundColor: color, minimumSize: const Size(double.infinity, 64)),
-                child: Text(actionLabel, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                child: Text(actionLabel, style: const TextStyle(fontSize: AppDimensions.fontTitle, fontWeight: FontWeight.w800)),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppDimensions.spacingXxl),
               TextButton(onPressed: onCancel, child: const Text('CANCELAR', style: TextStyle(color: AppColors.white38))),
             ],
           ),
@@ -362,17 +363,17 @@ class _NoProfileView extends StatelessWidget {
     final hasEmployee = assignedEmployeeId != null;
     return Container(
       color: AppColors.black,
-      padding: const EdgeInsets.all(40),
+      padding: const EdgeInsets.all(AppDimensions.spacing40),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(hasEmployee ? Icons.face : Icons.person_off, size: 80, color: hasEmployee ? AppColors.primary : AppColors.white24),
-            const SizedBox(height: 32),
-            Text(hasEmployee ? 'ENROLAMIENTO PENDIENTE' : 'SIN ASIGNACIÓN', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-            const SizedBox(height: 16),
-            Text(hasEmployee ? 'Se requiere una captura facial inicial para habilitar el reconocimiento en tiempo real.' : 'No hay un empleado asignado a este puesto de trabajo.', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.white60, fontSize: 14)),
-            const SizedBox(height: 48),
+            Icon(hasEmployee ? Icons.face : Icons.person_off, size: AppDimensions.iconLogo, color: hasEmployee ? AppColors.primary : AppColors.white24),
+            const SizedBox(height: AppDimensions.spacing32),
+            Text(hasEmployee ? 'ENROLAMIENTO PENDIENTE' : 'SIN ASIGNACIÓN', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.white, fontSize: AppDimensions.fontTitleLg, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+            const SizedBox(height: AppDimensions.spacingXxl),
+            Text(hasEmployee ? 'Se requiere una captura facial inicial para habilitar el reconocimiento en tiempo real.' : 'No hay un empleado asignado a este puesto de trabajo.', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.white60, fontSize: AppDimensions.fontBodyMd)),
+            const SizedBox(height: AppDimensions.spacing48),
             if (hasEmployee)
               FilledButton.icon(
                 icon: const Icon(Icons.camera_alt),
@@ -416,25 +417,25 @@ class _WaitingStandbyView extends StatelessWidget {
           children: [
             Icon(
               isBreak ? Icons.free_breakfast : Icons.bedtime, 
-              size: 80, 
+              size: AppDimensions.iconLogo, 
               color: isBreak ? AppColors.warning : AppColors.primary
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppDimensions.spacing32),
             Text(
               isBreak ? 'EN PAUSA' : 'EN ESPERA',
               style: const TextStyle(
                 color: AppColors.white, 
-                fontSize: 24, 
+                fontSize: AppDimensions.fontDisplay, 
                 fontWeight: FontWeight.w900, 
                 letterSpacing: 2
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppDimensions.spacingXxl),
             Text(
               isBreak 
                 ? 'El monitoreo está pausado por descanso.' 
                 : 'Esperando escaneo en el Kiosco de Entrada...',
-              style: const TextStyle(color: AppColors.white70, fontSize: 16),
+              style: const TextStyle(color: AppColors.white70, fontSize: AppDimensions.fontTitle),
             ),
             const SizedBox(height: 64),
             const CircularProgressIndicator(color: AppColors.white24),

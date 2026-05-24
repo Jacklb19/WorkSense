@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:camera/camera.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/entrance_kiosk_provider.dart';
 
@@ -143,7 +144,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                     color: borderColor.withValues(alpha: _pulseAnimation.value),
                     width: 4,
                   ),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
                   boxShadow: [
                     BoxShadow(
                       color: borderColor.withValues(
@@ -177,11 +178,11 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
           
           // Status Message
           Container(
-            margin: const EdgeInsets.only(bottom: 40, left: 20, right: 20),
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            margin: const EdgeInsets.only(bottom: AppDimensions.spacing40, left: AppDimensions.spacing20, right: AppDimensions.spacing20),
+            padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing32, vertical: AppDimensions.spacing24),
             decoration: BoxDecoration(
               color: AppColors.cardDark,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
               border: Border.all(
                 color: AppColors.glassBorder,
                 width: 1,
@@ -199,7 +200,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
               children: [
                 if (isVerifying)
                   const SizedBox(
-                    width: 24, height: 24,
+                    width: AppDimensions.spacing24, height: AppDimensions.spacing24,
                     child: CircularProgressIndicator(
                       strokeWidth: 3,
                       color: AppColors.feedbackCapturing,
@@ -214,13 +215,13 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                     size: 28,
                   ),
                    
-                const SizedBox(width: 16),
+                const SizedBox(width: AppDimensions.spacingXxl),
                 Expanded(
                   child: Text(
                     state.statusMessage,
                     style: const TextStyle(
                       color: AppColors.white, 
-                      fontSize: 18, 
+                      fontSize: AppDimensions.fontTitleLg, 
                       fontWeight: FontWeight.bold
                     ),
                     textAlign: TextAlign.center,
@@ -242,7 +243,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
         child: SafeArea(
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
+              padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing32),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -271,45 +272,45 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                     child: const Icon(
                       Icons.check_rounded,
                       color: AppColors.white,
-                      size: 64,
+                      size: AppDimensions.iconEmptyStateLg,
                     ),
                   ),
                   
-                  const SizedBox(height: 32),
+                  const SizedBox(height: AppDimensions.spacing32),
                   
                   // Welcome text
                   const Text(
                     '¡ÉXITO!',
                     style: TextStyle(
                       color: AppColors.white,
-                      fontSize: 16,
+                      fontSize: AppDimensions.fontTitle,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 6,
                     ),
                   ),
                   
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppDimensions.spacingLg),
                   
                   // Message From Kiosk Status
                   Text(
                     state.statusMessage,
                     style: const TextStyle(
                       color: AppColors.white,
-                      fontSize: 24,
+                      fontSize: AppDimensions.fontDisplay,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppDimensions.spacing24),
                   
                   // Workstation info card
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing24, vertical: AppDimensions.spacingXxl),
                     decoration: BoxDecoration(
                       color: AppColors.cardDark.withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
                       border: Border.all(
                         color: AppColors.success.withValues(alpha: 0.3),
                         width: 1,
@@ -322,7 +323,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: AppColors.success.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
                           ),
                           child: const Icon(
                             Icons.desktop_mac_rounded,
@@ -330,7 +331,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                             size: 28,
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: AppDimensions.spacingXxl),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -338,17 +339,17 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                               'ESTACIÓN DE TRABAJO',
                               style: TextStyle(
                                 color: AppColors.white54,
-                                fontSize: 11,
+                                fontSize: AppDimensions.fontSm,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 1.5,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: AppDimensions.spacingXs),
                             Text(
                               state.matchedWorkstationName ?? 'Activada',
                               style: const TextStyle(
                                 color: AppColors.white,
-                                fontSize: 18,
+                                fontSize: AppDimensions.fontTitleLg,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -358,11 +359,11 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                     ),
                   ),
                   
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppDimensions.spacing20),
                   
                   // Status text
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing20, vertical: 10),
                     decoration: BoxDecoration(
                       color: AppColors.success.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(30),
@@ -373,14 +374,14 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                         Icon(
                           Icons.verified_rounded,
                           color: AppColors.success,
-                          size: 18,
+                          size: AppDimensions.iconSm,
                         ),
-                        SizedBox(width: 8),
+                        SizedBox(width: AppDimensions.spacingMd),
                         Text(
                           'Acceso Autorizado · Puedes pasar',
                           style: TextStyle(
                             color: AppColors.success,
-                            fontSize: 14,
+                            fontSize: AppDimensions.fontBodyMd,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -401,18 +402,18 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(AppDimensions.spacing24),
       child: Row(
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_back, color: AppColors.white),
             onPressed: () => context.pop(),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppDimensions.spacingXxl),
           const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('WORKSENSE', style: TextStyle(color: AppColors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 2)),
+              Text('WORKSENSE', style: TextStyle(color: AppColors.white, fontSize: AppDimensions.fontDisplay, fontWeight: FontWeight.w900, letterSpacing: 2)),
               Text('Kiosco de Acceso Frontal', style: TextStyle(color: AppColors.white70, fontSize: 14)),
             ],
           )

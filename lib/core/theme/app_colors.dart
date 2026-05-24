@@ -102,10 +102,10 @@ abstract final class AppColors {
   static const Color error = Color(0xFFEF4444);
   static const Color info = Color(0xFF3B82F6);
 
-  static Color successSoft = success.withValues(alpha: 0.15);
-  static Color warningSoft = warning.withValues(alpha: 0.15);
-  static Color errorSoft = error.withValues(alpha: 0.15);
-  static Color infoSoft = info.withValues(alpha: 0.15);
+  static const Color successSoft = Color(0x2622C55E);
+  static const Color warningSoft = Color(0x26F59E0B);
+  static const Color errorSoft = Color(0x26EF4444);
+  static const Color infoSoft = Color(0x263B82F6);
 
   // ── Glassmorphism & Overlays ──────────────────────────────
   static const Color glassWhite = Color(0x1AFFFFFF);
@@ -148,9 +148,9 @@ abstract final class AppColors {
   static const Color orangeWarning = Color(0xFFF97316);
 
   // ── Primary Opacity Variants ──────────────────────────────
-  static Color primary5 = primary.withValues(alpha: 0.05);
-  static Color primary10 = primary.withValues(alpha: 0.10);
-  static Color primary15 = primary.withValues(alpha: 0.15);
-  static Color primary20 = primary.withValues(alpha: 0.20);
-  static Color primary25 = primary.withValues(alpha: 0.25);
+  static const Color primary5 = Color(0x0D3B82F6);
+  static const Color primary10 = Color(0x1A3B82F6);
+  static const Color primary15 = Color(0x263B82F6);
+  static const Color primary20 = Color(0x333B82F6);
+  static const Color primary25 = Color(0x403B82F6);
 }

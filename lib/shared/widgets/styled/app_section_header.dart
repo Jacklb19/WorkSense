@@ -26,7 +26,7 @@ class AppSectionHeader extends StatelessWidget {
               height: 18,
               decoration: BoxDecoration(
                 color: AppColors.primary,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(AppDimensions.radiusXxs),
               ),
             ),
             const SizedBox(width: AppDimensions.spacingMd),
@@ -34,7 +34,7 @@ class AppSectionHeader extends StatelessWidget {
               child: Text(
                 title.toUpperCase(),
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: AppDimensions.fontCaption,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.5,
                   color: AppColors.primary,
@@ -50,7 +50,7 @@ class AppSectionHeader extends StatelessWidget {
             child: Text(
               subtitle!,
               style: const TextStyle(
-                fontSize: 11,
+                fontSize: AppDimensions.fontSm,
                 color: AppColors.textSecondary,
               ),
             ),

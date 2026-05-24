@@ -27,14 +27,14 @@ class AppStatChip extends StatelessWidget {
         Text(
           value,
           style: const TextStyle(
-            fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary,
+            fontSize: AppDimensions.fontHeadlineLg, fontWeight: FontWeight.w800, color: AppColors.textPrimary,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: AppDimensions.spacingXxs),
         Text(
           label,
           style: const TextStyle(
-            fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary,
+            fontSize: AppDimensions.fontSm, fontWeight: FontWeight.w500, color: AppColors.textSecondary,
           ),
         ),
       ],

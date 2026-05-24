@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
@@ -17,14 +18,14 @@ class KioskWaitingScreen extends ConsumerWidget {
       backgroundColor: AppColors.backgroundDark,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
+          padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing40),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
               Container(
-                padding: const EdgeInsets.all(32),
+                padding: const EdgeInsets.all(AppDimensions.spacing32),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.05),
                   shape: BoxShape.circle,
@@ -35,11 +36,11 @@ class KioskWaitingScreen extends ConsumerWidget {
                 ),
                 child: const Icon(
                   Icons.settings_input_antenna,
-                  size: 64,
+                  size: AppDimensions.iconEmptyStateLg,
                   color: AppColors.primary,
                 ),
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: AppDimensions.spacing48),
               const Text(
                 'CONFIGURAR DISPOSITIVO',
                 textAlign: TextAlign.center,
@@ -56,7 +57,7 @@ class KioskWaitingScreen extends ConsumerWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.white60, fontSize: 14, height: 1.5),
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: AppDimensions.spacing48),
               
               // Kiosco Central (Recepcion)
               FilledButton.icon(

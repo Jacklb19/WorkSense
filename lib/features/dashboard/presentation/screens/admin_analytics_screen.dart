@@ -33,7 +33,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
         children: [
           // ── Date Range Toggle ──────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacingLg, AppDimensions.spacingXxl, AppDimensions.spacingXs),
             child: Row(
               children: [
                 _DateChip(
@@ -43,7 +43,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                       .read(analyticsDateRangeProvider.notifier)
                       .state = AnalyticsDateRange.today,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppDimensions.spacingMd),
                 _DateChip(
                   label: 'Esta semana',
                   selected: dateRange == AnalyticsDateRange.thisWeek,
@@ -54,7 +54,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                 const Spacer(),
                 // Legend popover
                 IconButton(
-                  icon: const Icon(Icons.info_outline, size: 20),
+                  icon: const Icon(Icons.info_outline, size: AppDimensions.iconMd),
                   tooltip: 'Leyenda de estados',
                   onPressed: () => _showLegend(context),
                 ),
@@ -77,7 +77,7 @@ padding: const EdgeInsets.all(AppDimensions.spacing24),
                         color: AppColors.error,
                         size: AppDimensions.iconEmptyState,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppDimensions.spacingXxl),
                       Text('Error: $e',
                           style: const TextStyle(color: AppColors.grey500),
                           textAlign: TextAlign.center,
@@ -94,7 +94,7 @@ padding: const EdgeInsets.all(AppDimensions.spacing24),
                   onRefresh: () async =>
                       ref.invalidate(employeeAnalyticsProvider),
                   child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                    padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacingMd, AppDimensions.spacingXxl, 80),
                     itemCount: analyticsList.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (context, index) =>
@@ -121,7 +121,7 @@ padding: const EdgeInsets.all(AppDimensions.spacing24),
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppDimensions.radiusRound)),
       ),
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppDimensions.spacing24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,10 +130,10 @@ padding: const EdgeInsets.all(AppDimensions.spacing24),
               'Leyenda de estados',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppDimensions.spacingXxl),
             ...ActivityState.values.map(
               (s) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
+                padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingXs),
                 child: Row(
                   children: [
                     Container(
@@ -144,7 +144,7 @@ padding: const EdgeInsets.all(AppDimensions.spacing24),
 borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppDimensions.spacingLg),
                     Text(s.label),
                   ],
                 ),
@@ -205,7 +205,7 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
     final emp = analytics.employee;
 
     return Card(
-      elevation: 2,
+      elevation: AppDimensions.cardElevation,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusXxl)),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
@@ -232,7 +232,7 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppDimensions.spacingLg),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -245,7 +245,7 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: AppDimensions.spacingXxs),
                         Text(
                           analytics.hasData
                               ? '${analytics.totalEvents} eventos · ${_formatDuration(analytics.totalTrackedTime)}'
@@ -258,16 +258,16 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
                     ),
                   ),
                   if (analytics.lastState != null) _StateDot(analytics.lastState!),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: AppDimensions.spacingXs),
                   const Icon(Icons.chevron_right, color: AppColors.grey400),
                 ],
               ),
 
               // Distribution bar
               if (analytics.hasData) ...[
-                const SizedBox(height: 14),
+                const SizedBox(height: AppDimensions.spacingXl),
                 _DistributionBar(analytics: analytics),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppDimensions.spacingMd),
                 _TopStatesRow(analytics: analytics),
               ],
             ],
@@ -295,7 +295,7 @@ class _DistributionBar extends StatelessWidget {
       ..sort((a, b) => b.value.inSeconds.compareTo(a.value.inSeconds));
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
       child: SizedBox(
         height: AppDimensions.distributionBarHeight,
         child: Row(
@@ -331,7 +331,7 @@ class _TopStatesRow extends StatelessWidget {
       children: top.map((entry) {
         final pct = (analytics.percentageFor(entry.key) * 100).round();
         return Padding(
-          padding: const EdgeInsets.only(right: 12),
+          padding: const EdgeInsets.only(right: AppDimensions.spacingLg),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -343,7 +343,7 @@ class _TopStatesRow extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppDimensions.radiusXxs),
                 ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: AppDimensions.spacingXs),
               Text(
                 '${entry.key.label} $pct%',
                 style: const TextStyle(
@@ -397,14 +397,14 @@ class _EmptyView extends StatelessWidget {
             size: AppDimensions.iconEmptyStateLg,
             color: AppColors.grey300,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDimensions.spacingXxl),
           Text(
             'Sin datos de analíticas',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: AppColors.grey500,
                 ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDimensions.spacingMd),
           Text(
             'Los datos aparecerán cuando el sistema\nregistre actividad de empleados.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(

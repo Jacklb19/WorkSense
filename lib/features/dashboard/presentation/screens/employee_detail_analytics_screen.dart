@@ -51,7 +51,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
               // ── Date toggles ──────────────────────────────
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacingLg, AppDimensions.spacingXxl, AppDimensions.spacingXs),
                   child: Row(
                     children: [
                       _Chip(
@@ -61,7 +61,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                             .read(analyticsDateRangeProvider.notifier)
                             .state = AnalyticsDateRange.today,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppDimensions.spacingMd),
                       _Chip(
                         label: 'Esta semana',
                         selected:
@@ -84,7 +84,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
               SliverToBoxAdapter(
                 child: Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacingMd),
                   child: Text(
                     'Distribución por estado',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -102,7 +102,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
               // ── Attendance list ───────────────────────────────
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                  padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacing24, AppDimensions.spacingXxl, AppDimensions.spacingMd),
                   child: Text(
                     'Asistencia Diaria (Horas Reales)',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -116,7 +116,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                   if (logs.isEmpty) {
                     return const SliverToBoxAdapter(
                       child: Padding(
-                        padding: EdgeInsets.all(16.0),
+                        padding: EdgeInsets.all(AppDimensions.spacingXxl),
                         child: Text('No hay registros de asistencia en el escáner.', style: TextStyle(color: AppColors.grey500)),
                       ),
                     );
@@ -132,7 +132,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                   return SliverList(
                     delegate: SliverChildListDelegate([
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacingMd),
                         child: Text(
                           'Total horas en oficina: ${_fmtDur(totalNetTime)}',
                           style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
@@ -156,7 +156,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
               ),
 
               // Bottom padding
-              const SliverToBoxAdapter(child: SizedBox(height: 40)),
+              const SliverToBoxAdapter(child: SizedBox(height: AppDimensions.spacing40)),
             ],
           );
         },
@@ -182,7 +182,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
       final pct = analytics.percentageFor(entry.key);
 
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: AppDimensions.spacingXs),
         child: Row(
           children: [
             // State color dot
@@ -194,14 +194,14 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(AppDimensions.radiusXs),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppDimensions.spacingLg),
 
             // Label
             Expanded(
               flex: 3,
               child: Text(
                 entry.key.label,
-                style: const TextStyle(fontSize: 13),
+                style: const TextStyle(fontSize: AppDimensions.fontBody),
               ),
             ),
 
@@ -218,7 +218,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppDimensions.spacingLg),
 
             // Percentage + duration
             SizedBox(
@@ -226,7 +226,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
               child: Text(
                 '${(pct * 100).round()}% · ${_fmtDur(entry.value)}',
                 style: const TextStyle(
-                  fontSize: 11,
+                  fontSize: AppDimensions.fontSm,
                   color: AppColors.grey600,
                 ),
                 textAlign: TextAlign.right,
@@ -276,7 +276,7 @@ class _SummaryHeader extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: AppDimensions.spacingXl),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,7 +300,7 @@ class _SummaryHeader extends StatelessWidget {
                   if (analytics.lastState != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
+                          horizontal: 10, vertical: AppDimensions.spacingXs),
                       decoration: BoxDecoration(
                         color: analytics.lastState!.color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
@@ -316,7 +316,7 @@ fontSize: AppDimensions.fontSm,
                     ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppDimensions.spacingXxl),
 
               // Stats row
               Row(
@@ -373,12 +373,12 @@ class _StatChip extends StatelessWidget {
     return Column(
       children: [
         Icon(icon, size: AppDimensions.statChipIconSize, color: AppColors.primary),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppDimensions.spacingXs),
         Text(
           value,
           style: const TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 16,
+            fontSize: AppDimensions.fontTitle,
           ),
         ),
         Text(
@@ -441,14 +441,14 @@ class _EmptyDetailView extends StatelessWidget {
             size: AppDimensions.iconEmptyStateLg,
             color: AppColors.grey300,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDimensions.spacingXxl),
           Text(
             'Sin datos para $name',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: AppColors.grey500,
                 ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDimensions.spacingMd),
           Text(
             'No se han registrado eventos\nen el período seleccionado.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
