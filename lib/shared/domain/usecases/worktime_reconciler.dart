@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:drift/drift.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 
@@ -70,10 +71,23 @@ class WorktimeReconciler {
         'source_version': 1,
         'updated_at': DateTime.now().toIso8601String(),
       };
+      // Si el payload ya fue syncado exitosamente, no lo regeneramos
+      final existingRows = await _db.customSelect(
+        'SELECT synced FROM daily_work_summaries WHERE id = ?',
+        variables: [Variable<String>(payload['id'] as String)],
+      ).get();
+      final alreadySynced = existingRows.isNotEmpty && existingRows.first.read<int>('synced') == 1;
+
+      if (alreadySynced) {
+        // Saltar — ya fue enviado a Supabase exitosamente
+        continue;
+      }
+
       await _db.upsertDailySummaryPayload(
         payload['id'] as String,
         jsonEncode(payload),
         updatedAt: DateTime.now(),
+        synced: false,
       );
       payloads.add(payload);
     }

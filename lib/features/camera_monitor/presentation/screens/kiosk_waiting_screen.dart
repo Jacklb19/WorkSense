@@ -26,9 +26,12 @@ class KioskWaitingScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.05),
+                  color: AppColors.primary.withValues(alpha: 0.05),
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.primary.withOpacity(0.1), width: 2),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    width: 2,
+                  ),
                 ),
                 child: const Icon(
                   Icons.settings_input_antenna,

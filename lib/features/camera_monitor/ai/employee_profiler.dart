@@ -9,6 +9,7 @@
 import 'dart:ui' show Size;
 
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'package:worksense_app/core/constants/ai_thresholds.dart';
@@ -184,7 +185,7 @@ class EmployeeProfiler {
     final face = faces.first;
     final frameSize = inputImage.metadata?.size;
     final faceConf = _estimateFaceConfidence(face, frameSize);
-    print(
+    debugPrint(
       '[SCAN] FACE CONF: ${faceConf.toStringAsFixed(3)} '
       '(threshold: $minFaceConfidence)',
     );
@@ -204,7 +205,7 @@ class EmployeeProfiler {
     double poseConf = 0.0;
     if (pose != null) {
       poseConf = _estimatePoseConfidence(pose);
-      print(
+      debugPrint(
         '[SCAN] POSE CONF: ${poseConf.toStringAsFixed(3)} '
         '(threshold: $minPoseConfidence)',
       );
@@ -243,7 +244,7 @@ class EmployeeProfiler {
     }
 
     final cropQuality = await _faceAnalyzer.assessCropQuality(croppedFace);
-    print(
+    debugPrint(
       '[SCAN] CROP QUALITY - '
       'brightness: ${cropQuality.brightness.toStringAsFixed(3)}, '
       'contrast: ${cropQuality.contrast.toStringAsFixed(3)}, '
@@ -255,7 +256,7 @@ class EmployeeProfiler {
 
     // Quality Gate — centralizado desde AiThresholds
     if (cropQuality.overallScore < AiThresholds.enrollMinCropQuality) {
-      return SampleAssessment(
+      return const SampleAssessment(
         result: SampleResult.lowConfidence,
         feedback: 'Mejora la iluminación o tu posición',
       );
@@ -275,14 +276,14 @@ class EmployeeProfiler {
     }
 
     if (canSoftAcceptCrop) {
-      print('[SCAN] Soft-accepting crop for enrollment (quality=${cropQuality.overallScore.toStringAsFixed(2)}, faceConf=${faceConf.toStringAsFixed(2)}).');
+      debugPrint('[SCAN] Soft-accepting crop for enrollment (quality=${cropQuality.overallScore.toStringAsFixed(2)}, faceConf=${faceConf.toStringAsFixed(2)}).');
     }
 
     List<double> embedding;
     try {
       embedding = await _embeddingService.generateEmbedding(croppedFace);
     } catch (e) {
-      print('[SCAN] Error extrayendo embedding facial: $e');
+      debugPrint('[SCAN] Error extrayendo embedding facial: $e');
       return const SampleAssessment(
         result: SampleResult.invalidSignature,
         feedback: 'No se pudo extraer la biometria',
@@ -423,7 +424,7 @@ class EmployeeProfiler {
     final finalConf =
         (sizeScore * 0.5) + (angleScore * 0.3) + (classScore * 0.2);
 
-    print(
+    debugPrint(
       '[SCAN] CONF DETAILS - size: ${sizeScore.toStringAsFixed(2)}, '
       'angle: ${angleScore.toStringAsFixed(2)}, '
       'class: ${classScore.toStringAsFixed(2)}',

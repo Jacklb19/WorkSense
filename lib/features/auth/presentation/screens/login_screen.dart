@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 
@@ -51,7 +50,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              AppColors.primary.withOpacity(0.05),
+              AppColors.primary.withValues(alpha: 0.05),
               AppColors.backgroundDark,
             ],
           ),
@@ -131,9 +130,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           decoration: BoxDecoration(
             color: AppColors.backgroundDark,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
             boxShadow: [
-              BoxShadow(color: AppColors.primary.withOpacity(0.1), blurRadius: 20, spreadRadius: 5),
+              BoxShadow(color: AppColors.primary.withValues(alpha: 0.1), blurRadius: 20, spreadRadius: 5),
             ],
           ),
           child: const Icon(Icons.remove_red_eye, color: AppColors.primary, size: 40),
@@ -146,7 +145,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         const SizedBox(height: 8),
         Text(
           'BIOMETRIC CONTROL INTERFACE',
-          style: TextStyle(color: AppColors.primary.withOpacity(0.5), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2),
+          style: TextStyle(color: AppColors.primary.withValues(alpha: 0.5), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2),
         ),
       ],
     );

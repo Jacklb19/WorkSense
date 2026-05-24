@@ -293,8 +293,6 @@ import 'package:flutter/foundation.dart';
 
     int? _lockedTrackingId;
     int _consecutiveMisses = 0;
-    DateTime? _lastFoundTime;
-
     static const int _maxConsecutiveMisses = AiThresholds.monitorMaxConsecutiveMisses;
 
     EmployeeFinder(this._profile);
@@ -376,7 +374,6 @@ import 'package:flutter/foundation.dart';
         }
       } else {
         _consecutiveMisses = 0;
-        _lastFoundTime = DateTime.now();
       }
 
       // 4. Mapear al modelo que requiere objetos nativos (Face y Pose)
@@ -397,6 +394,5 @@ import 'package:flutter/foundation.dart';
     void reset() {
       _lockedTrackingId = null;
       _consecutiveMisses = 0;
-      _lastFoundTime = null;
     }
   }

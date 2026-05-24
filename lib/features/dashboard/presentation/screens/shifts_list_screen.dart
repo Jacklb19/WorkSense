@@ -25,7 +25,7 @@ class ShiftsListScreen extends ConsumerWidget {
           error: (e, trace) => Center(child: Text('Error: $e')),
           data: (shifts) {
             if (shifts.isEmpty) {
-              return _EmptyShiftsView();
+              return const _EmptyShiftsView();
             }
 
             return ListView.separated(
@@ -48,7 +48,7 @@ class ShiftsListScreen extends ConsumerWidget {
                     leading: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.schedule, color: AppColors.primary),
@@ -86,6 +86,8 @@ class ShiftsListScreen extends ConsumerWidget {
 }
 
 class _EmptyShiftsView extends StatelessWidget {
+  const _EmptyShiftsView();
+
   @override
   Widget build(BuildContext context) {
     return Center(

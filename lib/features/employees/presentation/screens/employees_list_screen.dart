@@ -41,7 +41,7 @@ class EmployeesListScreen extends ConsumerWidget {
               final employee = employees[index];
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                   child: Text(
                     employee.displayName.isNotEmpty
                         ? employee.displayName[0].toUpperCase()

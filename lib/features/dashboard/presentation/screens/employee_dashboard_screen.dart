@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
@@ -22,9 +24,9 @@ class EmployeeDashboardScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text(AppStrings.mySpace),
         centerTitle: false,
-        actions: [
-          const SyncIndicatorWidget(),
-          const SizedBox(width: 8),
+        actions: const [
+          SyncIndicatorWidget(),
+          SizedBox(width: 8),
         ],
       ),
       body: RefreshIndicator(
@@ -95,6 +97,31 @@ class EmployeeDashboardScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               const _RecentActivitySection(),
+              const SizedBox(height: 24),
+
+              const Text(
+                'ACCESOS RAPIDOS',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                  color: AppColors.grey600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const _QuickAccessCard(
+                icon: Icons.history,
+                title: 'Mi actividad',
+                subtitle: 'Ver historial personal detallado',
+                route: AppRoutes.myActivity,
+              ),
+              const SizedBox(height: 12),
+              const _QuickAccessCard(
+                icon: Icons.schedule,
+                title: 'Mis horas',
+                subtitle: 'Consultar horas, sesiones y resumen diario',
+                route: AppRoutes.myHours,
+              ),
               const SizedBox(height: 40),
             ],
           ),
@@ -443,5 +470,74 @@ class _RecentActivitySection extends ConsumerWidget {
     final min = time.minute.toString().padLeft(2, '0');
     final sec = time.second.toString().padLeft(2, '0');
     return '$hour:$min:$sec';
+  }
+}
+
+class _QuickAccessCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String route;
+
+  const _QuickAccessCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.route,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black12,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () => context.go(route),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: AppColors.primary),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: AppColors.grey600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                color: AppColors.grey500,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -51,7 +51,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: ListView(
         children: [
           // ── Account section ─────────────────────────────────────
-          _SectionHeader(title: AppStrings.accountSection),
+          const _SectionHeader(title: AppStrings.accountSection),
           ListTile(
             leading: const Icon(Icons.account_circle_outlined),
             title: const Text(AppStrings.user),
@@ -61,7 +61,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Divider(),
 
           // ── AI Pipeline section ──────────────────────────────────
-          _SectionHeader(title: AppStrings.activityAnalysis),
+          const _SectionHeader(title: AppStrings.activityAnalysis),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: analysisIntervalAsync.when(
@@ -117,16 +117,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Divider(),
 
           // ── Thresholds info ──────────────────────────────────────
-          _SectionHeader(title: AppStrings.detectionThresholds),
-          _ThresholdTile(
+          const _SectionHeader(title: AppStrings.detectionThresholds),
+          const _ThresholdTile(
             label: AppStrings.maxYawLabel,
             value: '${AiThresholds.maxYawAngle}°',
           ),
-          _ThresholdTile(
+          const _ThresholdTile(
             label: AppStrings.minPitchLabel,
             value: '${AiThresholds.minPitchAngle}°',
           ),
-          _ThresholdTile(
+          const _ThresholdTile(
             label: AppStrings.maxRollLabel,
             value: '${AiThresholds.maxRollAngle}°',
           ),
@@ -134,7 +134,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             label: AppStrings.minPoseConfidenceLabel,
             value: '${(AiThresholds.minPoseConfidence * 100).toInt()}%',
           ),
-          _ThresholdTile(
+          const _ThresholdTile(
             label: AppStrings.inactivityThresholdLabel,
             value: '${AiThresholds.inactivityThresholdSeconds} seg',
           ),
@@ -142,7 +142,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Divider(),
 
           // ── App info ─────────────────────────────────────────────
-          _SectionHeader(title: AppStrings.about),
+          const _SectionHeader(title: AppStrings.about),
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text(AppStrings.version),
@@ -227,7 +227,7 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       child: Text(
         title,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
           color: AppColors.primary,

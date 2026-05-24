@@ -67,10 +67,10 @@ abstract final class AppColors {
   static const Color error = Color(0xFFD81B60);
   static const Color info = Color(0xFF1E88E5);
 
-  static Color successSoft = success.withOpacity(0.1);
-  static Color warningSoft = warning.withOpacity(0.1);
-  static Color errorSoft = error.withOpacity(0.1);
-  static Color infoSoft = info.withOpacity(0.1);
+  static Color successSoft = success.withValues(alpha: 0.1);
+  static Color warningSoft = warning.withValues(alpha: 0.1);
+  static Color errorSoft = error.withValues(alpha: 0.1);
+  static Color infoSoft = info.withValues(alpha: 0.1);
 
   // ── Glassmorphism & Overlays ──────────────────────────────
   static const Color glassWhite = Color(0x1AFFFFFF);
@@ -113,4 +113,4 @@ abstract final class AppColors {
   static const Color orangeWarning = Color(0xFFFF9800);
 
   AppColors._();
-}
+}

@@ -1,6 +1,4 @@
-  import 'dart:convert';
   import 'dart:io' show Platform;
-  import 'dart:ui' show Size;
 
   import 'package:camera/camera.dart';
   import 'package:flutter/material.dart';
@@ -10,7 +8,6 @@
   import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
   import 'package:worksense_app/core/constants/ai_thresholds.dart';
   import 'package:worksense_app/core/theme/app_colors.dart';
-  import 'package:worksense_app/domain/entities/employee.dart';
   import 'package:worksense_app/domain/repositories/employee_repository.dart';
   import 'package:worksense_app/features/camera_monitor/ai/employee_profiler.dart';
   import 'package:worksense_app/features/camera_monitor/ai/face_analyzer.dart';
@@ -21,12 +18,12 @@
 
   // ── Estado del escaneo ─────────────────────────────────────────────────────────
 
-  enum _FrameStatus { searching, detected, error, capturing }
+  enum FrameStatus { searching, detected, error, capturing }
 
   class EmployeeScanState {
     final int currentSampleIndex;
     final List<bool> completedSamples;
-    final _FrameStatus frameStatus;
+    final FrameStatus frameStatus;
     final String feedback;
     final bool isCapturing;
     final bool isComplete;
@@ -39,7 +36,7 @@
     EmployeeScanState({
       this.currentSampleIndex = 0,
       List<bool>? completedSamples,
-      this.frameStatus = _FrameStatus.searching,
+      this.frameStatus = FrameStatus.searching,
       this.feedback = 'Posiciónate frente a la cámara',
       this.isCapturing = false,
       this.isComplete = false,
@@ -55,7 +52,7 @@
     EmployeeScanState copyWith({
       int? currentSampleIndex,
       List<bool>? completedSamples,
-      _FrameStatus? frameStatus,
+      FrameStatus? frameStatus,
       String? feedback,
       bool? isCapturing,
       bool? isComplete,
@@ -208,25 +205,25 @@
           _resetBlinkState();
           _stableLiveFrames = 0;
           state = state.copyWith(
-            frameStatus: _FrameStatus.searching,
+            frameStatus: FrameStatus.searching,
             feedback: 'Centra tu rostro',
           );
         } else if (faces.length > 1) {
           _resetBlinkState();
           _stableLiveFrames = 0;
           state = state.copyWith(
-            frameStatus: _FrameStatus.error,
+            frameStatus: FrameStatus.error,
             feedback: 'Solo debe estar el empleado en cámara',
           );
         } else if (poses.isEmpty) {
           _resetBlinkState();
           _stableLiveFrames = 0;
           state = state.copyWith(
-            frameStatus: _FrameStatus.searching,
+            frameStatus: FrameStatus.searching,
             feedback: 'Asegúrate de que tu cuerpo sea visible',
           );
         } else {
-          if (!state.isCapturing && (state.frameStatus != _FrameStatus.capturing)) {
+          if (!state.isCapturing && (state.frameStatus != FrameStatus.capturing)) {
             final face = faces.first;
             final isCorrectPos = _profiler.isPositionStateCorrect(face);
             final passesLivePresence = _passesLivePresenceGate(
@@ -250,7 +247,7 @@
                       _stableLiveFrames = 0;
                       if (!_disposed) {
                         state = state.copyWith(
-                          frameStatus: _FrameStatus.error,
+                          frameStatus: FrameStatus.error,
                           feedback: 'Mejora la iluminación o tu posición',
                         );
                       }
@@ -270,7 +267,7 @@
                 _updateBlinkChallenge(face);
                 if (!_blinkSatisfied) {
                   state = state.copyWith(
-                    frameStatus: _FrameStatus.searching,
+                    frameStatus: FrameStatus.searching,
                     feedback: _blinkArmed
                         ? 'Parpadea una vez para validar presencia'
                         : 'Mira al frente con los ojos abiertos',
@@ -280,13 +277,13 @@
               }
               if (_stableLiveFrames < AiThresholds.liveDetectionStableFrames) {
                 state = state.copyWith(
-                  frameStatus: _FrameStatus.searching,
+                  frameStatus: FrameStatus.searching,
                   feedback: 'Sostente frente a la camara un momento',
                 );
                 return;
               }
               state = state.copyWith(
-                frameStatus: _FrameStatus.detected,
+                frameStatus: FrameStatus.detected,
                 feedback: 'Posición correcta',
               );
             } else {
@@ -295,7 +292,7 @@
               }
               _stableLiveFrames = 0;
               state = state.copyWith(
-                frameStatus: _FrameStatus.searching,
+                frameStatus: FrameStatus.searching,
                 feedback: passesLivePresence
                     ? _getGuidanceMessage(state.currentSampleIndex)
                     : 'Centra mejor el rostro dentro del marco',
@@ -323,13 +320,13 @@
     Future<void> captureCurrentSample() async {
       if (_disposed) return;
       if (state.isCapturing || _lastFrame == null) return;
-      if (state.frameStatus != _FrameStatus.detected) return;
+      if (state.frameStatus != FrameStatus.detected) return;
 
       try {
         _blockFrameUpdates = true;
         state = state.copyWith(
           isCapturing: true,
-          frameStatus: _FrameStatus.capturing,
+          frameStatus: FrameStatus.capturing,
           isIlluminating: true,
           burstProgress: 0,
           burstTotal: AiThresholds.scanBurstFrames,
@@ -389,7 +386,7 @@
             isCapturing: false,
             isComplete: isComplete,
             isIlluminating: false,
-            frameStatus: _FrameStatus.searching,
+            frameStatus: FrameStatus.searching,
             burstProgress: 0,
             feedback: 'Buena captura ✓',
           );
@@ -410,7 +407,7 @@
           state = state.copyWith(
             isCapturing: false,
             isIlluminating: false,
-            frameStatus: _FrameStatus.error,
+            frameStatus: FrameStatus.error,
             burstProgress: 0,
             feedback: lastFeedback,
           );
@@ -547,24 +544,8 @@
       }
     }
 
-    String _resultMessage(SampleResult result) {
-      switch (result) {
-        case SampleResult.success:
-          return 'Muestra capturada';
-        case SampleResult.noFace:
-          return 'No se detectó rostro. Acércate más.';
-        case SampleResult.multiplePeople:
-          return 'Solo debe estar el empleado en cámara.';
-        case SampleResult.lowConfidence:
-          return 'Poca iluminación o distancia incorrecta.';
-        case SampleResult.noPose:
-          return 'Cuerpo no detectado. Asegúrate de ser visible.';
-        case SampleResult.wrongPosition:
-          return 'Ángulo incorrecto. Sigue la instrucción.';
-        case SampleResult.invalidSignature:
-          return 'Postura no válida. Quédate quieto.';
-      }
-    }
+
+
 
     InputImage? _buildInputImage(CameraImage image) {
       if (_cameraController == null) return null;
@@ -760,8 +741,8 @@
               radius: 0.8,
               colors: [
                 Colors.transparent,
-                Colors.black.withOpacity(0.2),
-                Colors.black.withOpacity(0.6),
+                Colors.black.withValues(alpha: 0.2),
+                Colors.black.withValues(alpha: 0.6),
               ],
               stops: const [0.5, 0.8, 1.0],
             ),
@@ -783,9 +764,9 @@
               center: Alignment.center,
               radius: 0.9,
               colors: [
-                Colors.white.withOpacity(0.70),
-                Colors.white.withOpacity(0.32),
-                Colors.white.withOpacity(0.10),
+                Colors.white.withValues(alpha: 0.70),
+                Colors.white.withValues(alpha: 0.32),
+                Colors.white.withValues(alpha: 0.10),
               ],
               stops: const [0.0, 0.55, 1.0],
             ),
@@ -808,7 +789,7 @@
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+            colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
           ),
         ),
         child: SafeArea(
@@ -851,15 +832,15 @@
   }
 
   class _GuideFrame extends StatelessWidget {
-    final _FrameStatus status;
+    final FrameStatus status;
     const _GuideFrame({required this.status});
 
     Color get _color {
       switch (status) {
-        case _FrameStatus.searching: return Colors.white38;
-        case _FrameStatus.detected: return AppColors.feedbackDetected;
-        case _FrameStatus.error: return AppColors.feedbackError;
-        case _FrameStatus.capturing: return AppColors.feedbackCapturing;
+        case FrameStatus.searching: return Colors.white38;
+        case FrameStatus.detected: return AppColors.feedbackDetected;
+        case FrameStatus.error: return AppColors.feedbackError;
+        case FrameStatus.capturing: return AppColors.feedbackCapturing;
       }
     }
 
@@ -874,7 +855,7 @@
           width: frameW,
           height: frameH,
           decoration: BoxDecoration(
-            border: Border.all(color: _color.withOpacity(0.5), width: 1),
+            border: Border.all(color: _color.withValues(alpha: 0.5), width: 1),
             borderRadius: BorderRadius.circular(32),
           ),
           child: Stack(
@@ -884,7 +865,7 @@
               _CornerIndicator(color: _color, bottom: 0, left: 0),
               _CornerIndicator(color: _color, bottom: 0, right: 0),
               
-              if (status == _FrameStatus.capturing)
+              if (status == FrameStatus.capturing)
                 const Center(
                   child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryLight),
                 ),
@@ -928,7 +909,7 @@
 
     @override
     Widget build(BuildContext context) {
-      final bool canCapture = state.frameStatus == _FrameStatus.detected && !state.isCapturing;
+      final bool canCapture = state.frameStatus == FrameStatus.detected && !state.isCapturing;
 
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
@@ -936,7 +917,7 @@
           gradient: LinearGradient(
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
-            colors: [Colors.black.withOpacity(0.9), Colors.transparent],
+            colors: [Colors.black.withValues(alpha: 0.9), Colors.transparent],
           ),
         ),
         child: SafeArea(
@@ -983,7 +964,9 @@
                         color: canCapture ? Colors.white : Colors.white24,
                         width: 4,
                       ),
-                      color: canCapture ? AppColors.primary.withOpacity(0.2) : Colors.transparent,
+                      color: canCapture
+                          ? AppColors.primary.withValues(alpha: 0.2)
+                          : Colors.transparent,
                     ),
                     child: Center(
                       child: Container(
@@ -1027,10 +1010,10 @@
       );
     }
 
-    Color _getStatusColor(_FrameStatus status) {
+    Color _getStatusColor(FrameStatus status) {
       switch (status) {
-        case _FrameStatus.detected: return AppColors.feedbackDetected;
-        case _FrameStatus.error: return AppColors.feedbackError;
+        case FrameStatus.detected: return AppColors.feedbackDetected;
+        case FrameStatus.error: return AppColors.feedbackError;
         default: return Colors.white70;
       }
     }

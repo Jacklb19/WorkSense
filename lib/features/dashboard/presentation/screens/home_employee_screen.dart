@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
-import 'package:worksense_app/shared/providers/auth_provider.dart';
+import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
 class HomeEmployeeScreen extends ConsumerWidget {
@@ -18,7 +18,7 @@ class HomeEmployeeScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
-              ref.read(authNotifierProvider.notifier).logout();
+              ref.read(loginNotifierProvider.notifier).signOut();
             },
             tooltip: AppStrings.logout,
           ),

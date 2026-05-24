@@ -33,12 +33,13 @@ class WorkstationRepositoryImpl implements WorkstationRepository {
         );
       }
 
-      // 2. Encolar para sincronizaciÃ³n
+      // 2. Encolar para sincronización (excluye 'roi' — solo existe en BD local)
+      final syncPayload = workstation.toMap()..remove('roi');
       await _syncRepo.enqueue(
         targetTable: 'workstations',
         operation: 'UPSERT',
         recordId: workstation.id,
-        payload: workstation.toMap(),
+        payload: syncPayload,
       );
     });
   }

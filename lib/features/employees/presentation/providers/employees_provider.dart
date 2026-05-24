@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/data/repositories/employee_repository_impl.dart';
-import 'package:worksense_app/domain/entities/app_role.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/domain/repositories/employee_repository.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';

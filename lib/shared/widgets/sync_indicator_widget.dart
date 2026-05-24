@@ -15,10 +15,10 @@ class SyncIndicatorWidget extends ConsumerWidget {
     final syncState = ref.watch(syncNotifierProvider);
 
     if (!isOnline) {
-      return Tooltip(
+      return const Tooltip(
         message: AppStrings.offlineMode,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          padding: EdgeInsets.symmetric(horizontal: 16.0),
           child: Icon(Icons.cloud_off, color: AppColors.syncOffline),
         ),
       );
@@ -27,8 +27,8 @@ class SyncIndicatorWidget extends ConsumerWidget {
     return pendingAsync.when(
       data: (pendingCount) {
         if (syncState.isLoading) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          return const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
             child: SizedBox(
               width: 20,
               height: 20,
@@ -47,7 +47,7 @@ class SyncIndicatorWidget extends ConsumerWidget {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    Icon(Icons.cloud_upload, color: AppColors.syncUploading),
+                    const Icon(Icons.cloud_upload, color: AppColors.syncUploading),
                     Positioned(
                       right: 0,
                       top: 8,
@@ -60,10 +60,10 @@ class SyncIndicatorWidget extends ConsumerWidget {
           );
         }
 
-        return Tooltip(
+        return const Tooltip(
           message: AppStrings.onlineAndSynced,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
             child: Icon(Icons.cloud_done, color: AppColors.syncOk),
           ),
         );

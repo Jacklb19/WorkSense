@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:worksense_app/core/routing/app_router.dart';
-import 'package:worksense_app/shared/providers/current_user_provider.dart';
-import 'package:worksense_app/core/constants/app_routes.dart';
 
 class MockGoRouter extends Mock implements GoRouter {}
 

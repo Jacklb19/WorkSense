@@ -103,8 +103,8 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
           AnimatedContainer(
             duration: const Duration(milliseconds: 400),
             color: isWelcome
-                ? Colors.black.withOpacity(0.75)
-                : Colors.black.withOpacity(0.4),
+                ? Colors.black.withValues(alpha: 0.75)
+                : Colors.black.withValues(alpha: 0.4),
           ),
 
           // Scanner HUD (visible when scanning or cooldown)
@@ -140,13 +140,15 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                 height: 350,
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: borderColor.withOpacity(_pulseAnimation.value),
+                    color: borderColor.withValues(alpha: _pulseAnimation.value),
                     width: 4,
                   ),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: borderColor.withOpacity(0.2 * _pulseAnimation.value),
+                      color: borderColor.withValues(
+                        alpha: 0.2 * _pulseAnimation.value,
+                      ),
                       blurRadius: 20,
                       spreadRadius: 5,
                     ),
@@ -186,7 +188,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3), 
+                  color: Colors.black.withValues(alpha: 0.3),
                   blurRadius: 15,
                   offset: const Offset(0, 5),
                 )
@@ -260,7 +262,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.success.withOpacity(0.4),
+                          color: AppColors.success.withValues(alpha: 0.4),
                           blurRadius: 30,
                           spreadRadius: 5,
                         ),
@@ -306,10 +308,10 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                     decoration: BoxDecoration(
-                      color: AppColors.cardDark.withOpacity(0.8),
+                      color: AppColors.cardDark.withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: AppColors.success.withOpacity(0.3),
+                        color: AppColors.success.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -319,7 +321,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppColors.success.withOpacity(0.15),
+                            color: AppColors.success.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(
@@ -362,7 +364,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.15),
+                      color: AppColors.success.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(30),
                     ),
                     child: const Row(

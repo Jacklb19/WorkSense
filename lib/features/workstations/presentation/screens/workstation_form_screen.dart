@@ -188,8 +188,8 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
     return employeesAsync.when(
       data: (employees) {
         if (employees.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
               AppStrings.noEmployeesRegistered,
               style: TextStyle(
@@ -201,7 +201,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
         }
 
         return DropdownButtonFormField<String>(
-          value: _selectedEmployeeId,
+          initialValue: _selectedEmployeeId,
           decoration: const InputDecoration(
             labelText: 'Empleado propietario',
             border: OutlineInputBorder(),
@@ -317,7 +317,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<_RoiPreset>(
-                value: _selectedRoiPreset,
+                initialValue: _selectedRoiPreset,
                 decoration: const InputDecoration(
                   labelText: 'Preset de encuadre',
                   border: OutlineInputBorder(),
@@ -340,10 +340,10 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.06),
+                  color: AppColors.primary.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppColors.primary.withOpacity(0.15),
+                    color: AppColors.primary.withValues(alpha: 0.15),
                   ),
                 ),
                 child: Text(

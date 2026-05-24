@@ -1,5 +1,5 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
@@ -26,9 +26,9 @@ class FaceEmbeddingService {
         options: options,
       );
       _isInitialized = true;
-      print('[FaceEmbeddingService] MobileFaceNet inicializado.');
+      debugPrint('[FaceEmbeddingService] MobileFaceNet inicializado.');
     } catch (e) {
-      print('[FaceEmbeddingService] Límite de carga: $e');
+      debugPrint('[FaceEmbeddingService] Límite de carga: $e');
       rethrow;
     }
   }
@@ -64,9 +64,9 @@ class FaceEmbeddingService {
 
   /// Extrae la matriz tridimensional normalizada usando (p - avg) / std
   List<List<List<List<double>>>> _toFloatMatrix(img.Image resizedImage) {
-    final int size = AiThresholds.faceInputSize;
-    final mean = AiThresholds.faceColorMean;
-    final std = AiThresholds.faceColorStd;
+    const int size = AiThresholds.faceInputSize;
+    const mean = AiThresholds.faceColorMean;
+    const std = AiThresholds.faceColorStd;
 
     final rows = <List<List<double>>>[];
     for (int y = 0; y < size; y++) {
@@ -108,7 +108,7 @@ class FaceEmbeddingService {
 
   /// Libera los recursos C/C++ del intérprete de TFLite
   void dispose() {
-    print('[FaceEmbeddingService] Liberando modelo MobileFaceNet.');
+    debugPrint('[FaceEmbeddingService] Liberando modelo MobileFaceNet.');
     _interpreter?.close();
     _interpreter = null;
     _isInitialized = false;

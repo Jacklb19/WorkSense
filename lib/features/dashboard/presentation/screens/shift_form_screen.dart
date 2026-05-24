@@ -45,29 +45,29 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
 
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
-    
-    // Validate end > start
-    final startMinutes = _startTime.hour * 60 + _startTime.minute;
-    final endMinutes = _endTime.hour * 60 + _endTime.minute;
 
-    if (endMinutes <= startMinutes) {
-      _showError('La hora de salida debe ser posterior a la de entrada');
+    final timeline = _buildShiftTimeline(
+      start: _startTime,
+      end: _endTime,
+      breakStart: _hasBreak ? _breakStartTime : null,
+      breakEnd: _hasBreak ? _breakEndTime : null,
+    );
+
+    if (timeline == null) {
+      _showError('La hora de salida no puede ser igual a la de entrada');
       return;
     }
 
-    // Validate break times if enabled
-    if (_hasBreak) {
-      final breakStart = _breakStartTime.hour * 60 + _breakStartTime.minute;
-      final breakEnd = _breakEndTime.hour * 60 + _breakEndTime.minute;
+    if (_hasBreak && timeline.breakStart == null) {
+      _showError('El fin de receso debe ser posterior al inicio');
+      return;
+    }
 
-      if (breakEnd <= breakStart) {
-        _showError('El fin de receso debe ser posterior al inicio');
-        return;
-      }
-      if (breakStart < startMinutes || breakEnd > endMinutes) {
-        _showError('El receso debe estar dentro del horario laboral');
-        return;
-      }
+    if (_hasBreak &&
+        (timeline.breakStart! < timeline.start ||
+            timeline.breakEnd! > timeline.end)) {
+      _showError('El receso debe estar dentro del horario laboral');
+      return;
     }
 
     final id = const Uuid().v4();
@@ -90,6 +90,81 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
       SnackBar(content: Text(message)),
     );
   }
+
+  _ShiftTimeline? _buildShiftTimeline({
+    required TimeOfDay start,
+    required TimeOfDay end,
+    TimeOfDay? breakStart,
+    TimeOfDay? breakEnd,
+  }) {
+    final startMinutes = _toMinutes(start);
+    var endMinutes = _toMinutes(end);
+
+    if (endMinutes == startMinutes) {
+      return null;
+    }
+
+    if (endMinutes < startMinutes) {
+      endMinutes += _minutesPerDay;
+    }
+
+    int? normalizedBreakStart;
+    int? normalizedBreakEnd;
+    if (breakStart != null && breakEnd != null) {
+      normalizedBreakStart = _normalizeIntoShiftWindow(
+        time: breakStart,
+        shiftStartMinutes: startMinutes,
+        shiftEndMinutes: endMinutes,
+      );
+      normalizedBreakEnd = _normalizeIntoShiftWindow(
+        time: breakEnd,
+        shiftStartMinutes: startMinutes,
+        shiftEndMinutes: endMinutes,
+      );
+
+      if (normalizedBreakStart == null ||
+          normalizedBreakEnd == null ||
+          normalizedBreakEnd <= normalizedBreakStart) {
+        return _ShiftTimeline(
+          start: startMinutes,
+          end: endMinutes,
+          breakStart: null,
+          breakEnd: null,
+        );
+      }
+    }
+
+    return _ShiftTimeline(
+      start: startMinutes,
+      end: endMinutes,
+      breakStart: normalizedBreakStart,
+      breakEnd: normalizedBreakEnd,
+    );
+  }
+
+  int? _normalizeIntoShiftWindow({
+    required TimeOfDay time,
+    required int shiftStartMinutes,
+    required int shiftEndMinutes,
+  }) {
+    final rawMinutes = _toMinutes(time);
+    final directCandidate = rawMinutes;
+    final overnightCandidate = rawMinutes + _minutesPerDay;
+
+    if (directCandidate >= shiftStartMinutes &&
+        directCandidate <= shiftEndMinutes) {
+      return directCandidate;
+    }
+    if (overnightCandidate >= shiftStartMinutes &&
+        overnightCandidate <= shiftEndMinutes) {
+      return overnightCandidate;
+    }
+    return null;
+  }
+
+  int _toMinutes(TimeOfDay time) => time.hour * 60 + time.minute;
+
+  static const int _minutesPerDay = 24 * 60;
 
   @override
   Widget build(BuildContext context) {
@@ -185,7 +260,7 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
                 subtitle: const Text('Activar si aplica hora de almuerzo'),
                 value: _hasBreak,
                 onChanged: (val) => setState(() => _hasBreak = val),
-                activeColor: AppColors.primary,
+                activeThumbColor: AppColors.primary,
               ),
 
               if (_hasBreak) ...[
@@ -245,6 +320,20 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
   }
 }
 
+class _ShiftTimeline {
+  final int start;
+  final int end;
+  final int? breakStart;
+  final int? breakEnd;
+
+  const _ShiftTimeline({
+    required this.start,
+    required this.end,
+    required this.breakStart,
+    required this.breakEnd,
+  });
+}
+
 // ── Reusable Time Selection Card ─────────────────────────────────────────────
 
 class _TimeCard extends StatelessWidget {
@@ -277,7 +366,7 @@ class _TimeCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Text(title, style: TextStyle(color: AppColors.grey500, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+            Text(title, style: const TextStyle(color: AppColors.grey500, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,

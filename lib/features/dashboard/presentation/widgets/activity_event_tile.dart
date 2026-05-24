@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/activity_event.dart';
-import 'package:worksense_app/features/camera_monitor/presentation/widgets/state_badge_widget.dart';
 
 class ActivityEventTile extends StatelessWidget {
   final ActivityEvent event;
@@ -16,8 +15,6 @@ class ActivityEventTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Container(
@@ -25,14 +22,14 @@ class ActivityEventTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.cardDark,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.02)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.02)),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: event.state.color.withOpacity(0.1),
+                color: event.state.color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Text(event.state.emoji, style: const TextStyle(fontSize: 16)),
@@ -58,7 +55,7 @@ class ActivityEventTile extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.1),
+                            color: Colors.orange.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text('OFFLINE', style: TextStyle(color: Colors.orange, fontSize: 8, fontWeight: FontWeight.bold)),

@@ -87,9 +87,9 @@ class WorkstationsListScreen extends ConsumerWidget {
     );
 
     if (confirmed == true) {
-      if (!context.mounted) return;
       try {
         await ref.read(deleteWorkstationUseCaseProvider)(id);
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text(AppStrings.workstationDeleted)),
         );

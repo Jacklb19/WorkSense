@@ -31,7 +31,6 @@ Future<void> main() async {
   );
 
   // Restaurar sesión al arrancar
-  final session = Supabase.instance.client.auth.currentSession;
 
   runApp(
     const ProviderScope(

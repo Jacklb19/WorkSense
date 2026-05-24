@@ -151,7 +151,9 @@ abstract final class AppTheme {
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(20),
       side: BorderSide(
-        color: dark ? AppColors.dividerDark.withOpacity(0.5) : AppColors.dividerLight.withOpacity(0.5),
+        color: dark
+            ? AppColors.dividerDark.withValues(alpha: 0.5)
+            : AppColors.dividerLight.withValues(alpha: 0.5),
       ),
     ),
     color: dark ? AppColors.cardDark : AppColors.cardLight,
@@ -177,7 +179,7 @@ abstract final class AppTheme {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       textStyle: AppTextStyles.labelLarge.copyWith(fontSize: 16, fontWeight: FontWeight.w700),
       elevation: 2,
-      shadowColor: AppColors.primary.withOpacity(0.3),
+      shadowColor: AppColors.primary.withValues(alpha: 0.3),
     ),
   );
 
@@ -236,8 +238,8 @@ abstract final class AppTheme {
   );
 
   static ChipThemeData _chipTheme({required bool dark}) => ChipThemeData(
-    backgroundColor: dark ? Color(0xFF2A313C) : AppColors.grey100,
-    selectedColor: AppColors.primary.withOpacity(0.15),
+    backgroundColor: dark ? const Color(0xFF2A313C) : AppColors.grey100,
+    selectedColor: AppColors.primary.withValues(alpha: 0.15),
     labelStyle: AppTextStyles.labelMedium.copyWith(
       color: dark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
       fontWeight: FontWeight.w600,
@@ -249,7 +251,7 @@ abstract final class AppTheme {
 
   static NavigationBarThemeData _navigationBarTheme({required bool dark}) => NavigationBarThemeData(
     backgroundColor: dark ? AppColors.surfaceDark : AppColors.surfaceLight,
-    indicatorColor: AppColors.primary.withOpacity(0.1),
+    indicatorColor: AppColors.primary.withValues(alpha: 0.1),
     labelTextStyle: WidgetStateProperty.resolveWith((states) {
       final style = AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w600);
       if (states.contains(WidgetState.selected)) {
@@ -259,7 +261,7 @@ abstract final class AppTheme {
     }),
     iconTheme: WidgetStateProperty.resolveWith((states) {
       if (states.contains(WidgetState.selected)) {
-        return IconThemeData(color: AppColors.primary, size: 26);
+        return const IconThemeData(color: AppColors.primary, size: 26);
       }
       return IconThemeData(color: dark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight, size: 24);
     }),
@@ -269,7 +271,9 @@ abstract final class AppTheme {
 
   static DialogThemeData _dialogTheme({required bool dark}) => DialogThemeData(
     backgroundColor: dark ? AppColors.cardDark : AppColors.cardLight,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(24)),
+    ),
     elevation: 8,
     titleTextStyle: AppTextStyles.headlineSmall.copyWith(
       color: dark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
@@ -293,4 +297,4 @@ abstract final class AppTheme {
   );
 
   AppTheme._();
-}
+}

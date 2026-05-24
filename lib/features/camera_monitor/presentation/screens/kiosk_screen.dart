@@ -196,7 +196,9 @@ class _IdentifyingHUD extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.overlayBadgeBg,
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.3),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -225,7 +227,7 @@ class _KioskTopHUD extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withOpacity(0.8), Colors.transparent]),
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent]),
       ),
       child: SafeArea(
         bottom: false,
@@ -238,7 +240,7 @@ class _KioskTopHUD extends StatelessWidget {
             Flexible(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.2), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.primary.withOpacity(0.5))),
+                decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.primary.withValues(alpha: 0.5))),
                 child: Text(
                   workstationId.length > 8 ? '${workstationId.substring(0, 8)}…' : workstationId,
                   overflow: TextOverflow.ellipsis,
@@ -265,7 +267,7 @@ class _KioskBottomHUD extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [Colors.black.withOpacity(0.8), Colors.transparent]),
+        gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent]),
       ),
       child: SafeArea(
         top: false,
@@ -310,7 +312,7 @@ class _SessionActionOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black.withOpacity(0.9),
+      color: Colors.black.withValues(alpha: 0.9),
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(40.0),
@@ -319,7 +321,7 @@ class _SessionActionOverlay extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle, border: Border.all(color: color.withOpacity(0.3), width: 2)),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle, border: Border.all(color: color.withValues(alpha: 0.3), width: 2)),
                 child: Icon(icon, size: 64, color: color),
               ),
               const SizedBox(height: 32),

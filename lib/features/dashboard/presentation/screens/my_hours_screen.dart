@@ -154,7 +154,7 @@ class MyHoursScreen extends ConsumerWidget {
           decoration: BoxDecoration(
             color: AppColors.cardDark,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withOpacity(0.06)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
           ),
           child: Column(
             children: [
@@ -190,7 +190,7 @@ class MyHoursScreen extends ConsumerWidget {
                 child: LinearProgressIndicator(
                   value: pct,
                   minHeight: 8,
-                  backgroundColor: Colors.white.withOpacity(0.05),
+                  backgroundColor: Colors.white.withValues(alpha: 0.05),
                   color: state.color,
                 ),
               ),
@@ -220,8 +220,8 @@ class _SummaryHeroCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.primaryDark.withOpacity(0.95),
-            AppColors.primary.withOpacity(0.88),
+            AppColors.primaryDark.withValues(alpha: 0.95),
+            AppColors.primary.withValues(alpha: 0.88),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -229,7 +229,7 @@ class _SummaryHeroCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.20),
+            color: AppColors.primary.withValues(alpha: 0.20),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
@@ -269,7 +269,7 @@ class _SummaryHeroCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: ratio,
               minHeight: 10,
-              backgroundColor: Colors.white.withOpacity(0.18),
+              backgroundColor: Colors.white.withValues(alpha: 0.18),
               color: Colors.white,
             ),
           ),
@@ -305,7 +305,7 @@ class _HeroChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.14),
+        color: Colors.white.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -366,7 +366,7 @@ class _MetricsGrid extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.cardDark,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.06)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -411,15 +411,15 @@ class _AnomaliesCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.warning.withOpacity(0.10),
+        color: AppColors.warning.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.warning.withOpacity(0.18)),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.18)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: const [
+          const Row(
+            children: [
               Icon(Icons.warning_amber_rounded, color: AppColors.warning),
               SizedBox(width: 10),
               Text(
@@ -460,7 +460,7 @@ class _ActivityOverviewCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -504,7 +504,7 @@ class _HistoryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         children: [
@@ -512,7 +512,7 @@ class _HistoryCard extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.12),
+              color: AppColors.primary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(Icons.calendar_today_rounded, color: AppColors.primaryLight, size: 18),
@@ -620,7 +620,7 @@ class _EmptyHoursView extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: AppColors.cardDark,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: const Icon(
                 Icons.access_time_rounded,

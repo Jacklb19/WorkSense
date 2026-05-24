@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/features/auth/presentation/screens/login_screen.dart';
-import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/kiosk_screen.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/entrance_kiosk_screen.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/kiosk_waiting_screen.dart';
@@ -77,6 +76,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             final allowedEmployeeRoutes = [
               AppRoutes.dashboard,
               AppRoutes.history,
+              AppRoutes.myActivity,
+              AppRoutes.myHours,
               AppRoutes.settings,
             ];
             if (!allowedEmployeeRoutes.contains(loc) &&
@@ -295,6 +296,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.homeEmployee,
         name: 'home-employee',
+        redirect: (context, state) => AppRoutes.dashboard,
         pageBuilder: (context, state) => const NoTransitionPage(
           child: HomeEmployeeScreen(),
         ),

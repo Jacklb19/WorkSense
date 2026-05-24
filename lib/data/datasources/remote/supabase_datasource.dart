@@ -178,13 +178,33 @@ class SupabaseDataSource {
     }
   }
 
+  String? _getMetadataKey(Map<String, dynamic>? metadata, String key) {
+    if (metadata == null) return null;
+    final lowerKey = key.toLowerCase();
+    for (final k in metadata.keys) {
+      if (k.toLowerCase() == lowerKey) {
+        return metadata[k]?.toString();
+      }
+    }
+    if (lowerKey == 'company_id') {
+      for (final k in metadata.keys) {
+        final lk = k.toLowerCase();
+        if (lk == 'companyid' || lk == 'company_id') {
+          return metadata[k]?.toString();
+        }
+      }
+    }
+    return null;
+  }
+
   String? get currentCompanyId {
     final user = _client.auth.currentUser;
     if (user == null) return null;
-    final meta = user.appMetadata ?? {};
-    final userMeta = user.userMetadata ?? {};
+    final meta = user.appMetadata;
+    final userMeta = user.userMetadata;
     final companyId =
-        meta['company_id']?.toString() ?? userMeta['company_id']?.toString();
+        _getMetadataKey(meta, 'company_id') ??
+        _getMetadataKey(userMeta, 'company_id');
     if (companyId == null || companyId.isEmpty || companyId == 'default') {
       return null;
     }
@@ -194,9 +214,12 @@ class SupabaseDataSource {
   AppRole get currentRole {
     final user = _client.auth.currentUser;
     if (user == null) return AppRole.employee;
-    final meta = user.appMetadata ?? {};
-    final userMeta = user.userMetadata ?? {};
-    return AppRoleX.fromRaw(meta['role'] ?? userMeta['role']);
+    final meta = user.appMetadata;
+    final userMeta = user.userMetadata;
+    return AppRoleX.fromRaw(
+      _getMetadataKey(meta, 'role') ??
+      _getMetadataKey(userMeta, 'role'),
+    );
   }
 
   Future<List<Map<String, dynamic>>> fetchAllEmployees(String? companyId) async {

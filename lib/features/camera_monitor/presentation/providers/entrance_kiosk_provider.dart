@@ -149,18 +149,34 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
   CameraController? get cameraController => _cameraController;
 
-  String? get _currentCompanyId {
-    final user = Supabase.instance.client.auth.currentUser;
-    final appMetadataCompanyId = user?.appMetadata['company_id']?.toString();
-    if (appMetadataCompanyId != null && appMetadataCompanyId.isNotEmpty) {
-      return appMetadataCompanyId;
+  String? _getMetadataKey(Map<String, dynamic>? metadata, String key) {
+    if (metadata == null) return null;
+    final lowerKey = key.toLowerCase();
+    for (final k in metadata.keys) {
+      if (k.toLowerCase() == lowerKey) {
+        return metadata[k]?.toString();
+      }
     }
-    final userMetadataCompanyId =
-        user?.userMetadata?['company_id']?.toString();
-    if (userMetadataCompanyId != null && userMetadataCompanyId.isNotEmpty) {
-      return userMetadataCompanyId;
+    if (lowerKey == 'company_id') {
+      for (final k in metadata.keys) {
+        final lk = k.toLowerCase();
+        if (lk == 'companyid' || lk == 'company_id') {
+          return metadata[k]?.toString();
+        }
+      }
     }
     return null;
+  }
+
+  String? get _currentCompanyId {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return null;
+    final companyId = _getMetadataKey(user.appMetadata, 'company_id') ??
+        _getMetadataKey(user.userMetadata, 'company_id');
+    if (companyId == null || companyId.isEmpty || companyId == 'default') {
+      return null;
+    }
+    return companyId;
   }
 
   Future<void> initialize(List<CameraDescription> cameras) async {
@@ -546,7 +562,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
       debugPrint(
         '[ENTRANCE] Frame $_evidenceFrameCount/${AiThresholds.entranceEvidenceWindowSize} â€” '
         'best: ${frameBestSim.toStringAsFixed(3)} (${frameBestId ?? "?"}) | '
-        'confirmations: ${_evidenceConfirmations}',
+        'confirmations: $_evidenceConfirmations',
       );
 
       // Check if any employee reached required confirmations

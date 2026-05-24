@@ -33,16 +33,16 @@ class AdminDashboardScreen extends ConsumerWidget {
         },
         child: CustomScrollView(
           slivers: [
-            SliverAppBar(
+            const SliverAppBar(
               floating: true,
-              title: const Text(
+              title: Text(
                 'Comando central',
                 style: TextStyle(
                   fontWeight: FontWeight.w900,
                   letterSpacing: 0.5,
                 ),
               ),
-              actions: const [
+              actions: [
                 SyncIndicatorWidget(),
                 SizedBox(width: 16),
               ],

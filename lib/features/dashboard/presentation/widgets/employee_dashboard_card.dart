@@ -35,7 +35,7 @@ class EmployeeDashboardCard extends ConsumerWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: AppColors.primary.withOpacity(0.3),
+          color: AppColors.primary.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -54,7 +54,7 @@ class EmployeeDashboardCard extends ConsumerWidget {
                 children: [
                   CircleAvatar(
                     radius: 24,
-                    backgroundColor: AppColors.primary.withOpacity(0.15),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                     child: Text(
                       employee.displayName.isNotEmpty
                           ? employee.displayName[0].toUpperCase()
@@ -201,7 +201,7 @@ class EmployeeDashboardCard extends ConsumerWidget {
                   );
                 },
                 loading: () => const Center(child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))),
-                error: (e, _) => Text('Error al cargar', style: const TextStyle(color: Colors.red, fontSize: 12)),
+                error: (e, _) => const Text('Error al cargar', style: TextStyle(color: Colors.red, fontSize: 12)),
               ),
             ],
           ),

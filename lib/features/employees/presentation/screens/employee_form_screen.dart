@@ -231,7 +231,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                     ],
                     const SizedBox(height: 16),
                     DropdownButtonFormField<AppRole>(
-                      value: _selectedRole,
+                      initialValue: _selectedRole,
                       decoration: const InputDecoration(
                         labelText: 'Rol',
                         prefixIcon: Icon(Icons.security_outlined),
@@ -259,7 +259,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                     shiftsAsync.when(
                       data: (shifts) {
                         return DropdownButtonFormField<String>(
-                          value: _selectedShiftId,
+                          initialValue: _selectedShiftId,
                           decoration: const InputDecoration(
                             labelText: 'Turno / Horario',
                             prefixIcon: Icon(Icons.schedule),

@@ -234,8 +234,6 @@ class KioskNotifier extends StateNotifier<KioskState> {
   DateTime _lastMovementTime = DateTime.now();
   DateTime _lastSaveTime = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _lastReidTime = DateTime.fromMillisecondsSinceEpoch(0);
-  DateTime _lastBlinkTime = DateTime.now();
-  static const Duration _maxTimeWithoutBlink = Duration(seconds: 40);
   int _consecutiveAbsentFrames = 0;
   int _consecutiveFaceMissFrames = 0;
   int _stableEntryFrames = 0;
@@ -557,7 +555,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
         }
       }
       
-      if (allFaces.isNotEmpty && (_finder!.profile.employeeId != null) && shouldGenerateEmbeddings) {
+      if (allFaces.isNotEmpty && shouldGenerateEmbeddings) {
         if (hasIntruder) {
           debugPrint('[MONITOR] Intruder detection! Force validating all ${allFaces.length} faces.');
         }
@@ -818,7 +816,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
     _requiresFreshIdentityCheck = false;
 
     await _saveEvent(
-      AiResult(state: ActivityState.trabajando, confidence: 1.0),
+      const AiResult(state: ActivityState.trabajando, confidence: 1.0),
       now,
       identityConfidence: state.identityConfidence,
       identificationMethod: 'FACE_EMBEDDING',
@@ -840,7 +838,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
     
     // 1. Guardar evento de salida (AUSENTE para indicar fin de jornada)
     await _saveEvent(
-      AiResult(state: ActivityState.ausente, confidence: 1.0),
+      const AiResult(state: ActivityState.ausente, confidence: 1.0),
       now,
       identityConfidence: state.identityConfidence,
       identificationMethod: 'FACE_EMBEDDING',
