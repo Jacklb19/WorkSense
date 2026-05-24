@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_gradients.dart';
-import '../../../core/theme/app_animations.dart';
 import '../../../core/constants/app_dimensions.dart';
 
-class AppGradientButton extends StatefulWidget {
+class AppGradientButton extends StatelessWidget {
   const AppGradientButton({
     super.key,
     required this.label,
@@ -19,11 +17,6 @@ class AppGradientButton extends StatefulWidget {
   final IconData? icon;
   final bool isLoading;
 
-  @override
-  State<AppGradientButton> createState() => _AppGradientButtonState();
-}
-
-class _AppGradientButtonState extends State<AppGradientButton> {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
@@ -42,14 +35,15 @@ class _AppGradientButtonState extends State<AppGradientButton> {
         color: AppColors.transparent,
         borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
         child: InkWell(
-          onTap: widget.isLoading ? null : widget.onPressed,
+          onTap: isLoading ? null : onPressed,
           borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
           child: SizedBox(
             height: AppDimensions.buttonMinHeight,
             child: Center(
-              child: widget.isLoading
+              child: isLoading
                   ? const SizedBox(
-                      width: AppDimensions.progressIndicatorSize, height: AppDimensions.progressIndicatorSize,
+                      width: AppDimensions.progressIndicatorSize,
+                      height: AppDimensions.progressIndicatorSize,
                       child: CircularProgressIndicator(
                         strokeWidth: AppDimensions.progressStrokeWidth,
                         color: AppColors.white,
@@ -58,14 +52,16 @@ class _AppGradientButtonState extends State<AppGradientButton> {
                   : Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (widget.icon != null) ...[
-                          Icon(widget.icon, size: AppDimensions.iconMd, color: AppColors.white),
+                        if (icon != null) ...[
+                          Icon(icon, size: AppDimensions.iconMd, color: AppColors.white),
                           const SizedBox(width: AppDimensions.spacingMd),
                         ],
                         Text(
-                          widget.label,
+                          label,
                           style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.white,
+                            fontSize: AppDimensions.fontTitle,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.white,
                           ),
                         ),
                       ],
@@ -74,8 +70,6 @@ class _AppGradientButtonState extends State<AppGradientButton> {
           ),
         ),
       ),
-    )
-    .animate()
-    .fadeIn(duration: AppAnimations.fast);
+    );
   }
 }

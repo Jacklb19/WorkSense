@@ -274,6 +274,7 @@ abstract final class AppStrings {
   // ─────────────────────────────────────────────────────────
   static const String offlineMode = 'Modo Offline';
   static const String onlineAndSynced = 'Online y Sincronizado';
+  static const String pendingSync = 'pendientes de sincronización';
 
   // ─────────────────────────────────────────────────────────
   // ALERTS

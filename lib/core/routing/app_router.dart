@@ -19,7 +19,6 @@ import 'package:worksense_app/features/settings/presentation/screens/settings_sc
 import 'package:worksense_app/features/workstations/presentation/screens/workstation_form_screen.dart';
 import 'package:worksense_app/features/workstations/presentation/screens/workstations_list_screen.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
-import 'package:worksense_app/features/dashboard/presentation/screens/home_employee_screen.dart';
 import 'package:worksense_app/core/constants/constants.dart';
 import 'package:worksense_app/core/navigation/scaffold_with_bottom_nav.dart';
 import 'package:worksense_app/core/routing/route_error_screen.dart';
@@ -297,9 +296,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.homeEmployee,
         name: 'home-employee',
         redirect: (context, state) => AppRoutes.dashboard,
-        pageBuilder: (context, state) => const NoTransitionPage(
-          child: HomeEmployeeScreen(),
-        ),
       ),
       GoRoute(
         path: AppRoutes.myActivity,

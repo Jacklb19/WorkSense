@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 
 class AppErrorWidget extends StatelessWidget {
   final String message;
@@ -26,7 +27,7 @@ class AppErrorWidget extends StatelessWidget {
             Icon(icon, color: AppColors.error, size: AppDimensions.iconEmptyState),
             const SizedBox(height: AppDimensions.spacingXxl),
             Text(
-              'Algo salió mal',
+              AppStrings.somethingWentWrong,
               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: AppDimensions.spacingMd),
@@ -42,7 +43,7 @@ class AppErrorWidget extends StatelessWidget {
               FilledButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Reintentar'),
+                label: const Text(AppStrings.retryButton),
               ),
             ],
           ],
@@ -75,11 +76,11 @@ class ErrorBannerWidget extends StatelessWidget {
           Expanded(child: Text(message, style: const TextStyle(color: AppColors.error, fontSize: 13))),
           if (onDismiss != null)
             IconButton(
-              icon: const Icon(Icons.close, size: AppDimensions.iconXs),
+              icon: const Icon(Icons.close, size: AppDimensions.iconMd),
               color: AppColors.error,
               onPressed: onDismiss,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+              padding: const EdgeInsets.all(AppDimensions.spacingXs),
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             ),
         ],
       ),
