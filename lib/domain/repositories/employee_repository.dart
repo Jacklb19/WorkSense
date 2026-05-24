@@ -20,7 +20,7 @@ abstract class EmployeeRepository {
   Future<void> enrollEmployee({
     required String employeeId,
     required String workstationId,
-    required List<double> faceEmbedding,
+    required List<List<double>>? faceEmbeddings,
     required BodySignature bodySignature,
   });
 }

@@ -99,6 +99,7 @@ class ActivityRepositoryImpl implements ActivityRepository {
       id: row.id,
       employeeId: row.employeeId,
       workstationId: row.workstationId,
+      companyId: row.companyId,
       state: ActivityState.values.firstWhere(
         (e) => e.name == row.state,
         orElse: () => ActivityState.ausente,
@@ -116,6 +117,7 @@ class ActivityRepositoryImpl implements ActivityRepository {
       id: event.id,
       employeeId: Value(event.employeeId),
       workstationId: event.workstationId,
+      companyId: Value(event.companyId),
       state: event.state.name,
       confidence: event.confidence,
       timestamp: Value(event.timestamp),

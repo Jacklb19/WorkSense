@@ -87,8 +87,9 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
   bool _isAnalyzing = false;
   bool _disposed = false;
+  bool _hasBlinked = false;
   DateTime _lastAnalysisTime = DateTime.fromMillisecondsSinceEpoch(0);
-  static const Duration _analysisInterval = Duration(milliseconds: 1000);
+  static const Duration _analysisInterval = Duration(milliseconds: 300);
   
   static const Map<DeviceOrientation, int> _orientationMap = {
     DeviceOrientation.portraitUp: 0,
@@ -103,6 +104,8 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   final Map<String, String> _employeeNames = {};
   // Cached workstation names: employeeId -> workstation name
   final Map<String, String> _workstationNames = {};
+  // Cached workstation IDs: employeeId -> workstation UUID
+  final Map<String, String> _workstationIds = {};
   
   // Timers for phase transitions
   Timer? _phaseTimer;
@@ -113,6 +116,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
         performanceMode: FaceDetectorMode.fast,
         enableTracking: false,
         enableLandmarks: true,
+        enableClassification: true,
       ),
     );
     _faceAnalyzer = FaceAnalyzer();
@@ -142,7 +146,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
     _cameraController = CameraController(
       camera,
-      ResolutionPreset.low, // optimización
+      ResolutionPreset.medium, // Aumentado de low a medium para mejor precisión facial
       enableAudio: false,
       imageFormatGroup: ImageFormatGroup.nv21,
     );
@@ -165,6 +169,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
     _employeeRegistry.clear();
     _employeeNames.clear();
     _workstationNames.clear();
+    _workstationIds.clear();
     int count = 0;
 
     // 1. Load employee names from local DB
@@ -192,7 +197,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
             companyId: drift.Value(w['company_id']),
             deviceId: drift.Value(w['device_id']),
             assignedEmployeeId: drift.Value(w['assigned_employee_id']),
-            faceEmbedding: drift.Value(w['face_embedding']?.toString()),
+            faceEmbeddings: drift.Value(w['face_embedding']?.toString()),
             bodySignature: drift.Value(w['body_signature']?.toString()),
             status: drift.Value(w['status'] ?? 'IDLE'),
           ));
@@ -206,6 +211,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
               if (embedding.isNotEmpty) {
                 _employeeRegistry[w['assigned_employee_id']] = embedding;
                 _workstationNames[w['assigned_employee_id']] = w['name'] ?? 'Estación';
+                _workstationIds[w['assigned_employee_id']] = w['id'];
                 count++;
               }
             } catch (e) {
@@ -256,13 +262,14 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
     int count = 0;
     
     for (var w in workstations) {
-      if (w.assignedEmployeeId != null && w.faceEmbedding != null) {
+      if (w.assignedEmployeeId != null && w.faceEmbeddings != null) {
         try {
-          List<dynamic> jsonList = jsonDecode(w.faceEmbedding!);
+          List<dynamic> jsonList = jsonDecode(w.faceEmbeddings!);
           List<double> embedding = jsonList.map((e) => (e as num).toDouble()).toList();
           if (embedding.isNotEmpty) {
              _employeeRegistry[w.assignedEmployeeId!] = embedding;
              _workstationNames[w.assignedEmployeeId!] = w.name;
+             _workstationIds[w.assignedEmployeeId!] = w.id;
              count++;
           }
         } catch (e) {
@@ -295,7 +302,6 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   }
 
   Future<void> _processFrame(CameraImage image) async {
-    // Double-check we're still in scanning phase
     if (state.phase != KioskPhase.scanning) return;
     
     try {
@@ -304,18 +310,47 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
       final faces = await _faceDetector.processImage(inputImage);
       if (faces.isEmpty || _disposed) {
-        // Only update message if we were previously detecting
-        if (state.statusMessage.startsWith('Detectando')) {
+        if (state.statusMessage != 'Recepción Activa') {
            state = state.copyWith(statusMessage: 'Recepción Activa');
+           _hasBlinked = false; // Reset blink
         }
         return;
       }
 
-      state = state.copyWith(statusMessage: 'Detectando rostro...');
-
-      // Solo evaluamos la cara más grande/cercana
       final largestFace = faces.reduce((a, b) => 
         (a.boundingBox.width * a.boundingBox.height) > (b.boundingBox.width * b.boundingBox.height) ? a : b);
+
+      // --- CENTERING & LIVENESS RULES ---
+      // Check distance (size ratio)
+      final widthRatio = largestFace.boundingBox.width / image.width;
+      if (widthRatio < 0.25) {
+        state = state.copyWith(statusMessage: 'Acércate a la cámara');
+        _hasBlinked = false;
+        return;
+      }
+      
+      // Check angles
+      if ((largestFace.headEulerAngleY?.abs() ?? 0) > 12 || (largestFace.headEulerAngleX?.abs() ?? 0) > 12) {
+        state = state.copyWith(statusMessage: 'Mira directamente de frente');
+        _hasBlinked = false;
+        return;
+      }
+
+      // Blink Challenge
+      if (!_hasBlinked) {
+        final leftEyeOpen = largestFace.leftEyeOpenProbability ?? 1.0;
+        final rightEyeOpen = largestFace.rightEyeOpenProbability ?? 1.0;
+        
+        debugPrint('[ENTRANCE] Eyes: L=${leftEyeOpen.toStringAsFixed(2)} R=${rightEyeOpen.toStringAsFixed(2)}');
+        
+        if (leftEyeOpen < 0.45 && rightEyeOpen < 0.45) {
+          _hasBlinked = true;
+          state = state.copyWith(statusMessage: 'Verificado ✓ Identificando...');
+        } else {
+          state = state.copyWith(statusMessage: 'Parpadea para verificar');
+          return; // Wait for blink
+        }
+      }
 
       final cropped = await _faceAnalyzer.cropFaceFromCameraImageAsync(image, largestFace);
       if (cropped == null) return;
@@ -327,7 +362,6 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
         return;
       }
 
-      // Compare with registry
       String? bestMatchId;
       double maxSim = 0.0;
 
@@ -339,13 +373,17 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
         }
       }
 
-      if (maxSim >= AiThresholds.minEmbeddingMatchScore && bestMatchId != null) {
+      // Strict Threshold for Entrance (0.80 recommended for fluent experience)
+      final threshold = 0.80; 
+
+      if (maxSim >= threshold && bestMatchId != null) {
          await _triggerEntrance(bestMatchId);
       } else {
-         state = state.copyWith(statusMessage: 'Rostro desconocido (Sim: ${(maxSim*100).toStringAsFixed(1)}%)');
+         state = state.copyWith(statusMessage: 'Rostro desconocido (Sim: %)');
+         _hasBlinked = false; // Require new blink on fail
       }
     } catch (e) {
-      debugPrint('[ENTRANCE] Error: $e');
+      debugPrint('[ENTRANCE] Error: ');
     }
   }
 
@@ -372,7 +410,10 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
       // 1. Lógica de Asistencia (Clock IN / OUT)
       final openSession = await _attendanceRepo.getOpenSession(employeeId);
       final todaySessions = await _attendanceRepo.getTodaySessions(employeeId);
-      final workstation = await _db.getWorkstationById(state.matchedWorkstationName ?? ''); // Not ideal, but we just need CompanyId
+      
+      // Corregido: Buscar por el ID de la estación almacenado en cache, no por el nombre.
+      final wsId = _workstationIds[employeeId];
+      final workstation = wsId != null ? await _db.getWorkstationById(wsId) : null;
       final employee = await _db.getEmployeeRecordById(employeeId);
 
       if (openSession != null) {

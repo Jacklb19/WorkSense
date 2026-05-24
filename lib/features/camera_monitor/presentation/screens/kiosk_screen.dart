@@ -97,7 +97,7 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.background,
         body: Stack(
           fit: StackFit.expand,
           children: [
@@ -225,7 +225,7 @@ class _KioskTopHUD extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withOpacity(0.8), Colors.transparent]),
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [AppColors.background.withAlpha(204), Colors.transparent]),
       ),
       child: SafeArea(
         bottom: false,
@@ -238,7 +238,7 @@ class _KioskTopHUD extends StatelessWidget {
             Flexible(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.2), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.primary.withOpacity(0.5))),
+                decoration: BoxDecoration(color: AppColors.primary.withAlpha(51), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.primary.withOpacity(0.5))),
                 child: Text(
                   workstationId.length > 8 ? '${workstationId.substring(0, 8)}…' : workstationId,
                   overflow: TextOverflow.ellipsis,

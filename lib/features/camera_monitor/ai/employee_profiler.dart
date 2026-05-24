@@ -1,15 +1,17 @@
-/* 
+/*
  * ARCHITECTURAL DECISION NOTE:
  * See employee_finder.dart for the full reasoning of why this ML pipeline code
- * currently lives in `camera_monitor/ai/` instead of a standalone `ai_pipeline` 
- * module. Keep computer vision logic scoped here unless cross-feature reuse 
+ * currently lives in `camera_monitor/ai/` instead of a standalone `ai_pipeline`
+ * module. Keep computer vision logic scoped here unless cross-feature reuse
  * becomes absolutely necessary.
  */
 
 import 'dart:ui' show Size;
+
+import 'package:camera/camera.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
-import 'package:camera/camera.dart';
+import 'package:worksense_app/core/constants/ai_thresholds.dart';
 import 'package:worksense_app/features/camera_monitor/ai/body_signature.dart';
 import 'package:worksense_app/features/camera_monitor/ai/employee_profile.dart';
 import 'package:worksense_app/features/camera_monitor/ai/face_analyzer.dart';
@@ -25,7 +27,6 @@ enum SampleResult {
   invalidSignature,
 }
 
-/// Instrucción de escaneo para cada una de las 5 muestras.
 class ScanInstruction {
   final int index;
   final String text;
@@ -38,39 +39,61 @@ class ScanInstruction {
   });
 }
 
-/// Orquesta la captura de las 5 muestras para construir un EmployeeProfile.
+class CapturedBiometricSample {
+  final List<double> embedding;
+  final BodySignature? bodySignature;
+  final double qualityScore;
+
+  const CapturedBiometricSample({
+    required this.embedding,
+    required this.bodySignature,
+    required this.qualityScore,
+  });
+}
+
+class SampleAssessment {
+  final SampleResult result;
+  final CapturedBiometricSample? sample;
+  final String feedback;
+
+  const SampleAssessment({
+    required this.result,
+    required this.feedback,
+    this.sample,
+  });
+
+  bool get isSuccess => result == SampleResult.success && sample != null;
+}
+
 class EmployeeProfiler {
-  static const int samplesRequired = 5;
-  static const double minFaceConfidence =
-      0.40; // Más flexible para cámara frontal
-  static const double minPoseConfidence =
-      0.30; // Muy flexible para entornos de oficina
+  static const int samplesRequired = 15;
+  static const double minFaceConfidence = 0.40;
+  static const double minPoseConfidence = 0.30;
 
   static const List<ScanInstruction> instructions = [
     ScanInstruction(
       index: 0,
-      text: 'Mira directo a la cámara en tu posición normal de trabajo',
+      text: 'Mira directo a la camara en tu posicion normal de trabajo',
       emoji: '',
     ),
     ScanInstruction(
       index: 1,
-      text: 'Gira levemente la cabeza hacia tu izquierda (15-20 grados)',
+      text: 'Gira tu cabeza a la izquierda muy ligeramente',
       emoji: '',
     ),
     ScanInstruction(
       index: 2,
-      text: 'Gira levemente la cabeza hacia tu derecha (15-20 grados)',
+      text: 'Gira tu cabeza a la derecha muy ligeramente',
       emoji: '',
     ),
     ScanInstruction(
       index: 3,
-      text:
-          'Inclina la cabeza levemente hacia abajo (como mirando el escritorio)',
+      text: 'Inclina la cabeza ligeramente hacia abajo',
       emoji: '',
     ),
     ScanInstruction(
       index: 4,
-      text: 'Levanta levemente la cabeza (como mirando una pantalla alta)',
+      text: 'Levanta la cabeza ligeramente hacia arriba',
       emoji: '',
     ),
   ];
@@ -95,8 +118,7 @@ class EmployeeProfiler {
       options: FaceDetectorOptions(
         performanceMode: FaceDetectorMode.accurate,
         enableLandmarks: true,
-        enableClassification:
-            true, // Habilitar para probabilidad de ojos/sonrisa
+        enableClassification: true,
         enableTracking: false,
       ),
     );
@@ -105,10 +127,21 @@ class EmployeeProfiler {
   int get capturedSamples => _faceEmbeddings.length;
   bool get isComplete => _faceEmbeddings.length >= samplesRequired;
 
-  /// Captura y valida una muestra del frame actual.
-  /// Retorna [SampleResult.success] si fue aceptada.
   Future<SampleResult> addSample(
-      InputImage inputImage, CameraImage cameraImage) async {
+    InputImage inputImage,
+    CameraImage cameraImage,
+  ) async {
+    final assessment = await assessSample(inputImage, cameraImage);
+    if (assessment.isSuccess) {
+      _commitSample(assessment.sample!);
+    }
+    return assessment.result;
+  }
+
+  Future<SampleAssessment> assessSample(
+    InputImage inputImage,
+    CameraImage cameraImage,
+  ) async {
     final results = await Future.wait([
       _faceDetector.processImage(inputImage),
       _poseDetector.processImage(inputImage),
@@ -117,21 +150,34 @@ class EmployeeProfiler {
     final faces = results[0] as List<Face>;
     final poses = results[1] as List<Pose>;
 
-    // Debe haber exactamente 1 cara
-    if (faces.isEmpty) return SampleResult.noFace;
-    if (faces.length > 1) return SampleResult.multiplePeople;
+    if (faces.isEmpty) {
+      return const SampleAssessment(
+        result: SampleResult.noFace,
+        feedback: 'No se detecto rostro',
+      );
+    }
+    if (faces.length > 1) {
+      return const SampleAssessment(
+        result: SampleResult.multiplePeople,
+        feedback: 'Solo debe estar una persona',
+      );
+    }
 
     final face = faces.first;
     final frameSize = inputImage.metadata?.size;
-
-    // Confianza de cara enriquecida
     final faceConf = _estimateFaceConfidence(face, frameSize);
     print(
-        '[SCAN] FACE CONF: ${faceConf.toStringAsFixed(3)} (threshold: $minFaceConfidence)');
+      '[SCAN] FACE CONF: ${faceConf.toStringAsFixed(3)} '
+      '(threshold: $minFaceConfidence)',
+    );
 
-    if (faceConf < minFaceConfidence) return SampleResult.lowConfidence;
+    if (faceConf < minFaceConfidence) {
+      return const SampleAssessment(
+        result: SampleResult.lowConfidence,
+        feedback: 'Acercate y mira al frente',
+      );
+    }
 
-    // Pose: Intentar obtenerla, pero ser indulgente si la cara es muy buena (>0.6)
     Pose? pose;
     if (poses.isNotEmpty) {
       pose = poses.first;
@@ -141,107 +187,158 @@ class EmployeeProfiler {
     if (pose != null) {
       poseConf = _estimatePoseConfidence(pose);
       print(
-          '[SCAN] POSE CONF: ${poseConf.toStringAsFixed(3)} (threshold: $minPoseConfidence)');
+        '[SCAN] POSE CONF: ${poseConf.toStringAsFixed(3)} '
+        '(threshold: $minPoseConfidence)',
+      );
     }
 
-    // Si no hay pose o es baja, pero la cara es excelente, aceptamos
     final acceptWithoutPose = faceConf > 0.60;
-
     if (poseConf < minPoseConfidence && !acceptWithoutPose) {
-      return poses.isEmpty ? SampleResult.noPose : SampleResult.lowConfidence;
+      return SampleAssessment(
+        result: poses.isEmpty ? SampleResult.noPose : SampleResult.lowConfidence,
+        feedback: poses.isEmpty
+            ? 'Asegura que se vea cabeza y torso'
+            : 'Mantente centrado y quieto',
+      );
     }
 
-    // Validar posicion para la muestra actual
     final currentIdx = _faceEmbeddings.length;
     if (!_isPositionCorrectForSample(face, currentIdx)) {
-      return SampleResult.wrongPosition;
+      return SampleAssessment(
+        result: SampleResult.wrongPosition,
+        feedback: instructions[currentIdx].text,
+      );
     }
 
-    // Calcular BodySignature solo si hay pose válida
     BodySignature? sig;
     if (pose != null) {
       sig = BodySignature.fromPose(pose);
     }
 
-    // Calcular embedding facial real
     final croppedFace =
         await _faceAnalyzer.cropFaceFromCameraImageAsync(cameraImage, face);
-    if (croppedFace == null) return SampleResult.lowConfidence;
+    if (croppedFace == null) {
+      return const SampleAssessment(
+        result: SampleResult.lowConfidence,
+        feedback: 'No pude recortar bien el rostro',
+      );
+    }
+
+    final cropQuality = await _faceAnalyzer.assessCropQuality(croppedFace);
+    print(
+      '[SCAN] CROP QUALITY - '
+      'brightness: ${cropQuality.brightness.toStringAsFixed(3)}, '
+      'contrast: ${cropQuality.contrast.toStringAsFixed(3)}, '
+      'sharpness: ${cropQuality.sharpness.toStringAsFixed(3)}, '
+      'overall: ${cropQuality.overallScore.toStringAsFixed(3)}, '
+      'passes: ${cropQuality.passes}, '
+      'feedback: ${cropQuality.feedback}',
+    );
+
+    // Strict Quality Gate
+    if (cropQuality.overallScore < 0.70) {
+      return SampleAssessment(
+        result: SampleResult.lowConfidence,
+        feedback: 'Mejora la iluminación o tu posición',
+      );
+    }
+
+    final canSoftAcceptCrop = !cropQuality.passes &&
+        cropQuality.feedback == 'Quedate quieto un momento' &&
+        cropQuality.overallScore >= 0.70 &&
+        faceConf >= 0.68 &&
+        poseConf >= minPoseConfidence;
+
+    if (!cropQuality.passes && !canSoftAcceptCrop) {
+      return SampleAssessment(
+        result: SampleResult.lowConfidence,
+        feedback: cropQuality.feedback,
+      );
+    }
+
+    if (canSoftAcceptCrop) {
+      print('[SCAN] Soft-accepting sharpness gate for stable frontal sample.');
+    }
 
     List<double> embedding;
     try {
       embedding = await _embeddingService.generateEmbedding(croppedFace);
     } catch (e) {
       print('[SCAN] Error extrayendo embedding facial: $e');
-      return SampleResult.invalidSignature;
+      return const SampleAssessment(
+        result: SampleResult.invalidSignature,
+        feedback: 'No se pudo extraer la biometria',
+      );
     }
 
-    _faceEmbeddings.add(embedding);
-    // Si no hay firma válida, usamos una previa o zero para no romper el promedio simple,
-    // o mejor guardamos la que tengamos.
-    _bodySignatures.add(sig ??
-        (_bodySignatures.isNotEmpty
-            ? _bodySignatures.last
-            : BodySignature.zero));
+    final qualityScore = (faceConf * 0.45) +
+        (cropQuality.overallScore * 0.40) +
+        (poseConf.clamp(0.0, 1.0) * 0.15);
 
-    return SampleResult.success;
+    return SampleAssessment(
+      result: SampleResult.success,
+      feedback: 'Muestra valida',
+      sample: CapturedBiometricSample(
+        embedding: embedding,
+        bodySignature: sig != null && sig.isValid ? sig : null,
+        qualityScore: qualityScore,
+      ),
+    );
   }
 
-  /// Construye el EmployeeProfile promediando las 5 muestras.
-  /// Precondición: isComplete == true.
   EmployeeProfile buildProfile({
     required String employeeId,
     required String workstationId,
   }) {
-    assert(isComplete,
-        'Se necesitan $samplesRequired muestras antes de buildProfile()');
-
-    // Promediar embeddings faciales elemento a elemento
-    final length = _faceEmbeddings.first.length;
-    final avgEmbedding = List<double>.filled(length, 0.0);
-    for (final emb in _faceEmbeddings) {
-      for (int i = 0; i < length; i++) {
-        avgEmbedding[i] += emb[i] / samplesRequired;
-      }
-    }
-    final normalizedEmbedding = EmployeeProfile.normalizeVector(avgEmbedding);
-
-    // Promediar proporciones corporales
-    final avgBody = BodySignature(
-      shoulderToHipRatio: _bodySignatures
-              .map((s) => s.shoulderToHipRatio)
-              .reduce((a, b) => a + b) /
-          samplesRequired,
-      torsoToLegRatio: _bodySignatures
-              .map((s) => s.torsoToLegRatio)
-              .reduce((a, b) => a + b) /
-          samplesRequired,
-      armSpanRatio:
-          _bodySignatures.map((s) => s.armSpanRatio).reduce((a, b) => a + b) /
-              samplesRequired,
-      headToShoulderRatio: _bodySignatures
-              .map((s) => s.headToShoulderRatio)
-              .reduce((a, b) => a + b) /
-          samplesRequired,
-      neckLength:
-          _bodySignatures.map((s) => s.neckLength).reduce((a, b) => a + b) /
-              samplesRequired,
+    assert(
+      isComplete,
+      'Se necesitan $samplesRequired muestras antes de buildProfile()',
     );
+
+    final List<List<double>> storedEmbeddings = List.from(_faceEmbeddings);
+
+    final avgBody = _bodySignatures.isEmpty
+        ? BodySignature.zero
+        : BodySignature(
+            shoulderToHipRatio: _bodySignatures
+                    .map((s) => s.shoulderToHipRatio)
+                    .reduce((a, b) => a + b) /
+                _bodySignatures.length,
+            torsoToLegRatio: _bodySignatures
+                    .map((s) => s.torsoToLegRatio)
+                    .reduce((a, b) => a + b) /
+                _bodySignatures.length,
+            armSpanRatio: _bodySignatures
+                    .map((s) => s.armSpanRatio)
+                    .reduce((a, b) => a + b) /
+                _bodySignatures.length,
+            headToShoulderRatio: _bodySignatures
+                    .map((s) => s.headToShoulderRatio)
+                    .reduce((a, b) => a + b) /
+                _bodySignatures.length,
+            neckLength: _bodySignatures
+                    .map((s) => s.neckLength)
+                    .reduce((a, b) => a + b) /
+                _bodySignatures.length,
+          );
 
     return EmployeeProfile(
       employeeId: employeeId,
       workstationId: workstationId,
-      faceEmbedding: normalizedEmbedding,
+      faceEmbeddings: storedEmbeddings,
       bodySignature: avgBody,
       capturedAt: DateTime.now(),
       sampleCount: samplesRequired,
     );
   }
 
-  /// Reinicia el proceso de captura desde cero.
   void reset() {
     _faceEmbeddings.clear();
     _bodySignatures.clear();
+  }
+
+  void commitAssessedSample(CapturedBiometricSample sample) {
+    _commitSample(sample);
   }
 
   void dispose() {
@@ -249,25 +346,26 @@ class EmployeeProfiler {
     _faceDetector.close();
   }
 
-  // ── Helpers privados ───────────────────────────────────────────────────────
+  void _commitSample(CapturedBiometricSample sample) {
+    _faceEmbeddings.add(sample.embedding);
+    if (sample.bodySignature != null && sample.bodySignature!.isValid) {
+      _bodySignatures.add(sample.bodySignature!);
+    }
+  }
 
   double _estimateFaceConfidence(Face face, Size? frameSize) {
-    // 1. Tamaño relativo (0.5 weight)
-    double sizeScore = 0.5; // default si no tenemos frameSize
+    double sizeScore = 0.5;
     if (frameSize != null) {
       final boxArea = face.boundingBox.width * face.boundingBox.height;
       final frameArea = frameSize.width * frameSize.height;
-      sizeScore = (boxArea / frameArea).clamp(0.0, 1.0) *
-          2.0; // Escalar para que ~25% sea 0.5
+      sizeScore = (boxArea / frameArea).clamp(0.0, 1.0) * 2.0;
       sizeScore = sizeScore.clamp(0.0, 1.0);
     }
 
-    // 2. Ángulo (0.3 weight) - Penaliza perfiles extremos
     final rotY = face.headEulerAngleY?.abs() ?? 45.0;
     final rotZ = face.headEulerAngleZ?.abs() ?? 45.0;
     final angleScore = (1.0 - ((rotY + rotZ) / 90.0)).clamp(0.0, 1.0);
 
-    // 3. Clasificación/Landmarks (0.2 weight)
     final landmarksScore = face.landmarks.isNotEmpty ? 1.0 : 0.0;
     final eyeScore = ((face.leftEyeOpenProbability ?? 0.5) +
             (face.rightEyeOpenProbability ?? 0.5)) /
@@ -278,7 +376,10 @@ class EmployeeProfiler {
         (sizeScore * 0.5) + (angleScore * 0.3) + (classScore * 0.2);
 
     print(
-        '[SCAN] CONF DETAILS — size: ${sizeScore.toStringAsFixed(2)}, angle: ${angleScore.toStringAsFixed(2)}, class: ${classScore.toStringAsFixed(2)}');
+      '[SCAN] CONF DETAILS - size: ${sizeScore.toStringAsFixed(2)}, '
+      'angle: ${angleScore.toStringAsFixed(2)}, '
+      'class: ${classScore.toStringAsFixed(2)}',
+    );
 
     return finalConf;
   }
@@ -296,7 +397,6 @@ class EmployeeProfiler {
     return likelihoods.reduce((a, b) => a + b) / likelihoods.length;
   }
 
-  /// Verifica si la posición actual de la cara es válida para la muestra que toca procesar.
   bool isPositionStateCorrect(Face face) {
     return _isPositionCorrectForSample(face, _faceEmbeddings.length);
   }
@@ -306,16 +406,16 @@ class EmployeeProfiler {
     final pitch = face.headEulerAngleX ?? 0.0;
 
     switch (sampleIndex) {
-      case 0: // Frente (Estricto)
+      case 0:
         return yaw.abs() <= 10.0 && pitch.abs() <= 12.0;
-      case 1: // Izquierda (Yaw negativo usualmente)
-        return yaw < -12.0 && pitch.abs() <= 20.0;
-      case 2: // Derecha (Yaw positivo usualmente)
-        return yaw > 12.0 && pitch.abs() <= 20.0;
-      case 3: // Abajo (Pitch dependiente del dispositivo, usualmente negativo)
-        return yaw.abs() <= 20.0 && pitch > 10.0;
-      case 4: // Arriba (Pitch positivo)
-        return yaw.abs() <= 20.0 && pitch < -10.0;
+      case 1:
+        return yaw < -5.0 && pitch.abs() <= 15.0;
+      case 2:
+        return yaw > 5.0 && pitch.abs() <= 15.0;
+      case 3:
+        return yaw.abs() <= 15.0 && pitch > 5.0;
+      case 4:
+        return yaw.abs() <= 15.0 && pitch < -5.0;
       default:
         return true;
     }

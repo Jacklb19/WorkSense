@@ -1,18 +1,19 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:worksense_app/core/constants/ai_thresholds.dart';
 import 'package:worksense_app/features/camera_monitor/ai/body_signature.dart';
 
 /// Perfil biométrico completo del empleado.
-/// Combina embedding facial promedio + firma corporal promediada de 5 muestras.
+/// Contiene múltiples muestras faciales de enrolamiento y una firma corporal.
 class EmployeeProfile {
   final String employeeId;
   final String workstationId;
 
-  /// Vector facial promediado y normalizado de 5 capturas.
-  final List<double> faceEmbedding;
+  /// Lista de embeddings capturados durante el enrolamiento (múltiples muestras).
+  final List<List<double>> faceEmbeddings;
 
-  /// Firma corporal promediada de 5 capturas.
+  /// Firma corporal promediada de las capturas.
   final BodySignature bodySignature;
 
   final DateTime capturedAt;
@@ -20,14 +21,12 @@ class EmployeeProfile {
   final int version;
 
   static const int currentVersion = 1;
-  // Threshold reducido para kiosko de empleado único (0.42).
-  // Revisar si se implementa multi-empleado por estación.
-  static const double identityThreshold = 0.42;
+  static const double identityThreshold = AiThresholds.minEmbeddingMatchScore;
 
   const EmployeeProfile({
     required this.employeeId,
     required this.workstationId,
-    required this.faceEmbedding,
+    required this.faceEmbeddings,
     required this.bodySignature,
     required this.capturedAt,
     required this.sampleCount,
@@ -35,42 +34,30 @@ class EmployeeProfile {
   });
 
   /// Calcula el score de identidad combinando cara y cuerpo con pesos distintos.
-  /// [faceScore] null si la cara no fue visible en el frame.
-  /// [bodyScore] null si la pose no fue detectable en el frame.
   double matchScore({double? faceScore, double? bodyScore}) {
-    print('[MATCH] faceScore: $faceScore, bodyScore: $bodyScore');
+    print('[MATCH] faceScore: , bodyScore: ');
     if (faceScore != null && bodyScore != null) {
-      return faceScore * 0.70 + bodyScore * 0.30;
+      return faceScore * 0.95 + bodyScore * 0.05;
     } else if (faceScore != null) {
-      return faceScore; // Sin penalización si solo hay cara
+      return faceScore;
     } else if (bodyScore != null) {
-      return bodyScore; // Sin penalización si solo hay pose
+      return bodyScore * 0.30;
     }
     return 0.0;
   }
 
-  /// Retorna un nuevo perfil con embeddings actualizados por EMA.
-  /// Solo llamar cuando la confianza de identificación sea >= 0.85.
-  /// [alpha] = 0.95 → ~14 frames de alta confianza para que el nuevo dato pese 50%.
+  /// Retorna un nuevo perfil con firmas corporales actualizadas.
+  /// NOTA: La actualización continua de los embeddings faciales (ej. EMA)
+  /// no se mezcla en esta fase de múltiples muestras estáticas.
   EmployeeProfile adaptedWith({
     required List<double> liveFaceEmbedding,
     BodySignature? liveBodySignature,
     double alpha = 0.95,
   }) {
-    if (liveFaceEmbedding.isEmpty ||
-        liveFaceEmbedding.length != faceEmbedding.length) {
-      return this;
-    }
-
-    final newEmb = List<double>.generate(
-      faceEmbedding.length,
-      (i) => alpha * faceEmbedding[i] + (1 - alpha) * liveFaceEmbedding[i],
-    );
-
     return EmployeeProfile(
       employeeId: employeeId,
       workstationId: workstationId,
-      faceEmbedding: normalizeVector(newEmb),
+      faceEmbeddings: faceEmbeddings,
       bodySignature: liveBodySignature != null
           ? bodySignature.adaptedWith(liveBodySignature)
           : bodySignature,
@@ -85,7 +72,7 @@ class EmployeeProfile {
   Map<String, dynamic> toJson() => {
         'employeeId': employeeId,
         'workstationId': workstationId,
-        'faceEmbedding': faceEmbedding,
+        'faceEmbedding': faceEmbeddings, // Clave original por retrocompatibilidad
         'bodySignature': bodySignature.toJson(),
         'capturedAt': capturedAt.millisecondsSinceEpoch,
         'sampleCount': sampleCount,
@@ -93,12 +80,24 @@ class EmployeeProfile {
       };
 
   factory EmployeeProfile.fromJson(Map<String, dynamic> json) {
-    final embeddingRaw = json['faceEmbedding'] as List<dynamic>;
+    final dynamic embeddingRaw = json['faceEmbedding'];
+    List<List<double>> parsedEmbeddings = [];
+    if (embeddingRaw is List) {
+      if (embeddingRaw.isNotEmpty && embeddingRaw.first is num) {
+        parsedEmbeddings = [embeddingRaw.map((e) => (e as num).toDouble()).toList()];
+      } else {
+        parsedEmbeddings = embeddingRaw.map((e) {
+          final list = e as List;
+          return list.map((v) => (v as num).toDouble()).toList();
+        }).toList();
+      }
+    }
+
     final bodyJson = json['bodySignature'] as Map<String, dynamic>;
     return EmployeeProfile(
       employeeId: json['employeeId'] as String,
       workstationId: json['workstationId'] as String,
-      faceEmbedding: embeddingRaw.map((e) => (e as num).toDouble()).toList(),
+      faceEmbeddings: parsedEmbeddings,
       bodySignature: BodySignature.fromJson(
         bodyJson.map((k, v) => MapEntry(k, (v as num).toDouble())),
       ),

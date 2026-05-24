@@ -114,10 +114,32 @@ import 'package:flutter/foundation.dart';
     });
   }
 
+  /// Helper tipado que compara el embedding actual contra una lista de embeddings almacenados.
+  /// Prepara el terreno para el uso de múltiples muestras (Improvement 2) sin requerir \'dynamic\'.
+  double _compareAgainstMultiple(List<double> liveEmbedding, List<List<double>> storedEmbeddings) {
+    if (liveEmbedding.isEmpty || storedEmbeddings.isEmpty) return 0.0;
+    
+    double maxScore = 0.0;
+    const double threshold = 0.85;
+
+    for (final stored in storedEmbeddings) {
+      if (stored.isEmpty || liveEmbedding.length != stored.length) continue;
+      
+      final score = EmployeeProfile.cosineSimilarity(liveEmbedding, stored);
+      if (score > maxScore) {
+        maxScore = score;
+      }
+    }
+
+    return maxScore >= threshold ? maxScore : 0.0;
+  }
+
   _IsolatedFindResult _computeFindInFrameWorker(_FindInFrameParams params) {
     int? currentLockedTrackingId = params.lockedTrackingId;
-    const double identityThreshold = EmployeeProfile.identityThreshold;
-    const double trackingBodyThreshold = 0.30;
+    final bool multiplePeople = params.faces.length > 1;
+    final double identityThreshold = EmployeeProfile.identityThreshold;
+    // Umbral de seguimiento más estricto si hay intrusos (múltiples personas)
+    final double trackingBodyThreshold = multiplePeople ? 0.60 : 0.30;
     const double maxFaceToPoseDistance = 200.0;
 
     if (params.faces.isEmpty && params.poses.isEmpty) {
@@ -132,7 +154,7 @@ import 'package:flutter/foundation.dart';
 
       if (tracked != null) {
         final faceScore = tracked.rawEmbedding.any((v) => v != 0.0)
-            ? EmployeeProfile.cosineSimilarity(tracked.rawEmbedding, params.profile.faceEmbedding)
+            ? _compareAgainstMultiple(tracked.rawEmbedding, params.profile.faceEmbeddings)
             : null;
 
         _PoseData? closestPose;
@@ -175,9 +197,9 @@ import 'package:flutter/foundation.dart';
     IdentificationMethod bestMethod = IdentificationMethod.faceEmbedding;
 
     for (final face in params.faces) {
-      final faceScore = EmployeeProfile.cosineSimilarity(
+      final faceScore = _compareAgainstMultiple(
         face.rawEmbedding,
-        params.profile.faceEmbedding,
+        params.profile.faceEmbeddings,
       );
 
       _PoseData? closestPose;
@@ -231,18 +253,6 @@ import 'package:flutter/foundation.dart';
       );
     }
 
-    if (bestScore >= identityThreshold * 0.75 && bestFace != null) {
-      return _IsolatedFindResult(
-        status: FindStatus.found,
-        faceIndex: bestFace.index,
-        poseIndex: bestPose?.index,
-        confidence: bestScore,
-        identifiedBy: bestMethod,
-        newLockedTrackingId: bestFace.trackingId,
-        clearLockedTrackingId: true,
-      );
-    }
-
     if (params.faces.isNotEmpty || params.poses.isNotEmpty) {
       return _IsolatedFindResult(
         status: FindStatus.outsideArea,
@@ -270,6 +280,10 @@ import 'package:flutter/foundation.dart';
     EmployeeFinder(this._profile);
 
     EmployeeProfile get profile => _profile;
+    int? get lockedTrackingId => _lockedTrackingId;
+
+    bool isTrackingLockedTo(Face face) =>
+        _lockedTrackingId != null && face.trackingId == _lockedTrackingId;
 
     /// Busca al empleado en el frame actual aislando los calculos pesados
     /// del UI thread para prevenir caida de frames.

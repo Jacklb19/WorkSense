@@ -11,34 +11,33 @@ class PoseAnalyzer {
   double? _prevRightWristX;
   double? _prevRightWristY;
 
-  /// Analiza una sola pose (para usar con el empleado identificado).
-  PoseAnalysisResult analyzeSingle(Pose? pose) {
+  PoseAnalysisResult analyzeSingle(Pose? pose, double imageWidth) {
     if (pose == null) {
       _clearPreviousPositions();
       return PoseAnalysisResult.empty;
     }
-    return _analyzeOnePose(pose);
+    return _analyzeOnePose(pose, imageWidth);
   }
 
-  PoseAnalysisResult analyze(List<Pose> poses) {
+  PoseAnalysisResult analyze(List<Pose> poses, double imageWidth) {
     if (poses.isEmpty) {
       _clearPreviousPositions();
       return PoseAnalysisResult.empty;
     }
 
     final pose = poses.first;
-    return _analyzeOnePose(pose);
+    return _analyzeOnePose(pose, imageWidth);
   }
 
-  PoseAnalysisResult _analyzeOnePose(Pose pose) {
+  PoseAnalysisResult _analyzeOnePose(Pose pose, double imageWidth) {
     final landmarks = pose.landmarks;
 
-    // Check pose confidence via landmark presence scores
-    final nose = landmarks[PoseLandmarkType.nose];
-    final leftShoulder = landmarks[PoseLandmarkType.leftShoulder];
-    final rightShoulder = landmarks[PoseLandmarkType.rightShoulder];
-    final leftWrist = landmarks[PoseLandmarkType.leftWrist];
-    final rightWrist = landmarks[PoseLandmarkType.rightWrist];
+    // Check pose confidence via guarded reliable landmark accesses
+    final nose = _getLandmarkIfReliable(landmarks, PoseLandmarkType.nose);
+    final leftShoulder = _getLandmarkIfReliable(landmarks, PoseLandmarkType.leftShoulder);
+    final rightShoulder = _getLandmarkIfReliable(landmarks, PoseLandmarkType.rightShoulder);
+    final leftWrist = _getLandmarkIfReliable(landmarks, PoseLandmarkType.leftWrist);
+    final rightWrist = _getLandmarkIfReliable(landmarks, PoseLandmarkType.rightWrist);
 
     if (nose == null || leftShoulder == null || rightShoulder == null) {
       _clearPreviousPositions();
@@ -74,7 +73,7 @@ class PoseAnalyzer {
     // Check wrist movement
     bool handsMoving = false;
     if (leftWrist != null && rightWrist != null) {
-      handsMoving = _detectWristMovement(leftWrist, rightWrist);
+      handsMoving = _detectWristMovement(leftWrist, rightWrist, imageWidth);
       // Update stored positions
       _prevLeftWristX = leftWrist.x;
       _prevLeftWristY = leftWrist.y;
@@ -117,7 +116,7 @@ class PoseAnalyzer {
   }
 
   bool _detectWristMovement(
-      PoseLandmark leftWrist, PoseLandmark rightWrist) {
+      PoseLandmark leftWrist, PoseLandmark rightWrist, double imageWidth) {
     if (_prevLeftWristX == null ||
         _prevLeftWristY == null ||
         _prevRightWristX == null ||
@@ -135,10 +134,8 @@ class PoseAnalyzer {
     final leftMovement = math.sqrt(leftDx * leftDx + leftDy * leftDy);
     final rightMovement = math.sqrt(rightDx * rightDx + rightDy * rightDy);
 
-    // Normalize by a typical image width assumption of 640px
-    const imageWidthEstimate = 640.0;
-    final normalizedLeft = leftMovement / imageWidthEstimate;
-    final normalizedRight = rightMovement / imageWidthEstimate;
+    final normalizedLeft = leftMovement / imageWidth;
+    final normalizedRight = rightMovement / imageWidth;
 
     return normalizedLeft > AiThresholds.minWristMovement ||
         normalizedRight > AiThresholds.minWristMovement;
@@ -165,6 +162,17 @@ class PoseAnalyzer {
     }
 
     return checkWrist(leftWrist) || checkWrist(rightWrist);
+  }
+
+  /// Devuelve el landmark solo si existe y su fiabilidad (likelihood) es >= 0.6.
+  /// Esto previene detecciones erróneas causadas por mala iluminación o glitch del ML.
+  PoseLandmark? _getLandmarkIfReliable(
+      Map<PoseLandmarkType, PoseLandmark> landmarks, PoseLandmarkType type) {
+    final landmark = landmarks[type];
+    if (landmark == null || landmark.likelihood < 0.6) {
+      return null;
+    }
+    return landmark;
   }
 
   void _clearPreviousPositions() {

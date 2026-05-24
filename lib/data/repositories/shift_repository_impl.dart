@@ -66,7 +66,7 @@ class ShiftRepositoryImpl implements ShiftRepository {
 
       await _syncRepo.enqueue(
         targetTable: 'shifts',
-        operation: 'INSERT',
+        operation: 'UPSERT',
         recordId: shift.id,
         payload: payload,
       );
@@ -75,7 +75,7 @@ class ShiftRepositoryImpl implements ShiftRepository {
 
   @override
   Future<void> updateShift(Shift shift) async {
-    // Re-use create logic since Drift uses insertOrReplace
+    // Re-use create logic since Drift uses insertOrReplace and remote uses UPSERT
     return createShift(shift);
   }
 

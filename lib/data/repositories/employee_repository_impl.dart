@@ -53,11 +53,32 @@ class EmployeeRepositoryImpl implements EmployeeRepository {
 
   @override
   Future<void> deleteEmployee(String id) async {
+    // 0. Obtener workstations afectadas localmente ANTES de borrar el empleado
+    final workstations = await _db.getAllWorkstationRecords();
+    final affectedWorkstations = workstations.where((w) => w.assignedEmployeeId == id).toList();
+
     await _db.transaction(() async {
       // 1. Eliminar localmente
       await _db.deleteEmployeeRecord(id);
+      await _db.clearWorkstationProfilesByEmployeeId(id);
 
-      // 2. Encolar eliminación
+      // 2. Encolar actualización de las workstations afectadas para limpiar biométricos en remoto PRIMERO (para evitar FK constraints)
+      for (final ws in affectedWorkstations) {
+        await _syncRepo.enqueue(
+          targetTable: 'workstations',
+          operation: 'PATCH',
+          recordId: ws.id,
+          payload: {
+            'assigned_employee_id': null,
+            'face_embedding': null,
+            'body_signature': null,
+            'profile_captured_at': null,
+            'profile_version': 0,
+          },
+        );
+      }
+
+      // 3. Encolar eliminación del empleado DESPUÉS
       await _syncRepo.enqueue(
         targetTable: 'employees',
         operation: 'DELETE',
@@ -84,11 +105,12 @@ class EmployeeRepositoryImpl implements EmployeeRepository {
   Future<void> enrollEmployee({
     required String employeeId,
     required String workstationId,
-    required List<double> faceEmbedding,
+    required List<List<double>>? faceEmbeddings,
     required BodySignature bodySignature,
   }) async {
-    final faceEmbeddingJson = BiometricSerializer.serializeEmbedding(faceEmbedding);
+    final faceEmbeddingJson = BiometricSerializer.serializeMultipleEmbeddings(faceEmbeddings ?? []);
     final bodySignatureJson = jsonEncode(bodySignature.toJson());
+    final capturedAt = DateTime.now();
 
     await _db.transaction(() async {
       // 1. Guardar perfil en la workstation localmente
@@ -112,6 +134,8 @@ class EmployeeRepositoryImpl implements EmployeeRepository {
           'assigned_employee_id': employeeId,
           'face_embedding': faceEmbeddingJson,
           'body_signature': bodySignatureJson,
+          'profile_captured_at': capturedAt.toIso8601String(),
+          'profile_version': 1,
         },
       );
     });
@@ -123,7 +147,7 @@ class EmployeeRepositoryImpl implements EmployeeRepository {
       name: row.name,
       companyId: row.companyId,
       createdAt: row.createdAt,
-      faceEmbedding: BiometricSerializer.deserializeEmbedding(row.faceEmbedding),
+      faceEmbeddings: BiometricSerializer.deserializeMultipleEmbeddings(row.faceEmbeddings),
     );
   }
 }

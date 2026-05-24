@@ -9,28 +9,22 @@ import 'package:worksense_app/features/auth/presentation/providers/auth_provider
 
 // Settings provider using shared_preferences
 final analysisIntervalProvider =
-    StateNotifierProvider<AnalysisIntervalNotifier, int>((ref) {
+    AsyncNotifierProvider<AnalysisIntervalNotifier, int>(() {
   return AnalysisIntervalNotifier();
 });
 
-class AnalysisIntervalNotifier extends StateNotifier<int> {
+class AnalysisIntervalNotifier extends AsyncNotifier<int> {
   static const _key = 'analysis_interval_seconds';
 
-  AnalysisIntervalNotifier()
-      : super(AiThresholds.defaultAnalysisIntervalSeconds) {
-    _load();
-  }
-
-  Future<void> _load() async {
+  @override
+  Future<int> build() async {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getInt(_key);
-    if (stored != null) {
-      state = stored;
-    }
+    return stored ?? AiThresholds.defaultAnalysisIntervalSeconds;
   }
 
   Future<void> setInterval(int seconds) async {
-    state = seconds;
+    state = AsyncData(seconds);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_key, seconds);
   }
@@ -47,7 +41,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final analysisInterval = ref.watch(analysisIntervalProvider);
+    final analysisIntervalAsync = ref.watch(analysisIntervalProvider);
     final userEmail = ref.watch(currentUserEmailProvider);
 
     return Scaffold(
@@ -70,46 +64,53 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _SectionHeader(title: AppStrings.activityAnalysis),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      AppStrings.analysisInterval,
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    Text(
-                      '$analysisInterval seg',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
+            child: analysisIntervalAsync.when(
+              data: (analysisInterval) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        AppStrings.analysisInterval,
+                        style: theme.textTheme.bodyMedium,
                       ),
-                    ),
-                  ],
-                ),
-                Slider(
-                  value: analysisInterval.toDouble(),
-                  min: 10,
-                  max: 120,
-                  divisions: 22,
-                  label: '$analysisInterval seg',
-                  onChanged: (value) {
-                    ref
-                        .read(analysisIntervalProvider.notifier)
-                        .setInterval(value.round());
-                  },
-                ),
-                Text(
-                  'Frecuencia con la que se analiza la actividad del trabajador. '
-                  'Valores menores son más precisos pero consumen más batería.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.grey500,
+                      Text(
+                        '$analysisInterval seg',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 16),
-              ],
+                  Slider(
+                    value: analysisInterval.toDouble(),
+                    min: 10,
+                    max: 120,
+                    divisions: 22,
+                    label: '$analysisInterval seg',
+                    onChanged: (value) {
+                      ref
+                          .read(analysisIntervalProvider.notifier)
+                          .setInterval(value.round());
+                    },
+                  ),
+                  Text(
+                    'Frecuencia con la que se analiza la actividad del trabajador. '
+                    'Valores menores son más precisos pero consumen más batería.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.grey500,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+              loading: () => const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (_, __) => const SizedBox.shrink(),
             ),
           ),
 

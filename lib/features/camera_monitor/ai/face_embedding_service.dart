@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
@@ -41,9 +42,11 @@ class FaceEmbeddingService {
       }
     }
 
+    final squaredFace = _squarePadFace(croppedFace);
+
     // 1. Resize estricto
     final resizedImage = img.copyResize(
-      croppedFace, 
+      squaredFace,
       width: AiThresholds.faceInputSize, 
       height: AiThresholds.faceInputSize,
     );
@@ -61,23 +64,24 @@ class FaceEmbeddingService {
 
   /// Extrae la matriz tridimensional normalizada usando (p - avg) / std
   List<List<List<List<double>>>> _toFloatMatrix(img.Image resizedImage) {
-    return List.generate(
-      1,
-      (i) => List.generate(
-        AiThresholds.faceInputSize,
-        (y) => List.generate(
-          AiThresholds.faceInputSize,
-          (x) {
-            final pixel = resizedImage.getPixel(x, y);
-            return [
-              (pixel.r - AiThresholds.faceColorMean) / AiThresholds.faceColorStd, // Canal R
-              (pixel.g - AiThresholds.faceColorMean) / AiThresholds.faceColorStd, // Canal G
-              (pixel.b - AiThresholds.faceColorMean) / AiThresholds.faceColorStd, // Canal B
-            ];
-          },
-        ),
-      ),
-    );
+    final int size = AiThresholds.faceInputSize;
+    final mean = AiThresholds.faceColorMean;
+    final std = AiThresholds.faceColorStd;
+
+    final rows = <List<List<double>>>[];
+    for (int y = 0; y < size; y++) {
+      final row = <List<double>>[];
+      for (int x = 0; x < size; x++) {
+        final pixel = resizedImage.getPixel(x, y);
+        row.add([
+          (pixel.r - mean) / std,
+          (pixel.g - mean) / std,
+          (pixel.b - mean) / std,
+        ]);
+      }
+      rows.add(row);
+    }
+    return [rows];
   }
 
   /// Normaliza el vector en el espacio L2
@@ -90,6 +94,16 @@ class FaceEmbeddingService {
     if (norm == 0.0) return vector; // Evitar división por cero
     
     return vector.map((v) => v / norm).toList();
+  }
+
+  img.Image _squarePadFace(img.Image source) {
+    final size = math.max(source.width, source.height);
+    final square = img.Image(width: size, height: size);
+    img.fill(square, color: img.ColorRgb8(0, 0, 0));
+    final offsetX = ((size - source.width) / 2).round();
+    final offsetY = ((size - source.height) / 2).round();
+    img.compositeImage(square, source, dstX: offsetX, dstY: offsetY);
+    return square;
   }
 
   /// Libera los recursos C/C++ del intérprete de TFLite

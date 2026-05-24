@@ -92,6 +92,15 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedEmployeeId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes asignar el propietario de la workstation.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
     
     // As in employees_provider, use currentUserProvider companyId if available.
     final currentUser = ref.read(currentUserProvider).value;
@@ -148,15 +157,11 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
         return DropdownButtonFormField<String>(
           value: _selectedEmployeeId,
           decoration: const InputDecoration(
-            labelText: 'Asignar Empleado (Opcional)',
+            labelText: 'Empleado propietario',
             border: OutlineInputBorder(),
             prefixIcon: Icon(Icons.person_outline),
           ),
           items: [
-            const DropdownMenuItem<String>(
-              value: null,
-              child: Text('Ninguno'),
-            ),
             ...employees.map((e) => DropdownMenuItem(
                   value: e.id,
                   child: Text(e.name),

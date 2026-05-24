@@ -16,6 +16,19 @@ class SupabaseDataSource {
     }
   }
 
+  Future<void> upsertBatch(String table, List<Map<String, dynamic>> dataList) async {
+    if (dataList.isEmpty) return;
+    try {
+      await _client.from(table).upsert(dataList);
+    } on PostgrestException catch (e) {
+      throw SyncException(
+        'Error upserting batch en $table: ${e.message} (code: ${e.code})',
+      );
+    } catch (e) {
+      throw SyncException('Error inesperado batch en $table: $e');
+    }
+  }
+
   Future<void> delete(String table, String id) async {
     try {
       await _client.from(table).delete().eq('id', id);
@@ -74,12 +87,19 @@ class SupabaseDataSource {
   Future<List<Map<String, dynamic>>> fetchActivityEventsByDateRange({
     required DateTime from,
     required DateTime to,
+    String? companyId,
   }) async {
     try {
-      final response = await _client
+      var query = _client
           .from('activity_events')
           .select()
-          .not('employee_id', 'is', null)
+          .not('employee_id', 'is', null);
+      
+      if (companyId != null && companyId != 'default') {
+        query = query.eq('company_id', companyId);
+      }
+
+      final response = await query
           .gte('timestamp', from.toUtc().toIso8601String())
           .lte('timestamp', to.toUtc().toIso8601String())
           .order('timestamp', ascending: true)
@@ -173,6 +193,19 @@ class SupabaseDataSource {
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       throw SyncException('Error obteniendo workstations: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchAllShifts(String? companyId) async {
+    try {
+      var query = _client.from('shifts').select();
+      if (companyId != null && companyId != 'default') {
+        query = query.eq('company_id', companyId);
+      }
+      final response = await query;
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      throw SyncException('Error obteniendo shifts: $e');
     }
   }
 

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/domain/entities/activity_state.dart';
-import 'package:worksense_app/features/dashboard/presentation/providers/dashboard_provider.dart';
-import 'package:worksense_app/features/dashboard/presentation/widgets/activity_event_tile.dart';
-import 'package:worksense_app/shared/widgets/loading_widget.dart';
+
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/constants/app_dimensions.dart';
+import '../../../../domain/entities/activity_state.dart';
+import '../../../../shared/widgets/loading_widget.dart';
+import '../../../../shared/widgets/styled/app_empty_state.dart';
+import '../../presentation/providers/dashboard_provider.dart';
+import '../../presentation/widgets/activity_event_tile.dart';
 
 class ActivityHistoryScreen extends ConsumerStatefulWidget {
   const ActivityHistoryScreen({super.key});
@@ -52,22 +55,22 @@ class _ActivityHistoryScreenState
               : events;
 
           if (filtered.isEmpty) {
-            return _EmptyHistoryView(
-              hasFilter: _filterState != null,
-              onClearFilter: () =>
-                  setState(() => _filterState = null),
+            return AppEmptyState(
+              icon: hasFilter
+                  ? Icons.search_off
+                  : Icons.history_toggle_off,
+              title: hasFilter ? 'Sin resultados' : 'Sin eventos registrados',
             );
           }
 
           return Column(
             children: [
-              // Filter chip strip
               if (_filterState != null)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+                    horizontal: AppDimensions.spacingXxl,
+                    vertical: AppDimensions.spacingMd,
                   ),
                   child: Row(
                     children: [
@@ -79,29 +82,28 @@ class _ActivityHistoryScreenState
                         onSelected: (_) =>
                             setState(() => _filterState = null),
                         deleteIcon:
-                            const Icon(Icons.close, size: 16),
+                            const Icon(Icons.close, size: AppDimensions.iconXs),
                         onDeleted: () =>
                             setState(() => _filterState = null),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppDimensions.spacingMd),
                       Text(
                         '${filtered.length} eventos',
                         style: const TextStyle(
-                          color: AppColors.grey500,
-                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                          fontSize: AppDimensions.fontCaption,
                         ),
                       ),
                     ],
                   ),
                 ),
-
-              // List
               Expanded(
                 child: ListView.separated(
                   itemCount: filtered.length,
                   separatorBuilder: (_, __) => const Divider(
                     height: 1,
-                    indent: 72,
+                    indent: AppDimensions.dividerIndent,
+                    color: AppColors.divider,
                   ),
                   itemBuilder: (context, index) => ActivityEventTile(
                     event: filtered[index],
@@ -115,15 +117,17 @@ class _ActivityHistoryScreenState
     );
   }
 
+  bool get hasFilter => _filterState != null;
+
   void _showFilterSheet() {
     showModalBottomSheet<ActivityState?>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius:
-            BorderRadius.vertical(top: Radius.circular(16)),
+            BorderRadius.vertical(top: Radius.circular(AppDimensions.radiusModal)),
       ),
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppDimensions.spacing24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,11 +136,9 @@ class _ActivityHistoryScreenState
               'Filtrar por estado',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 16),
-
-            // All states option
+            const SizedBox(height: AppDimensions.spacingXxl),
             ListTile(
-              leading: const Text('🔵', style: TextStyle(fontSize: 24)),
+              leading: const Text('🔵', style: TextStyle(fontSize: AppDimensions.fontHeadline)),
               title: const Text('Todos los estados'),
               selected: _filterState == null,
               onTap: () {
@@ -144,16 +146,15 @@ class _ActivityHistoryScreenState
                 Navigator.pop(ctx);
               },
             ),
-
             ...ActivityState.values.map(
               (s) => ListTile(
                 leading: Text(
                   s.emoji,
-                  style: const TextStyle(fontSize: 24),
+                  style: const TextStyle(fontSize: AppDimensions.fontHeadline),
                 ),
                 title: Text(s.label),
                 selected: _filterState == s,
-                selectedTileColor: s.color.withValues(alpha: 0.08),
+                selectedTileColor: s.color.withAlpha(20),
                 onTap: () {
                   setState(() => _filterState = s);
                   Navigator.pop(ctx, s);
@@ -162,46 +163,6 @@ class _ActivityHistoryScreenState
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _EmptyHistoryView extends StatelessWidget {
-  final bool hasFilter;
-  final VoidCallback? onClearFilter;
-
-  const _EmptyHistoryView({
-    required this.hasFilter,
-    this.onClearFilter,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.history_toggle_off,
-            size: 64,
-            color: AppColors.grey300,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            hasFilter ? 'Sin resultados' : 'Sin eventos registrados',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.grey500,
-                ),
-          ),
-          if (hasFilter && onClearFilter != null) ...[
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: onClearFilter,
-              child: const Text('Quitar filtro'),
-            ),
-          ],
-        ],
       ),
     );
   }

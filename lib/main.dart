@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
 
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
@@ -50,7 +51,7 @@ class WorkSenseApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'WorkSense', // Documented exception: app title kept here, handled locally.
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
+      theme: AppTheme.dark,
       darkTheme: AppTheme.dark,
       routerConfig: router,
     );

@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:worksense_app/core/constants/app_routes.dart';
-import 'package:worksense_app/core/constants/app_strings.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
-import 'package:worksense_app/shared/widgets/loading_widget.dart';
 import 'package:intl/intl.dart';
+
+import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/constants/app_routes.dart';
+import '../../../../core/constants/app_strings.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/providers/sync_state_provider.dart';
+import '../../../../shared/widgets/loading_widget.dart';
+import '../../../../shared/widgets/styled/app_empty_state.dart';
+import '../providers/employees_provider.dart';
 
 class EmployeesListScreen extends ConsumerWidget {
   const EmployeesListScreen({super.key});
@@ -29,18 +33,24 @@ class EmployeesListScreen extends ConsumerWidget {
         ),
         data: (employees) {
           if (employees.isEmpty) {
-            return const _EmptyEmployeesView();
+            return const AppEmptyState(
+              icon: Icons.people_outline,
+              title: AppStrings.noEmployees,
+              subtitle: AppStrings.addEmployeeHint,
+            );
           }
 
           return ListView.separated(
             itemCount: employees.length,
-            separatorBuilder: (_, __) =>
-                const Divider(height: 1, indent: 72),
+            separatorBuilder: (_, __) => const Divider(
+              height: 1,
+              indent: AppDimensions.dividerIndent,
+            ),
             itemBuilder: (context, index) {
               final employee = employees[index];
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  backgroundColor: AppColors.primary.withAlpha(30),
                   child: Text(
                     employee.name.isNotEmpty
                         ? employee.name[0].toUpperCase()
@@ -55,8 +65,8 @@ class EmployeesListScreen extends ConsumerWidget {
                 subtitle: Text(
                   'Registrado el ${DateFormat('dd/MM/yyyy').format(employee.createdAt)}',
                   style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.grey500,
+                    fontSize: AppDimensions.fontCaption,
+                    color: AppColors.textSecondary,
                   ),
                 ),
                 onTap: () => _navigateToEdit(context, ref, employee.id),
@@ -66,11 +76,9 @@ class EmployeesListScreen extends ConsumerWidget {
                     switch (value) {
                       case 'edit':
                         _navigateToEdit(context, ref, employee.id);
-                        break;
                       case 'delete':
                         await _confirmAndDelete(
                             context, ref, employee.id, employee.name);
-                        break;
                     }
                   },
                   itemBuilder: (_) => [
@@ -80,7 +88,7 @@ class EmployeesListScreen extends ConsumerWidget {
                         children: [
                           Icon(Icons.edit_outlined,
                               color: AppColors.primary, size: 18),
-                          SizedBox(width: 8),
+                          SizedBox(width: AppDimensions.spacingMd),
                           Text('Editar'),
                         ],
                       ),
@@ -91,7 +99,7 @@ class EmployeesListScreen extends ConsumerWidget {
                         children: [
                           Icon(Icons.delete_outline,
                               color: AppColors.error, size: 18),
-                          SizedBox(width: 8),
+                          SizedBox(width: AppDimensions.spacingMd),
                           Text(
                             AppStrings.delete,
                             style: TextStyle(color: AppColors.error),
@@ -117,8 +125,10 @@ class EmployeesListScreen extends ConsumerWidget {
     );
   }
 
-  void _navigateToEdit(BuildContext context, WidgetRef ref, String employeeId) {
-    final route = AppRoutes.employeeEdit.replaceFirst(':employeeId', employeeId);
+  void _navigateToEdit(
+      BuildContext context, WidgetRef ref, String employeeId) {
+    final route =
+        AppRoutes.employeeEdit.replaceFirst(':employeeId', employeeId);
     context.push(route).then((_) {
       ref.invalidate(adminEmployeesProvider);
     });
@@ -130,8 +140,8 @@ class EmployeesListScreen extends ConsumerWidget {
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text(AppStrings.deleteEmployee),
-            content:
-                Text('¿Eliminar a "$name"? Esta acción no se puede deshacer.'),
+            content: Text(
+                'Eliminar a "$name"? Esta accion no se puede deshacer.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
@@ -139,8 +149,8 @@ class EmployeesListScreen extends ConsumerWidget {
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                style:
-                    FilledButton.styleFrom(backgroundColor: AppColors.error),
+                style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.error),
                 child: const Text(AppStrings.delete),
               ),
             ],
@@ -155,6 +165,9 @@ class EmployeesListScreen extends ConsumerWidget {
       await ref
           .read(employeeFormNotifierProvider.notifier)
           .deleteEmployee(id);
+
+      await ref.read(syncNotifierProvider.notifier).sync();
+
       ref.invalidate(adminEmployeesProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -174,37 +187,5 @@ class EmployeesListScreen extends ConsumerWidget {
         );
       }
     }
-  }
-}
-
-class _EmptyEmployeesView extends StatelessWidget {
-  const _EmptyEmployeesView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.people_outline,
-            size: 64,
-            color: AppColors.grey300,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            AppStrings.noEmployees,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.grey500,
-                ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            AppStrings.addEmployeeHint,
-            style: TextStyle(color: AppColors.grey400, fontSize: 13),
-          ),
-        ],
-      ),
-    );
   }
 }

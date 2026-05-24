@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
-import 'package:worksense_app/features/dashboard/presentation/widgets/activity_event_tile.dart';
-import 'package:worksense_app/shared/widgets/loading_widget.dart';
+
+import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/loading_widget.dart';
+import '../../../../shared/widgets/styled/app_empty_state.dart';
+import '../../presentation/providers/employee_dashboard_provider.dart';
+import '../../presentation/widgets/activity_event_tile.dart';
 
 class MyActivityScreen extends ConsumerWidget {
   const MyActivityScreen({super.key});
@@ -17,20 +20,34 @@ class MyActivityScreen extends ConsumerWidget {
         loading: () => const AppLoadingWidget(),
         error: (error, _) => Center(child: Text('Error: $error')),
         data: (events) {
-          if (events.isEmpty) return const _EmptyActivityView();
+          if (events.isEmpty) {
+            return const AppEmptyState(
+              icon: Icons.history_toggle_off,
+              title: 'SIN REGISTROS',
+              subtitle: 'La actividad reciente aparecera en este log.',
+              iconColor: AppColors.textDisabled,
+            );
+          }
 
           return CustomScrollView(
             slivers: [
               const SliverAppBar(
                 pinned: true,
-                title: Text('REGISTRO DE ACTIVIDAD', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                title: Text(
+                  'REGISTRO DE ACTIVIDAD',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
                 centerTitle: false,
               ),
               SliverPadding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppDimensions.spacingXxl),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => ActivityEventTile(event: events[index]),
+                    (context, index) =>
+                        ActivityEventTile(event: events[index]),
                     childCount: events.length,
                   ),
                 ),
@@ -38,26 +55,6 @@ class MyActivityScreen extends ConsumerWidget {
             ],
           );
         },
-      ),
-    );
-  }
-}
-
-class _EmptyActivityView extends StatelessWidget {
-  const _EmptyActivityView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.history_toggle_off, size: 64, color: Colors.white10),
-          const SizedBox(height: 16),
-          const Text('SIN REGISTROS', style: TextStyle(color: Colors.white24, fontWeight: FontWeight.bold, letterSpacing: 2)),
-          const SizedBox(height: 8),
-          const Text('La actividad reciente aparecerá en este log.', style: TextStyle(color: Colors.white12, fontSize: 12)),
-        ],
       ),
     );
   }

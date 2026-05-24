@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:worksense_app/core/constants/app_strings.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/shared/providers/connectivity_provider.dart';
-import 'package:worksense_app/shared/providers/sync_state_provider.dart';
+
+import '../../core/constants/app_strings.dart';
+import '../../core/theme/app_colors.dart';
+import '../providers/connectivity_provider.dart';
+import '../providers/sync_state_provider.dart';
 
 class SyncIndicatorWidget extends ConsumerWidget {
   const SyncIndicatorWidget({super.key});
@@ -32,14 +33,17 @@ class SyncIndicatorWidget extends ConsumerWidget {
             child: SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.syncUploading),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.syncUploading,
+              ),
             ),
           );
         }
 
         if (pendingCount > 0) {
           return Tooltip(
-            message: '$pendingCount pendientes de sincronización',
+            message: '$pendingCount pendientes de sincronizacion',
             child: InkWell(
               onTap: () => ref.read(syncNotifierProvider.notifier).sync(),
               child: Padding(
@@ -89,7 +93,11 @@ class _Badge extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
       child: Text(
         count > 99 ? '99+' : '$count',
-        style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          color: AppColors.white,
+          fontSize: 8,
+          fontWeight: FontWeight.bold,
+        ),
         textAlign: TextAlign.center,
       ),
     );

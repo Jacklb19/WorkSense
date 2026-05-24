@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
+import 'package:worksense_app/core/constants/ai_thresholds.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/domain/repositories/employee_repository.dart';
@@ -31,17 +32,23 @@ class EmployeeScanState {
   final bool isComplete;
   final String? error;
   final bool cameraReady;
+  final bool isIlluminating;
+  final int burstProgress;
+  final int burstTotal;
 
-  const EmployeeScanState({
+  EmployeeScanState({
     this.currentSampleIndex = 0,
-    this.completedSamples = const [false, false, false, false, false],
+    List<bool>? completedSamples,
     this.frameStatus = _FrameStatus.searching,
     this.feedback = 'Posiciónate frente a la cámara',
     this.isCapturing = false,
     this.isComplete = false,
     this.error,
     this.cameraReady = false,
-  });
+    this.isIlluminating = false,
+    this.burstProgress = 0,
+    this.burstTotal = AiThresholds.scanBurstFrames,
+  }) : completedSamples = completedSamples ?? List.filled(EmployeeProfiler.samplesRequired, false);
 
   int get capturedCount => completedSamples.where((s) => s).length;
 
@@ -54,6 +61,9 @@ class EmployeeScanState {
     bool? isComplete,
     String? error,
     bool? cameraReady,
+    bool? isIlluminating,
+    int? burstProgress,
+    int? burstTotal,
   }) {
     return EmployeeScanState(
       currentSampleIndex: currentSampleIndex ?? this.currentSampleIndex,
@@ -64,6 +74,9 @@ class EmployeeScanState {
       isComplete: isComplete ?? this.isComplete,
       error: error,
       cameraReady: cameraReady ?? this.cameraReady,
+      isIlluminating: isIlluminating ?? this.isIlluminating,
+      burstProgress: burstProgress ?? this.burstProgress,
+      burstTotal: burstTotal ?? this.burstTotal,
     );
   }
 }
@@ -78,13 +91,21 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
 
   CameraController? _cameraController;
   late final EmployeeProfiler _profiler;
+  late final FaceAnalyzer _faceAnalyzer;
   late final FaceDetector _liveDetector;
   late final PoseDetector _livePoseDetector;
 
   bool _isLiveProcessing = false;
   bool _disposed = false;
   bool _blockFrameUpdates = false;
+  bool _blinkSatisfied = false;
+  bool _blinkArmed = false;
+  int _openEyesStableFrames = 0;
+  int _livenessSampleIndex = 0;
+  int _stableLiveFrames = 0;
   CameraImage? _lastFrame;
+  DateTime _lastQualityCheckTime = DateTime.fromMillisecondsSinceEpoch(0);
+  bool _isCheckingQuality = false;
 
   static const Map<DeviceOrientation, int> _orientationMap = {
     DeviceOrientation.portraitUp: 0,
@@ -100,9 +121,10 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
     required this.employeeId,
   })  : _repository = repository,
         _embeddingService = embeddingService,
-        super(const EmployeeScanState()) {
+        super(EmployeeScanState()) {
+    _faceAnalyzer = FaceAnalyzer();
     _profiler = EmployeeProfiler(
-      faceAnalyzer: FaceAnalyzer(),
+      faceAnalyzer: _faceAnalyzer,
       embeddingService: _embeddingService,
     );
     _liveDetector = FaceDetector(
@@ -158,8 +180,9 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
   }
 
   void _onFrame(CameraImage image) {
-    if (_disposed || _blockFrameUpdates) return;
+    if (_disposed) return;
     _lastFrame = image;
+    if (_blockFrameUpdates) return;
     if (_isLiveProcessing) return;
     _isLiveProcessing = true;
 
@@ -178,36 +201,104 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
       if (_disposed) return;
 
       final poses = await _livePoseDetector.processImage(inputImage);
-      if (_disposed) return;
+      if (_disposed || _blockFrameUpdates || state.isCapturing) return;
+      _syncLivenessState();
 
       if (faces.isEmpty) {
+        _resetBlinkState();
+        _stableLiveFrames = 0;
         state = state.copyWith(
           frameStatus: _FrameStatus.searching,
-          feedback: 'Acércate a la cámara',
+          feedback: 'Centra tu rostro',
         );
       } else if (faces.length > 1) {
+        _resetBlinkState();
+        _stableLiveFrames = 0;
         state = state.copyWith(
           frameStatus: _FrameStatus.error,
           feedback: 'Solo debe estar el empleado en cámara',
         );
       } else if (poses.isEmpty) {
+        _resetBlinkState();
+        _stableLiveFrames = 0;
         state = state.copyWith(
           frameStatus: _FrameStatus.searching,
           feedback: 'Asegúrate de que tu cuerpo sea visible',
         );
       } else {
         if (!state.isCapturing && (state.frameStatus != _FrameStatus.capturing)) {
-          final isCorrectPos = _profiler.isPositionStateCorrect(faces.first);
+          final face = faces.first;
+          final isCorrectPos = _profiler.isPositionStateCorrect(face);
+          final passesLivePresence = _passesLivePresenceGate(
+            face,
+            inputImage.metadata?.size,
+            inputImage.metadata?.rotation,
+          );
           
-          if (isCorrectPos) {
+          if (isCorrectPos && passesLivePresence) {
+            // [PERFORMANCE] Throttling + Lock: Máximo 1 validación cada 400ms y sin solapamiento
+            final now = DateTime.now();
+            if (!_isCheckingQuality && now.difference(_lastQualityCheckTime).inMilliseconds >= 400) {
+              _isCheckingQuality = true;
+              _lastQualityCheckTime = now;
+              
+              try {
+                final cropped = await _faceAnalyzer.cropFaceFromCameraImageAsync(image, face);
+                if (cropped != null) {
+                  final quality = await _faceAnalyzer.assessCropQuality(cropped);
+                  if (quality.overallScore < 0.70) {
+                    _stableLiveFrames = 0;
+                    if (!_disposed) {
+                      state = state.copyWith(
+                        frameStatus: _FrameStatus.error,
+                        feedback: 'Mejora la iluminación o tu posición',
+                      );
+                    }
+                    _isCheckingQuality = false;
+                    return;
+                  }
+                }
+              } catch (_) {
+                // Ignore ML Kit errors on frame dropping
+              } finally {
+                _isCheckingQuality = false;
+              }
+            }
+
+            _stableLiveFrames++;
+            if (_requiresBlinkChallenge) {
+              _updateBlinkChallenge(face);
+              if (!_blinkSatisfied) {
+                state = state.copyWith(
+                  frameStatus: _FrameStatus.searching,
+                  feedback: _blinkArmed
+                      ? 'Parpadea una vez para validar presencia'
+                      : 'Mira al frente con los ojos abiertos',
+                );
+                return;
+              }
+            }
+            if (_stableLiveFrames < AiThresholds.liveDetectionStableFrames) {
+              state = state.copyWith(
+                frameStatus: _FrameStatus.searching,
+                feedback: 'Sostente frente a la camara un momento',
+              );
+              return;
+            }
             state = state.copyWith(
               frameStatus: _FrameStatus.detected,
               feedback: 'Posición correcta',
             );
           } else {
+            if (_requiresBlinkChallenge) {
+              _resetBlinkState();
+            }
+            _stableLiveFrames = 0;
             state = state.copyWith(
               frameStatus: _FrameStatus.searching,
-              feedback: _getGuidanceMessage(state.currentSampleIndex),
+              feedback: passesLivePresence
+                  ? _getGuidanceMessage(state.currentSampleIndex)
+                  : 'Centra mejor el rostro dentro del marco',
             );
           }
         }
@@ -218,10 +309,10 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
   String _getGuidanceMessage(int index) {
     switch (index) {
       case 0: return 'Mira directo a la cámara';
-      case 1: return 'Gira la cabeza a la derecha';
-      case 2: return 'Gira la cabeza a la izquierda';
-      case 3: return 'Mira hacia arriba';
-      case 4: return 'Mira hacia abajo';
+      case 1: return 'Gira levemente la cabeza hacia tu izquierda (15-20 grados)';
+      case 2: return 'Gira levemente la cabeza hacia tu derecha (15-20 grados)';
+      case 3: return 'Inclina la cabeza levemente hacia abajo (como mirando el escritorio)';
+      case 4: return 'Levanta levemente la cabeza (como mirando una pantalla alta)';
       default: return 'Ajusta tu posición';
     }
   }
@@ -232,24 +323,57 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
     if (state.frameStatus != _FrameStatus.detected) return;
 
     try {
+      _blockFrameUpdates = true;
       state = state.copyWith(
         isCapturing: true,
         frameStatus: _FrameStatus.capturing,
+        isIlluminating: true,
+        burstProgress: 0,
+        burstTotal: AiThresholds.scanBurstFrames,
+        feedback: 'Capturando rafaga biometrica',
       );
 
-      final inputImage = _buildInputImage(_lastFrame!);
-      if (inputImage == null) {
-        state = state.copyWith(
-          isCapturing: false,
-          frameStatus: _FrameStatus.error,
-          feedback: 'Error al procesar el frame',
-        );
-        return;
+      await Future<void>.delayed(
+        const Duration(milliseconds: AiThresholds.scanBurstDelayMs),
+      );
+
+      SampleAssessment? bestAssessment;
+      String lastFeedback = 'No se pudo capturar una muestra estable';
+
+      for (int i = 0; i < AiThresholds.scanBurstFrames; i++) {
+        final frame = _lastFrame;
+        if (frame == null) continue;
+
+        final inputImage = _buildInputImage(frame);
+        if (inputImage == null) {
+          lastFeedback = 'Error al procesar el frame';
+          continue;
+        }
+
+        final assessment = await _profiler.assessSample(inputImage, frame);
+        lastFeedback = assessment.feedback;
+
+        if (assessment.isSuccess) {
+          if (bestAssessment == null ||
+              assessment.sample!.qualityScore >
+                  bestAssessment.sample!.qualityScore) {
+            bestAssessment = assessment;
+          }
+        }
+
+        if (!_disposed) {
+          state = state.copyWith(burstProgress: i + 1);
+        }
+
+        if (i < AiThresholds.scanBurstFrames - 1) {
+          await Future<void>.delayed(
+            const Duration(milliseconds: AiThresholds.scanBurstDelayMs),
+          );
+        }
       }
 
-      final result = await _profiler.addSample(inputImage, _lastFrame!);
-
-      if (result == SampleResult.success) {
+      if (bestAssessment != null && bestAssessment.isSuccess) {
+        _profiler.commitAssessedSample(bestAssessment.sample!);
         final newCompleted = List<bool>.from(state.completedSamples);
         newCompleted[state.currentSampleIndex] = true;
 
@@ -261,35 +385,44 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
           currentSampleIndex: isComplete ? state.currentSampleIndex : nextIndex,
           isCapturing: false,
           isComplete: isComplete,
+          isIlluminating: false,
           frameStatus: _FrameStatus.searching,
-          feedback: isComplete
-              ? 'Escaneo completado'
-              : EmployeeProfiler.instructions[nextIndex].text,
+          burstProgress: 0,
+          feedback: 'Buena captura ✓',
         );
+        _syncLivenessState(forceReset: true);
 
-        _blockFrameUpdates = true;
         if (!isComplete) {
           await Future<void>.delayed(const Duration(milliseconds: 1500));
-        }
-        _blockFrameUpdates = false;
-
-        if (isComplete) {
+          if (!_disposed) {
+            state = state.copyWith(
+              feedback: EmployeeProfiler.instructions[nextIndex].text,
+            );
+          }
+        } else {
+          state = state.copyWith(feedback: 'Escaneo completado');
           await _buildAndSaveProfile();
         }
       } else {
-        final msg = _resultMessage(result);
         state = state.copyWith(
           isCapturing: false,
+          isIlluminating: false,
           frameStatus: _FrameStatus.error,
-          feedback: msg,
+          burstProgress: 0,
+          feedback: lastFeedback,
         );
-        _blockFrameUpdates = true;
         await Future<void>.delayed(const Duration(milliseconds: 2000));
-        _blockFrameUpdates = false;
       }
     } catch (e) {
       if (_disposed) return;
-      state = state.copyWith(isCapturing: false, error: e.toString());
+      state = state.copyWith(
+        isCapturing: false,
+        isIlluminating: false,
+        burstProgress: 0,
+        error: e.toString(),
+      );
+    } finally {
+      _blockFrameUpdates = false;
     }
   }
 
@@ -305,7 +438,7 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
       await _repository.enrollEmployee(
         employeeId: employeeId,
         workstationId: workstationId,
-        faceEmbedding: profile.faceEmbedding,
+        faceEmbeddings: profile.faceEmbeddings,
         bodySignature: profile.bodySignature,
       );
     } catch (e) {
@@ -320,7 +453,94 @@ class EmployeeScanNotifier extends StateNotifier<EmployeeScanState> {
   void resetScan() {
     if (_disposed) return;
     _profiler.reset();
-    state = const EmployeeScanState(cameraReady: true);
+    _resetBlinkState();
+    _stableLiveFrames = 0;
+    _livenessSampleIndex = 0;
+    state = EmployeeScanState(cameraReady: true);
+  }
+
+  bool get _requiresBlinkChallenge => state.currentSampleIndex == 0;
+
+  bool _passesLivePresenceGate(Face face, Size? frameSize, InputImageRotation? rotation) {
+    if (frameSize == null) return false;
+
+    double fWidth = frameSize.width;
+    double fHeight = frameSize.height;
+
+    if (rotation == InputImageRotation.rotation90deg || rotation == InputImageRotation.rotation270deg) {
+      fWidth = frameSize.height;
+      fHeight = frameSize.width;
+    }
+
+    final box = face.boundingBox;
+    final frameArea = fWidth * fHeight;
+    if (frameArea <= 0) return false;
+
+    final areaRatio = (box.width * box.height) / frameArea;
+    final centerX = box.left + (box.width / 2);
+    final centerY = box.top + (box.height / 2);
+
+    final minX = fWidth * AiThresholds.liveFaceGuideMargin;
+    final maxX = fWidth * (1 - AiThresholds.liveFaceGuideMargin);
+    final minY = fHeight * AiThresholds.liveFaceGuideMargin;
+    final maxY = fHeight * (1 - AiThresholds.liveFaceGuideMargin);
+
+    final centered = centerX >= minX &&
+        centerX <= maxX &&
+        centerY >= minY &&
+        centerY <= maxY;
+    
+    final fullyVisible = box.left >= -20 &&
+        box.top >= -20 &&
+        box.right <= fWidth + 20 &&
+        box.bottom <= fHeight + 20;
+
+    return areaRatio >= AiThresholds.minLiveFaceAreaRatio &&
+        centered &&
+        fullyVisible;
+  }
+
+  void _syncLivenessState({bool forceReset = false}) {
+    final sampleIndex = state.currentSampleIndex;
+    if (forceReset || sampleIndex != _livenessSampleIndex) {
+      _livenessSampleIndex = sampleIndex;
+      _resetBlinkState();
+      _stableLiveFrames = 0;
+    }
+  }
+
+  void _resetBlinkState() {
+    _blinkSatisfied = false;
+    _blinkArmed = false;
+    _openEyesStableFrames = 0;
+  }
+
+  void _updateBlinkChallenge(Face face) {
+    final leftEye = face.leftEyeOpenProbability;
+    final rightEye = face.rightEyeOpenProbability;
+    if (leftEye == null || rightEye == null) return;
+
+    final eyesOpen = leftEye >= AiThresholds.minEyeOpenProbability &&
+        rightEye >= AiThresholds.minEyeOpenProbability;
+    final eyesClosed = leftEye <= AiThresholds.maxEyeClosedProbability &&
+        rightEye <= AiThresholds.maxEyeClosedProbability;
+
+    if (eyesOpen) {
+      _openEyesStableFrames++;
+      if (_openEyesStableFrames >= AiThresholds.blinkOpenFramesRequired) {
+        _blinkArmed = true;
+      }
+      return;
+    }
+
+    if (eyesClosed && _blinkArmed) {
+      _blinkSatisfied = true;
+      return;
+    }
+
+    if (!eyesClosed) {
+      _openEyesStableFrames = 0;
+    }
   }
 
   String _resultMessage(SampleResult result) {
@@ -488,6 +708,8 @@ class _EmployeeScanScreenState extends ConsumerState<EmployeeScanScreen> with Wi
           else
             const Center(child: CircularProgressIndicator(color: AppColors.primary)),
 
+          if (scanState.isIlluminating) const _ScreenFlashOverlay(),
+
           // Glassmorphism HUD
           const _HUDOverlay(),
 
@@ -538,6 +760,30 @@ class _HUDOverlay extends StatelessWidget {
               Colors.black.withOpacity(0.6),
             ],
             stops: const [0.5, 0.8, 1.0],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScreenFlashOverlay extends StatelessWidget {
+  const _ScreenFlashOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 0.9,
+            colors: [
+              Colors.white.withOpacity(0.70),
+              Colors.white.withOpacity(0.32),
+              Colors.white.withOpacity(0.10),
+            ],
+            stops: const [0.0, 0.55, 1.0],
           ),
         ),
       ),
@@ -705,6 +951,18 @@ class _BottomHUD extends StatelessWidget {
                 letterSpacing: 1.5,
               ),
             ),
+            if (state.isCapturing) ...[
+              const SizedBox(height: 12),
+              Text(
+                'RAFAGA ${state.burstProgress}/${state.burstTotal}',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
 
             // Capture Button
@@ -749,28 +1007,14 @@ class _BottomHUD extends StatelessWidget {
               const Icon(Icons.check_circle, color: AppColors.success, size: 80),
 
             const SizedBox(height: 24),
-            // Progress dots
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                EmployeeProfiler.samplesRequired,
-                (i) => Container(
-                  width: 12,
-                  height: 12,
-                  margin: const EdgeInsets.symmetric(horizontal: 6),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: state.completedSamples[i] 
-                      ? AppColors.primaryLight 
-                      : Colors.white10,
-                    border: Border.all(
-                      color: state.currentSampleIndex == i 
-                        ? AppColors.primaryLight 
-                        : Colors.transparent,
-                      width: 2,
-                    ),
-                  ),
-                ),
+            // Progreso textual en vez de puntos
+            Text(
+              ' /  muestras',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
               ),
             ),
           ],
