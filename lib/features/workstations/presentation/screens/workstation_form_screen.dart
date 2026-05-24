@@ -36,7 +36,10 @@ enum _RoiPreset {
 }
 
 class WorkstationFormScreen extends ConsumerStatefulWidget {
-  const WorkstationFormScreen({super.key});
+  /// Pass [workstationId] to open in edit mode, omit for create mode.
+  const WorkstationFormScreen({super.key, this.workstationId});
+
+  final String? workstationId;
 
   @override
   ConsumerState<WorkstationFormScreen> createState() =>
@@ -53,13 +56,49 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
   double _geofenceRadius = 100.0;
   bool _isLoadingLocation = false;
   bool _isSaving = false;
+  bool _isLoadingData = false;
   String? _selectedEmployeeId;
   _RoiPreset _selectedRoiPreset = _RoiPreset.centerDesk;
+  String? _editingId; // original ID when editing
+
+  bool get _isEditing => widget.workstationId != null;
 
   @override
   void initState() {
     super.initState();
-    _deviceIdController.text = const Uuid().v4();
+    if (_isEditing) {
+      _loadExistingWorkstation();
+    } else {
+      _deviceIdController.text = const Uuid().v4();
+    }
+  }
+
+  Future<void> _loadExistingWorkstation() async {
+    setState(() => _isLoadingData = true);
+    try {
+      final workstations = await ref.read(workstationsProvider.future);
+      final ws = workstations.where((w) => w.id == widget.workstationId).firstOrNull;
+      if (ws != null && mounted) {
+        setState(() {
+          _editingId = ws.id;
+          _nameController.text = ws.name;
+          _deviceIdController.text = ws.deviceId ?? '';
+          _latitude = ws.latitude;
+          _longitude = ws.longitude;
+          _geofenceRadius = ws.geofenceRadius ?? 100.0;
+          _selectedEmployeeId = ws.assignedEmployeeId;
+          // Map existing ROI to closest preset
+          if (ws.roi != null) {
+            _selectedRoiPreset = _RoiPreset.values.firstWhere(
+              (p) => p.roi.x == ws.roi!.x && p.roi.y == ws.roi!.y,
+              orElse: () => _RoiPreset.centerDesk,
+            );
+          }
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingData = false);
+    }
   }
 
   @override
@@ -139,12 +178,14 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
 
     final currentUser = ref.read(currentUserProvider).value;
     final companyId = currentUser?.companyId ?? AppConstants.defaultCompanyId;
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
 
     setState(() => _isSaving = true);
 
     try {
-      final newWorkstation = Workstation(
-        id: const Uuid().v4(),
+      final workstation = Workstation(
+        id: _editingId ?? const Uuid().v4(),
         name: _nameController.text.trim(),
         companyId: companyId,
         deviceId: _deviceIdController.text.trim(),
@@ -155,30 +196,26 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
         roi: _selectedRoiPreset.roi,
       );
 
-      await ref.read(saveWorkstationUseCaseProvider)(newWorkstation);
+      await ref.read(saveWorkstationUseCaseProvider)(workstation);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(AppStrings.workstationSaved),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        context.pop();
-      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(_isEditing
+              ? 'Estación actualizada correctamente'
+              : AppStrings.workstationSaved),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      navigator.pop();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al guardar: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Error al guardar: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
     } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -227,9 +264,16 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingData) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Cargando...')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppStrings.newWorkstation),
+        title: Text(_isEditing ? 'Editar estación' : AppStrings.newWorkstation),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
@@ -364,9 +408,9 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
                         height: 24,
                         child: CircularProgressIndicator(color: AppColors.white),
                       )
-                    : const Text(
-                        AppStrings.saveWorkstation,
-                        style: TextStyle(fontSize: 16),
+                    : Text(
+                        _isEditing ? 'Actualizar estación' : AppStrings.saveWorkstation,
+                        style: const TextStyle(fontSize: 16),
                       ),
               ),
             ],

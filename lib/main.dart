@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'shared/services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,7 +31,9 @@ Future<void> main() async {
     anonKey: supabaseAnonKey,
   );
 
-  // Restaurar sesión al arrancar
+  // Inicializar notificaciones locales
+  await NotificationService.instance.initialize();
+  await NotificationService.instance.requestPermissions();
 
   runApp(
     const ProviderScope(

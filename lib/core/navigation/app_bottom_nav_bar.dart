@@ -15,6 +15,17 @@ class AppBottomNavBar extends StatelessWidget {
     required this.onDestinationSelected,
   });
 
+  Widget _withBadge(Widget child, int count) {
+    if (count <= 0) return child;
+    return Badge.count(
+      count: count,
+      backgroundColor: AppColors.error,
+      textColor: AppColors.white,
+      textStyle: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return NavigationBar(
@@ -27,8 +38,8 @@ class AppBottomNavBar extends StatelessWidget {
       indicatorColor: AppColors.primary.withValues(alpha: 0.25),
       destinations: destinations.map((d) {
         return NavigationDestination(
-          icon: d.icon,
-          selectedIcon: d.selectedIcon,
+          icon: _withBadge(d.icon, d.badgeCount),
+          selectedIcon: _withBadge(d.selectedIcon, d.badgeCount),
           label: d.label,
         );
       }).toList(),

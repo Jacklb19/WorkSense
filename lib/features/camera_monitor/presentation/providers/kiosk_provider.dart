@@ -409,7 +409,11 @@ class KioskNotifier extends StateNotifier<KioskState> {
       
       final bool isRunning = _cameraController != null && state.cameraInitialized;
 
-      if (status == 'ACTIVE' && !isRunning) {
+      // Only start the monitoring camera when an enrolled profile exists.
+      // Starting it without a profile would (a) block touches on the enrollment UI,
+      // (b) draw pose/face landmarks over the enrollment text, and
+      // (c) conflict with the enrollment camera for the physical camera resource.
+      if (status == 'ACTIVE' && !isRunning && state.isEmployeeScanned) {
         debugPrint('[REALTIME] Activating camera for $workstationId');
         final cameras = await availableCameras();
         await initializeCamera(cameras);

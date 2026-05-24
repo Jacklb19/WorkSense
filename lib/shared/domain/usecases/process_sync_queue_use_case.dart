@@ -348,6 +348,230 @@ Future<void> _performPull(List<String> errors, String companyId) async {
             ),
           );
     }
+
+    // ── Phase 1+2: Pull tasks, leaves, alerts, announcements, attendance ─────
+    await _pullTasks(errors, companyId);
+    await _pullLeaveRequests(errors, companyId);
+    await _pullAlertLogs(errors, companyId);
+    await _pullAnnouncements(errors, companyId);
+    await _pullAttendanceLogs(errors, companyId);
+
+    // ── Phase 5: Pull shifts ──────────────────────────────────────────────────
+    await _pullShifts(errors, companyId);
+  }
+
+  Future<void> _pullTasks(List<String> errors, String companyId) async {
+    try {
+      final rows = await _remote.fetchByCompany('tasks', companyId);
+      debugPrint('[Sync PULL] tasks remotas: ${rows.length}');
+      for (final r in rows) {
+        await _db.into(_db.taskRecords).insertOnConflictUpdate(
+              TaskData(
+                id: r['id'] as String,
+                companyId: r['company_id'] as String,
+                assignedToId: r['assigned_to_id'] as String,
+                createdById: (r['created_by_id'] as String?) ?? '',
+                title: (r['title'] as String?) ?? '',
+                description: r['description'] as String?,
+                status: (r['status'] as String?) ?? 'PENDING',
+                priority: (r['priority'] as String?) ?? 'NORMAL',
+                dueDate: r['due_date'] != null
+                    ? DateTime.parse(r['due_date'] as String)
+                    : null,
+                createdAt: r['created_at'] != null
+                    ? DateTime.parse(r['created_at'] as String)
+                    : DateTime.now(),
+                updatedAt: r['updated_at'] != null
+                    ? DateTime.parse(r['updated_at'] as String)
+                    : DateTime.now(),
+                synced: true,
+              ),
+            );
+      }
+    } catch (e) {
+      debugPrint('[Sync PULL] Error pulling tasks: $e');
+      errors.add('Pull tasks: $e');
+    }
+  }
+
+  Future<void> _pullLeaveRequests(List<String> errors, String companyId) async {
+    try {
+      final rows = await _remote.fetchByCompany('leave_requests', companyId);
+      debugPrint('[Sync PULL] leave_requests remotas: ${rows.length}');
+      for (final r in rows) {
+        await _db.into(_db.leaveRequestRecords).insertOnConflictUpdate(
+              LeaveRequestData(
+                id: r['id'] as String,
+                employeeId: r['employee_id'] as String,
+                companyId: r['company_id'] as String,
+                type: (r['type'] as String?) ?? 'PERSONAL',
+                status: (r['status'] as String?) ?? 'PENDING',
+                startDate: DateTime.parse(r['start_date'] as String),
+                endDate: DateTime.parse(r['end_date'] as String),
+                reason: r['reason'] as String?,
+                reviewedById: r['reviewed_by_id'] as String?,
+                reviewNote: r['review_note'] as String?,
+                createdAt: r['created_at'] != null
+                    ? DateTime.parse(r['created_at'] as String)
+                    : DateTime.now(),
+                updatedAt: r['updated_at'] != null
+                    ? DateTime.parse(r['updated_at'] as String)
+                    : DateTime.now(),
+                synced: true,
+              ),
+            );
+      }
+    } catch (e) {
+      debugPrint('[Sync PULL] Error pulling leave_requests: $e');
+      errors.add('Pull leave_requests: $e');
+    }
+  }
+
+  Future<void> _pullAlertLogs(List<String> errors, String companyId) async {
+    try {
+      final rows = await _remote.fetchByCompany(
+        'alert_logs',
+        companyId,
+        orderBy: 'triggered_at',
+        ascending: false,
+        limit: 200,
+      );
+      debugPrint('[Sync PULL] alert_logs remotas: ${rows.length}');
+      for (final r in rows) {
+        await _db.into(_db.alertLogRecords).insertOnConflictUpdate(
+              AlertLogData(
+                id: r['id'] as String,
+                companyId: r['company_id'] as String,
+                employeeId: r['employee_id'] as String?,
+                workstationId: r['workstation_id'] as String?,
+                alertType: (r['alert_type'] as String?) ?? 'ABSENCE',
+                durationSeconds: (r['duration_seconds'] as int?) ?? 0,
+                triggeredAt: r['triggered_at'] != null
+                    ? DateTime.parse(r['triggered_at'] as String)
+                    : DateTime.now(),
+                acknowledged: (r['acknowledged'] as bool?) ?? false,
+              ),
+            );
+      }
+    } catch (e) {
+      debugPrint('[Sync PULL] Error pulling alert_logs: $e');
+      errors.add('Pull alert_logs: $e');
+    }
+  }
+
+  Future<void> _pullAnnouncements(List<String> errors, String companyId) async {
+    try {
+      final rows = await _remote.fetchByCompany('announcements', companyId);
+      debugPrint('[Sync PULL] announcements remotas: ${rows.length}');
+      for (final r in rows) {
+        await _db.into(_db.announcementRecords).insertOnConflictUpdate(
+              AnnouncementData(
+                id: r['id'] as String,
+                companyId: r['company_id'] as String,
+                authorId: (r['author_id'] as String?) ?? '',
+                title: (r['title'] as String?) ?? '',
+                content: (r['content'] as String?) ?? '',
+                priority: (r['priority'] as String?) ?? 'NORMAL',
+                createdAt: r['created_at'] != null
+                    ? DateTime.parse(r['created_at'] as String)
+                    : DateTime.now(),
+                expiresAt: r['expires_at'] != null
+                    ? DateTime.parse(r['expires_at'] as String)
+                    : null,
+                synced: true,
+              ),
+            );
+      }
+    } catch (e) {
+      debugPrint('[Sync PULL] Error pulling announcements: $e');
+      errors.add('Pull announcements: $e');
+    }
+  }
+
+  /// Parses an HH:MM:SS time string to its hour component.
+  int _timeHour(String? raw) {
+    if (raw == null || raw.isEmpty) return 0;
+    return int.tryParse(raw.split(':')[0]) ?? 0;
+  }
+
+  /// Parses an HH:MM:SS time string to its minute component.
+  int _timeMinute(String? raw) {
+    if (raw == null || raw.isEmpty) return 0;
+    final parts = raw.split(':');
+    return parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+  }
+
+  Future<void> _pullShifts(List<String> errors, String companyId) async {
+    try {
+      final rows = await _remote.fetchByCompany('shifts', companyId);
+      debugPrint('[Sync PULL] shifts remotos: ${rows.length}');
+      for (final r in rows) {
+        // Remote stores times as 'HH:MM:SS' strings — parse to hour/minute ints
+        final startRaw = r['start_time'] as String?;
+        final endRaw = r['end_time'] as String?;
+        final breakStartRaw = r['break_time_start'] as String?;
+        final breakEndRaw = r['break_time_end'] as String?;
+
+        await _db.into(_db.shiftRecords).insertOnConflictUpdate(
+              ShiftRecordData(
+                id: r['id'] as String,
+                companyId: r['company_id'] as String,
+                name: (r['name'] as String?) ?? '',
+                startHour: _timeHour(startRaw),
+                startMinute: _timeMinute(startRaw),
+                endHour: _timeHour(endRaw),
+                endMinute: _timeMinute(endRaw),
+                breakStartHour: breakStartRaw != null ? _timeHour(breakStartRaw) : null,
+                breakStartMinute: breakStartRaw != null ? _timeMinute(breakStartRaw) : null,
+                breakEndHour: breakEndRaw != null ? _timeHour(breakEndRaw) : null,
+                breakEndMinute: breakEndRaw != null ? _timeMinute(breakEndRaw) : null,
+                createdAt: r['created_at'] != null
+                    ? DateTime.parse(r['created_at'] as String)
+                    : DateTime.now(),
+              ),
+            );
+      }
+    } catch (e) {
+      debugPrint('[Sync PULL] Error pulling shifts: $e');
+      errors.add('Pull shifts: $e');
+    }
+  }
+
+  Future<void> _pullAttendanceLogs(List<String> errors, String companyId) async {
+    try {
+      final rows = await _remote.fetchByCompany(
+        'attendance_logs',
+        companyId,
+        orderBy: 'clock_in_time',
+        ascending: false,
+        limit: 300,
+      );
+      debugPrint('[Sync PULL] attendance_logs remotas: ${rows.length}');
+      for (final r in rows) {
+        await _db.into(_db.attendanceLogs).insertOnConflictUpdate(
+              AttendanceLogData(
+                id: r['id'] as String,
+                employeeId: r['employee_id'] as String,
+                workstationId: r['workstation_id'] as String?,
+                companyId: r['company_id'] as String,
+                shiftDate: r['shift_date'] != null
+                    ? DateTime.parse(r['shift_date'] as String)
+                    : DateTime.now(),
+                clockInTime: r['clock_in_time'] != null
+                    ? DateTime.parse(r['clock_in_time'] as String)
+                    : DateTime.now(),
+                clockOutTime: r['clock_out_time'] != null
+                    ? DateTime.parse(r['clock_out_time'] as String)
+                    : null,
+                status: (r['status'] as String?) ?? 'ON_TIME',
+                synced: true,
+              ),
+            );
+      }
+    } catch (e) {
+      debugPrint('[Sync PULL] Error pulling attendance_logs: $e');
+      errors.add('Pull attendance_logs: $e');
+    }
   }
 }
 

@@ -289,6 +289,36 @@ String? get currentCompanyId {
     }
   }
 
+  /// Generic fetch by company_id for Phase 1+2 tables (tasks, leave_requests,
+  /// alert_logs, announcements).
+  Future<List<Map<String, dynamic>>> fetchByCompany(
+    String table,
+    String companyId, {
+    String orderBy = 'created_at',
+    bool ascending = false,
+    int? limit,
+  }) async {
+    try {
+      var query = _client
+          .from(table)
+          .select()
+          .eq('company_id', companyId)
+          .order(orderBy, ascending: ascending);
+      if (limit != null) {
+        query = query.limit(limit);
+      }
+      final response = await query;
+      return List<Map<String, dynamic>>.from(response);
+    } on PostgrestException catch (e) {
+      // Table may not exist in remote yet — return empty gracefully
+      debugPrint('[SupabaseDataSource] fetchByCompany($table): ${e.message}');
+      return [];
+    } catch (e) {
+      debugPrint('[SupabaseDataSource] fetchByCompany($table) unexpected: $e');
+      return [];
+    }
+  }
+
   // Test de conectividad aislado
   Future<bool> testConnection() async {
     try {

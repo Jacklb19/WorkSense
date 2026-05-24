@@ -6,7 +6,8 @@ import 'package:worksense_app/features/dashboard/presentation/providers/shifts_p
 import 'package:uuid/uuid.dart';
 
 class ShiftFormScreen extends ConsumerStatefulWidget {
-  const ShiftFormScreen({super.key});
+  final String? shiftId;
+  const ShiftFormScreen({super.key, this.shiftId});
 
   @override
   ConsumerState<ShiftFormScreen> createState() => _ShiftFormScreenState();
@@ -15,13 +16,46 @@ class ShiftFormScreen extends ConsumerStatefulWidget {
 class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  
+
   TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 18, minute: 0);
   bool _hasBreak = false;
   TimeOfDay _breakStartTime = const TimeOfDay(hour: 13, minute: 0);
   TimeOfDay _breakEndTime = const TimeOfDay(hour: 14, minute: 0);
   bool _hasListened = false;
+
+  bool _isLoadingData = false;
+  String? _editingId;
+  bool get _isEditing => _editingId != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.shiftId != null) {
+      _loadExistingShift();
+    }
+  }
+
+  Future<void> _loadExistingShift() async {
+    setState(() => _isLoadingData = true);
+    try {
+      final repo = ref.read(shiftRepositoryProvider);
+      final shift = await repo.getShiftById(widget.shiftId!);
+      if (shift != null && mounted) {
+        setState(() {
+          _editingId = shift.id;
+          _nameController.text = shift.name;
+          _startTime = shift.startTime;
+          _endTime = shift.endTime;
+          _hasBreak = shift.hasBreak;
+          if (shift.breakStartTime != null) _breakStartTime = shift.breakStartTime!;
+          if (shift.breakEndTime != null) _breakEndTime = shift.breakEndTime!;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingData = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -70,7 +104,7 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
       return;
     }
 
-    final id = const Uuid().v4();
+    final id = _editingId ?? const Uuid().v4();
     await ref.read(shiftFormNotifierProvider.notifier).saveShift(
       id: id,
       name: _nameController.text.trim(),
@@ -82,6 +116,7 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
       breakStartMinute: _hasBreak ? _breakStartTime.minute : null,
       breakEndHour: _hasBreak ? _breakEndTime.hour : null,
       breakEndMinute: _hasBreak ? _breakEndTime.minute : null,
+      isEdit: _isEditing,
     );
   }
 
@@ -174,8 +209,8 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
       if (next.saved && !_hasListened) {
         _hasListened = true;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Turno registrado exitosamente'),
+          SnackBar(
+            content: Text(_isEditing ? 'Turno actualizado exitosamente' : 'Turno registrado exitosamente'),
             backgroundColor: Colors.green,
           ),
         );
@@ -183,9 +218,16 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
       }
     });
 
+    if (_isLoadingData) {
+      return Scaffold(
+        appBar: AppBar(title: Text(_isEditing ? 'Editar Horario' : 'Configurar Horario')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Configurar Horario'),
+        title: Text(_isEditing ? 'Editar Horario' : 'Configurar Horario'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -301,9 +343,9 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
               FilledButton(
                 onPressed: formState.isLoading ? null : _handleSubmit,
                 style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, 60)),
-                child: formState.isLoading 
-                  ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
-                  : const Text('GUARDAR TURNO'),
+                child: formState.isLoading
+                  ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                  : Text(_isEditing ? 'ACTUALIZAR TURNO' : 'GUARDAR TURNO'),
               ),
               if (formState.errorMessage != null) ...[
                 const SizedBox(height: 16),

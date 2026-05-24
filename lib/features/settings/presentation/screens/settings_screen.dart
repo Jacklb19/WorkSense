@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:worksense_app/core/constants/app_constants.dart';
 import 'package:worksense_app/core/constants/ai_thresholds.dart';
+import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
@@ -56,6 +58,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             leading: const Icon(Icons.account_circle_outlined),
             title: const Text(AppStrings.user),
             subtitle: Text(userEmail ?? AppStrings.notAvailable),
+          ),
+          ListTile(
+            leading: const Icon(Icons.person_outline, color: AppColors.primary),
+            title: const Text('Mi perfil'),
+            subtitle: const Text(
+              'Estadísticas, turno y datos personales',
+              style: TextStyle(fontSize: 12),
+            ),
+            trailing: const Icon(Icons.chevron_right, size: 20),
+            onTap: () => context.push(AppRoutes.profile),
           ),
 
           const Divider(),

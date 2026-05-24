@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/features/alerts/presentation/screens/alert_log_screen.dart';
+import 'package:worksense_app/features/announcements/presentation/screens/announcement_form_screen.dart';
+import 'package:worksense_app/features/announcements/presentation/screens/announcements_screen.dart';
 import 'package:worksense_app/features/auth/presentation/screens/login_screen.dart';
+import 'package:worksense_app/features/reports/presentation/screens/reports_screen.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/kiosk_screen.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/entrance_kiosk_screen.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/screens/kiosk_waiting_screen.dart';
@@ -15,7 +19,12 @@ import 'package:worksense_app/features/employees/presentation/screens/employee_f
 import 'package:worksense_app/features/employees/presentation/screens/employees_list_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/shifts_list_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/shift_form_screen.dart';
+import 'package:worksense_app/features/leaves/presentation/screens/leave_request_form_screen.dart';
+import 'package:worksense_app/features/leaves/presentation/screens/leaves_list_screen.dart';
 import 'package:worksense_app/features/settings/presentation/screens/settings_screen.dart';
+import 'package:worksense_app/features/tasks/presentation/screens/task_form_screen.dart';
+import 'package:worksense_app/features/tasks/presentation/screens/tasks_list_screen.dart';
+import 'package:worksense_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:worksense_app/features/workstations/presentation/screens/workstation_form_screen.dart';
 import 'package:worksense_app/features/workstations/presentation/screens/workstations_list_screen.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
@@ -31,6 +40,8 @@ final GlobalKey<NavigatorState> _shellNavigatorWorkstationsKey = GlobalKey<Navig
 final GlobalKey<NavigatorState> _shellNavigatorHistoryKey = GlobalKey<NavigatorState>(debugLabel: 'shellHistory');
 final GlobalKey<NavigatorState> _shellNavigatorSettingsKey = GlobalKey<NavigatorState>(debugLabel: 'shellSettings');
 final GlobalKey<NavigatorState> _shellNavigatorShiftsKey = GlobalKey<NavigatorState>(debugLabel: 'shellShifts');
+final GlobalKey<NavigatorState> _shellNavigatorTasksKey = GlobalKey<NavigatorState>(debugLabel: 'shellTasks');
+final GlobalKey<NavigatorState> _shellNavigatorLeavesKey = GlobalKey<NavigatorState>(debugLabel: 'shellLeaves');
 
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -79,6 +90,11 @@ final routerProvider = Provider<GoRouter>((ref) {
               AppRoutes.myActivity,
               AppRoutes.myHours,
               AppRoutes.settings,
+              AppRoutes.tasks,
+              AppRoutes.leaves,
+              AppRoutes.leaveNew,
+              AppRoutes.announcements,
+              AppRoutes.profile,
             ];
             if (!allowedEmployeeRoutes.contains(loc) &&
                 loc != AppRoutes.login) {
@@ -170,7 +186,108 @@ final routerProvider = Provider<GoRouter>((ref) {
           child: ShiftFormScreen(),
         ),
       ),
-      
+
+      // Shift form (edit)
+      GoRoute(
+        path: AppRoutes.shiftEdit,
+        name: 'shift-edit',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final shiftId = state.pathParameters['shiftId']!;
+          return MaterialPage(child: ShiftFormScreen(shiftId: shiftId));
+        },
+      ),
+
+      // ── Fase 1: Task routes ──────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.taskNew,
+        name: 'task-new',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: TaskFormScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.taskEdit,
+        name: 'task-edit',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final taskId = state.pathParameters['taskId']!;
+          return MaterialPage(child: TaskFormScreen(taskId: taskId));
+        },
+      ),
+
+      // ── Fase 1: Leave routes ─────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.leaveNew,
+        name: 'leave-new',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: LeaveRequestFormScreen(),
+        ),
+      ),
+
+      // ── Fase 1: Alert log ────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.alertLog,
+        name: 'alert-log',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: AlertLogScreen(),
+        ),
+      ),
+
+      // ── Fase 2: Announcements ─────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.announcements,
+        name: 'announcements',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: AnnouncementsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.announcementNew,
+        name: 'announcement-new',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: AnnouncementFormScreen(),
+        ),
+      ),
+
+      // ── Fase 2: Reports ───────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.reports,
+        name: 'reports',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: ReportsScreen(),
+        ),
+      ),
+
+      // ── Fase 3: Profile ───────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.profile,
+        name: 'profile',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) => const MaterialPage(
+          child: ProfileScreen(),
+        ),
+      ),
+
+      // ── Fase 3: Workstation Edit ──────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.workstationEdit,
+        name: 'workstation-edit',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final workstationId = state.pathParameters['workstationId']!;
+          return MaterialPage(
+            child: WorkstationFormScreen(workstationId: workstationId),
+          );
+        },
+      ),
+
       // Analytics detail
       GoRoute(
         path: AppRoutes.analyticsDetail,
@@ -269,6 +386,34 @@ final routerProvider = Provider<GoRouter>((ref) {
                 name: 'shifts',
                 pageBuilder: (context, state) => const NoTransitionPage(
                   child: ShiftsListScreen(),
+                ),
+              ),
+            ],
+          ),
+
+          // Branch 6: Tasks (All roles)
+          StatefulShellBranch(
+            navigatorKey: _shellNavigatorTasksKey,
+            routes: [
+              GoRoute(
+                path: AppRoutes.tasks,
+                name: 'tasks',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: TasksListScreen(),
+                ),
+              ),
+            ],
+          ),
+
+          // Branch 7: Leaves (All roles)
+          StatefulShellBranch(
+            navigatorKey: _shellNavigatorLeavesKey,
+            routes: [
+              GoRoute(
+                path: AppRoutes.leaves,
+                name: 'leaves',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: LeavesListScreen(),
                 ),
               ),
             ],

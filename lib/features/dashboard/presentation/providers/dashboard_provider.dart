@@ -89,9 +89,4 @@ final lastEventByWorkstationProvider =
 });
 
 // ── Pending Sync Count ───────────────────────────────────────────────────────
-
-final pendingSyncCountProvider = FutureProvider<int>((ref) async {
-  final syncRepo = ref.watch(syncRepositoryProvider);
-  final pending = await syncRepo.getPending();
-  return pending.length;
-});
+// Definido en sync_state_provider.dart (StreamProvider que hace polling c/5s).

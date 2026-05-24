@@ -116,18 +116,23 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
             else
               const _LoadingView(),
 
-            if (kioskState.cameraInitialized)
-              CustomPaint(
-                painter: ActivityOverlayPainter(
-                  state: kioskState.currentState,
-                  confidence: kioskState.confidence,
-                  poses: kioskState.poses,
-                  faces: kioskState.faces,
-                  imageSize: kioskState.imageSize,
-                  identificationMethod: kioskState.identificationMethod,
-                  identityConfidence: kioskState.identityConfidence,
+            // Only draw the activity overlay when an enrolled employee is present.
+            // Without this guard, the SizedBox.expand() child blocks all taps on
+            // the enrollment UI and the landmark painter draws over its text.
+            if (kioskState.cameraInitialized && kioskState.isEmployeeScanned)
+              IgnorePointer(
+                child: CustomPaint(
+                  painter: ActivityOverlayPainter(
+                    state: kioskState.currentState,
+                    confidence: kioskState.confidence,
+                    poses: kioskState.poses,
+                    faces: kioskState.faces,
+                    imageSize: kioskState.imageSize,
+                    identificationMethod: kioskState.identificationMethod,
+                    identityConfidence: kioskState.identityConfidence,
+                  ),
+                  child: const SizedBox.expand(),
                 ),
-                child: const SizedBox.expand(),
               ),
 
             // OVERLAYS
@@ -172,7 +177,7 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
                     onExit: ref.read(kioskProvider.notifier).requestExit,
                   ),
                 ),
-            ] else if (kioskState.workstationStatus == 'ACTIVE') ...[
+            ] else if (kioskState.workstationStatus == 'ACTIVE' && kioskState.isEmployeeScanned) ...[
                Positioned(top: 64, left: 0, right: 0,
                  child: _IdentifyingHUD(isProcessing: kioskState.isProcessing),
                ),
@@ -377,7 +382,19 @@ class _NoProfileView extends StatelessWidget {
               FilledButton.icon(
                 icon: const Icon(Icons.camera_alt),
                 label: const Text('EMPEZAR CAPTURA'),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EmployeeScanScreen(workstationId: workstationId, employeeId: assignedEmployeeId!, onComplete: () { Navigator.pop(context); onScanComplete(); }))),
+                // EmployeeScanScreen pops itself on completion and then calls onComplete.
+                // Do NOT capture context here for Navigator.pop — let the enrollment
+                // screen handle its own lifecycle to avoid camera resource conflicts.
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => EmployeeScanScreen(
+                      workstationId: workstationId,
+                      employeeId: assignedEmployeeId!,
+                      onComplete: onScanComplete,
+                    ),
+                  ),
+                ),
               ),
           ],
         ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/domain/entities/shift.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
 
@@ -36,7 +37,7 @@ class ShiftsListScreen extends ConsumerWidget {
                 final shift = shifts[index];
                 final String startStr = '${shift.startTime.hour}:${shift.startTime.minute.toString().padLeft(2, '0')}';
                 final String endStr = '${shift.endTime.hour}:${shift.endTime.minute.toString().padLeft(2, '0')}';
-                
+
                 return Card(
                   elevation: 2,
                   shape: RoundedRectangleBorder(
@@ -64,10 +65,23 @@ class ShiftsListScreen extends ConsumerWidget {
                         style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.grey500),
                       ),
                     ),
-                    trailing: const Icon(Icons.chevron_right, color: AppColors.grey400),
-                    onTap: () {
-                      // TODO: Implementar edicion
-                    },
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
+                          tooltip: 'Editar',
+                          onPressed: () => context.push(
+                            AppRoutes.shiftEdit.replaceFirst(':shiftId', shift.id),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                          tooltip: 'Eliminar',
+                          onPressed: () => _confirmDelete(context, ref, shift),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -82,6 +96,30 @@ class ShiftsListScreen extends ConsumerWidget {
         backgroundColor: AppColors.primary,
       ),
     );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, Shift shift) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Eliminar turno'),
+        content: Text('¿Eliminar "${shift.name}"? Esta acción no se puede deshacer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && context.mounted) {
+      await ref.read(deleteShiftUseCaseProvider).call(shift.id);
+      ref.invalidate(shiftsProvider);
+    }
   }
 }
 

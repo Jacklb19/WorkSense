@@ -9,16 +9,75 @@ import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
 import 'package:intl/intl.dart';
 
-class EmployeesListScreen extends ConsumerWidget {
+class EmployeesListScreen extends ConsumerStatefulWidget {
   const EmployeesListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EmployeesListScreen> createState() =>
+      _EmployeesListScreenState();
+}
+
+class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final employeesAsync = ref.watch(adminEmployeesProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStrings.employees),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: TextField(
+              controller: _searchCtrl,
+              onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+              style: const TextStyle(fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Buscar por nombre o email…',
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: _query.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          setState(() => _query = '');
+                        },
+                      )
+                    : null,
+                isDense: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: AppColors.glassBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: AppColors.glassBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: AppColors.primary),
+                ),
+                filled: true,
+                fillColor: AppColors.cardDark,
+              ),
+            ),
+          ),
+        ),
       ),
       body: employeesAsync.when(
         loading: () => const AppLoadingWidget(),
@@ -29,16 +88,43 @@ class EmployeesListScreen extends ConsumerWidget {
           ),
         ),
         data: (employees) {
+          // Apply search filter
+          final filtered = _query.isEmpty
+              ? employees
+              : employees
+                  .where((e) =>
+                      e.displayName.toLowerCase().contains(_query) ||
+                      e.email.toLowerCase().contains(_query))
+                  .toList();
+
           if (employees.isEmpty) {
             return const _EmptyEmployeesView();
           }
 
+          if (filtered.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.search_off,
+                      size: 48, color: AppColors.grey300),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Sin resultados para "$_query"',
+                    style: const TextStyle(
+                        color: AppColors.grey500, fontSize: 14),
+                  ),
+                ],
+              ),
+            );
+          }
+
           return ListView.separated(
-            itemCount: employees.length,
+            itemCount: filtered.length,
             separatorBuilder: (_, __) =>
                 const Divider(height: 1, indent: 72),
             itemBuilder: (context, index) {
-              final employee = employees[index];
+              final employee = filtered[index];
               return ListTile(
                 leading: CircleAvatar(
                   backgroundColor: AppColors.primary.withValues(alpha: 0.1),
@@ -54,7 +140,9 @@ class EmployeesListScreen extends ConsumerWidget {
                 ),
                 title: Text(employee.displayName),
                 subtitle: Text(
-                  'Registrado el ${DateFormat('dd/MM/yyyy').format(employee.createdAt)}',
+                  employee.email.isNotEmpty
+                      ? employee.email
+                      : 'Registrado el ${DateFormat('dd/MM/yyyy').format(employee.createdAt)}',
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.grey500,
@@ -119,7 +207,8 @@ class EmployeesListScreen extends ConsumerWidget {
   }
 
   void _navigateToEdit(BuildContext context, WidgetRef ref, String employeeId) {
-    final route = AppRoutes.employeeEdit.replaceFirst(':employeeId', employeeId);
+    final route =
+        AppRoutes.employeeEdit.replaceFirst(':employeeId', employeeId);
     context.push(route).then((_) {
       ref.invalidate(adminEmployeesProvider);
     });
@@ -156,10 +245,10 @@ class EmployeesListScreen extends ConsumerWidget {
       await ref
           .read(employeeFormNotifierProvider.notifier)
           .deleteEmployee(id);
-      
-      // Forzar y esperar la sincronización para que Supabase se actualice antes de recargar
+
+      // Force sync so Supabase reflects the delete before reload
       await ref.read(syncNotifierProvider.notifier).sync();
-      
+
       ref.invalidate(adminEmployeesProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -6,7 +6,10 @@ import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
+import 'package:worksense_app/domain/entities/task_item.dart';
+import 'package:worksense_app/features/announcements/presentation/providers/announcements_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
+import 'package:worksense_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
 import 'package:worksense_app/shared/widgets/sync_indicator_widget.dart';
@@ -24,9 +27,10 @@ class EmployeeDashboardScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text(AppStrings.mySpace),
         centerTitle: false,
-        actions: const [
-          SyncIndicatorWidget(),
-          SizedBox(width: 8),
+        actions: [
+          _AnnouncementBell(ref: ref),
+          const SyncIndicatorWidget(),
+          const SizedBox(width: 8),
         ],
       ),
       body: RefreshIndicator(
@@ -99,6 +103,20 @@ class EmployeeDashboardScreen extends ConsumerWidget {
               const _RecentActivitySection(),
               const SizedBox(height: 24),
 
+              // Section 4: Task Mini Widget
+              const Text(
+                'MIS TAREAS',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                  color: AppColors.grey600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const _TaskMiniWidget(),
+              const SizedBox(height: 24),
+
               const Text(
                 'ACCESOS RAPIDOS',
                 style: TextStyle(
@@ -121,6 +139,13 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                 title: 'Mis horas',
                 subtitle: 'Consultar horas, sesiones y resumen diario',
                 route: AppRoutes.myHours,
+              ),
+              const SizedBox(height: 12),
+              const _QuickAccessCard(
+                icon: Icons.person_outline,
+                title: 'Mi perfil',
+                subtitle: 'Ver estadísticas personales y datos de cuenta',
+                route: AppRoutes.profile,
               ),
               const SizedBox(height: 40),
             ],
@@ -470,6 +495,145 @@ class _RecentActivitySection extends ConsumerWidget {
     final min = time.minute.toString().padLeft(2, '0');
     final sec = time.second.toString().padLeft(2, '0');
     return '$hour:$min:$sec';
+  }
+}
+
+// ── Announcement bell button ──────────────────────────────────────────────────
+
+class _AnnouncementBell extends StatelessWidget {
+  const _AnnouncementBell({required this.ref});
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context) {
+    final unread = ref.watch(unreadAnnouncementsCountProvider);
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.campaign_outlined),
+          tooltip: 'Comunicados',
+          onPressed: () => context.push(AppRoutes.announcements),
+        ),
+        if (unread > 0)
+          Positioned(
+            top: 4,
+            right: 4,
+            child: Container(
+              width: 16,
+              height: 16,
+              decoration: const BoxDecoration(
+                color: AppColors.error,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                unread > 9 ? '9+' : '$unread',
+                style: const TextStyle(
+                  color: AppColors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// ── Task Mini Widget ────────────────────────────────────────────────────────
+
+class _TaskMiniWidget extends ConsumerWidget {
+  const _TaskMiniWidget();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasksAsync = ref.watch(myTasksProvider);
+
+    return tasksAsync.when(
+      loading: () => const SizedBox(
+        height: 60,
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      ),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (tasks) {
+        final pending = tasks.where((t) => t.status == TaskStatus.pending).length;
+        final inProgress = tasks.where((t) => t.status == TaskStatus.inProgress).length;
+        final overdue = tasks.where((t) => t.isOverdue).length;
+
+        return InkWell(
+          onTap: () => context.go(AppRoutes.tasks),
+          borderRadius: BorderRadius.circular(12),
+          child: Card(
+            elevation: 2,
+            shadowColor: Colors.black12,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  _TaskCountBadge(count: pending, label: 'Pendientes', color: AppColors.grey400),
+                  const _TaskDivider(),
+                  _TaskCountBadge(count: inProgress, label: 'En progreso', color: AppColors.primary),
+                  const _TaskDivider(),
+                  _TaskCountBadge(count: overdue, label: 'Vencidas', color: AppColors.error),
+                  const Spacer(),
+                  const Icon(Icons.chevron_right, color: AppColors.grey500),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TaskCountBadge extends StatelessWidget {
+  final int count;
+  final String label;
+  final Color color;
+
+  const _TaskCountBadge({
+    required this.count,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$count',
+          style: TextStyle(
+            color: color,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.grey500, fontSize: 10),
+        ),
+      ],
+    );
+  }
+}
+
+class _TaskDivider extends StatelessWidget {
+  const _TaskDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 30,
+      width: 1,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      color: AppColors.glassBorder,
+    );
   }
 }
 
