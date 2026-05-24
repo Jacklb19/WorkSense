@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:worksense_app/core/constants/ai_thresholds.dart';
+import 'package:worksense_app/core/constants/app_constants.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/data/datasources/remote/supabase_datasource.dart';
 import 'package:worksense_app/data/repositories/sync_repository_impl.dart';
@@ -165,15 +166,40 @@ class ProcessSyncQueueUseCase {
   }
 
   Future<void> _performPull(List<String> errors) async {
+    final userId = _remote.currentUserId;
+    debugPrint('[Sync PULL] currentUserId: "$userId"');
+    
     String? companyId = _remote.currentCompanyId;
     debugPrint('[Sync PULL] Compañía resuelta desde remote (currentCompanyId): "$companyId"');
-    if (companyId == null || companyId == 'default') {
-      final currentUser = await _remote.fetchCurrentEmployee();
-      companyId = currentUser?['company_id'] as String?;
-      debugPrint('[Sync PULL] Compañía resuelta desde empleado actual: "$companyId"');
+
+    // Fallback 1: BD local — buscar el registro del usuario actual en employee_records
+    if (companyId == null || companyId == AppConstants.defaultCompanyId || companyId.isEmpty) {
+      final userId = _remote.currentUserId;
+      if (userId != null) {
+        final localEmployee = await _db.getEmployeeRecordById(userId);
+        if (localEmployee != null &&
+            localEmployee.companyId.isNotEmpty &&
+            localEmployee.companyId != AppConstants.defaultCompanyId) {
+          companyId = localEmployee.companyId;
+          debugPrint('[Sync PULL] Compañía resuelta desde BD local (employee_records): "$companyId"');
+        }
+      }
     }
-    // Fallback: consultar public.employees directamente (misma lógica que currentUserProvider)
-    if (companyId == null || companyId == 'default') {
+
+    // Fallback 2: fetchCurrentEmployee() remoto
+    if (companyId == null || companyId == AppConstants.defaultCompanyId || companyId.isEmpty) {
+      try {
+        final currentUser = await _remote.fetchCurrentEmployee();
+        debugPrint('[Sync PULL] fetchCurrentEmployee raw response: $currentUser');
+        companyId = currentUser?['company_id'] as String?;
+        debugPrint('[Sync PULL] Compañía resuelta desde empleado actual (remoto): "$companyId"');
+      } catch (e) {
+        debugPrint('[Sync PULL] Error en fetchCurrentEmployee: $e');
+      }
+    }
+
+    // Fallback 3: consultar public.employees directamente (misma lógica que currentUserProvider)
+    if (companyId == null || companyId == AppConstants.defaultCompanyId || companyId.isEmpty) {
       try {
         final userId = _remote.currentUserId;
         if (userId != null) {
@@ -182,6 +208,7 @@ class ProcessSyncQueueUseCase {
               .select('company_id')
               .eq('id', userId)
               .maybeSingle();
+          debugPrint('[Sync PULL] employees query raw response: $row');
           companyId = row?['company_id']?.toString();
           debugPrint('[Sync PULL] Compañía resuelta desde employees remoto: "$companyId"');
         }
@@ -189,8 +216,33 @@ class ProcessSyncQueueUseCase {
         debugPrint('[Sync PULL] Error consultando employees remoto: $e');
       }
     }
+
+    // Fallback 4: inferir desde cualquier workstation o employee ya almacenado localmente
+    if (companyId == null || companyId == AppConstants.defaultCompanyId || companyId.isEmpty) {
+      final allWorkstations = await _db.getAllWorkstationRecords();
+      final wsCompany = allWorkstations
+          .map((w) => w.companyId)
+          .where((c) => c.isNotEmpty && c != AppConstants.defaultCompanyId)
+          .firstOrNull;
+      if (wsCompany != null) {
+        companyId = wsCompany;
+        debugPrint('[Sync PULL] Compañía inferida desde workstation local: "$companyId"');
+      }
+    }
+
+    if (companyId == null || companyId == AppConstants.defaultCompanyId || companyId.isEmpty) {
+      final allEmployees = await _db.getAllEmployeeRecords();
+      final empCompany = allEmployees
+          .map((e) => e.companyId)
+          .where((c) => c.isNotEmpty && c != AppConstants.defaultCompanyId)
+          .firstOrNull;
+      if (empCompany != null) {
+        companyId = empCompany;
+        debugPrint('[Sync PULL] Compañía inferida desde employee local: "$companyId"');
+      }
+    }
     final canApplyDestructivePull =
-        companyId != null && companyId.isNotEmpty && companyId != 'default';
+        companyId != null && companyId.isNotEmpty && companyId != AppConstants.defaultCompanyId;
     debugPrint('[Sync PULL] canApplyDestructivePull: $canApplyDestructivePull');
 
     final pendingSyncEntries = await _db.getPendingSyncQueueEntries();

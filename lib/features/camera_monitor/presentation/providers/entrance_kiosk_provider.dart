@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:worksense_app/core/constants/ai_thresholds.dart';
+import 'package:worksense_app/core/constants/app_constants.dart';
 import 'package:worksense_app/core/utils/biometric_utils.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/data/repositories/attendance_repository_impl.dart';
@@ -153,16 +154,9 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
     if (metadata == null) return null;
     final lowerKey = key.toLowerCase();
     for (final k in metadata.keys) {
-      if (k.toLowerCase() == lowerKey) {
+      final lk = k.toLowerCase();
+      if (lk == lowerKey) {
         return metadata[k]?.toString();
-      }
-    }
-    if (lowerKey == 'company_id') {
-      for (final k in metadata.keys) {
-        final lk = k.toLowerCase();
-        if (lk == 'companyid' || lk == 'company_id') {
-          return metadata[k]?.toString();
-        }
       }
     }
     return null;
@@ -173,7 +167,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
     if (user == null) return null;
     final companyId = _getMetadataKey(user.appMetadata, 'company_id') ??
         _getMetadataKey(user.userMetadata, 'company_id');
-    if (companyId == null || companyId.isEmpty || companyId == 'default') {
+    if (companyId == null || companyId.isEmpty || companyId == AppConstants.defaultCompanyId) {
       return null;
     }
     return companyId;

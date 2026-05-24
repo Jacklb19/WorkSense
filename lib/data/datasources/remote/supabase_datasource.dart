@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:worksense_app/core/constants/app_constants.dart';
 import 'package:worksense_app/domain/entities/app_role.dart';
 
 class SupabaseDataSource {
@@ -96,7 +97,7 @@ class SupabaseDataSource {
           .select()
           .not('employee_id', 'is', null);
       
-      if (companyId != null && companyId != 'default') {
+      if (companyId != null && companyId != AppConstants.defaultCompanyId) {
         query = query.eq('company_id', companyId);
       }
 
@@ -165,39 +166,60 @@ class SupabaseDataSource {
 
   Future<Map<String, dynamic>?> fetchCurrentEmployee() async {
     final userId = currentUserId;
-    if (userId == null) return null;
+    final user = _client.auth.currentUser;
+    if (userId == null || user == null) return null;
     try {
       final response = await _client
           .from('employees')
           .select()
           .eq('id', userId)
           .maybeSingle();
+      
+      // Auto-repair: if employee record doesn't exist but user is authenticated,
+      // create a minimal record using JWT metadata
+      if (response == null) {
+        final meta = user.appMetadata;
+        final userMeta = user.userMetadata;
+        final companyId = _getMetadataKey(meta, 'company_id') ?? _getMetadataKey(userMeta, 'company_id');
+        final roleStr = _getMetadataKey(meta, 'role') ?? _getMetadataKey(userMeta, 'role') ?? 'EMPLOYEE';
+        
+        final newRecord = {
+          'id': userId,
+          'name': user.userMetadata?['name']?.toString().split(' ').first ?? 'Usuario',
+          'last_name': user.userMetadata?['name']?.toString().split(' ').skip(1).join(' ') ?? '',
+          'email': user.email ?? '',
+          'role': roleStr.toUpperCase(),
+          'company_id': companyId ?? AppConstants.defaultCompanyId,
+        };
+        
+        try {
+          final insertResult = await _client.from('employees').insert(newRecord).select().maybeSingle();
+          return insertResult;
+        } catch (_) {
+          // If insert fails (e.g., no permission), return null
+          return null;
+        }
+      }
+      
       return response;
     } catch (e) {
       throw SyncException('Error obteniendo empleado actual: $e');
     }
   }
 
-  String? _getMetadataKey(Map<String, dynamic>? metadata, String key) {
+String? _getMetadataKey(Map<String, dynamic>? metadata, String key) {
     if (metadata == null) return null;
     final lowerKey = key.toLowerCase();
     for (final k in metadata.keys) {
-      if (k.toLowerCase() == lowerKey) {
+      final lk = k.toLowerCase();
+      if (lk == lowerKey) {
         return metadata[k]?.toString();
-      }
-    }
-    if (lowerKey == 'company_id') {
-      for (final k in metadata.keys) {
-        final lk = k.toLowerCase();
-        if (lk == 'companyid' || lk == 'company_id') {
-          return metadata[k]?.toString();
-        }
       }
     }
     return null;
   }
 
-  String? get currentCompanyId {
+String? get currentCompanyId {
     final user = _client.auth.currentUser;
     if (user == null) return null;
     final meta = user.appMetadata;
@@ -205,7 +227,7 @@ class SupabaseDataSource {
     final companyId =
         _getMetadataKey(meta, 'company_id') ??
         _getMetadataKey(userMeta, 'company_id');
-    if (companyId == null || companyId.isEmpty || companyId == 'default') {
+    if (companyId == null || companyId.isEmpty || companyId == AppConstants.defaultCompanyId) {
       return null;
     }
     return companyId;
@@ -225,7 +247,7 @@ class SupabaseDataSource {
   Future<List<Map<String, dynamic>>> fetchAllEmployees(String? companyId) async {
     try {
       var query = _client.from('employees').select();
-      if (companyId != null && companyId != 'default') {
+      if (companyId != null && companyId != AppConstants.defaultCompanyId) {
         query = query.eq('company_id', companyId);
       }
       final response = await query;
@@ -238,7 +260,7 @@ class SupabaseDataSource {
   Future<List<Map<String, dynamic>>> fetchAllWorkstations(String? companyId) async {
     try {
       var query = _client.from('workstations').select();
-      if (companyId != null && companyId != 'default') {
+      if (companyId != null && companyId != AppConstants.defaultCompanyId) {
         query = query.eq('company_id', companyId);
       }
       final response = await query;
@@ -251,7 +273,7 @@ class SupabaseDataSource {
   Future<List<Map<String, dynamic>>> fetchAllShifts(String? companyId) async {
     try {
       var query = _client.from('shifts').select();
-      if (companyId != null && companyId != 'default') {
+      if (companyId != null && companyId != AppConstants.defaultCompanyId) {
         query = query.eq('company_id', companyId);
       }
       final response = await query;

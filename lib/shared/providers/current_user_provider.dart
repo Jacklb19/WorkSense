@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:worksense_app/core/constants/app_constants.dart';
 import 'package:worksense_app/domain/entities/app_role.dart';
-import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart' show appDatabaseProvider;
 
 export 'package:worksense_app/domain/entities/app_role.dart';
 
@@ -21,16 +21,9 @@ String? _getMetadataKey(Map<String, dynamic>? metadata, String key) {
   if (metadata == null) return null;
   final lowerKey = key.toLowerCase();
   for (final k in metadata.keys) {
-    if (k.toLowerCase() == lowerKey) {
+    final lk = k.toLowerCase();
+    if (lk == lowerKey) {
       return metadata[k]?.toString();
-    }
-  }
-  if (lowerKey == 'company_id') {
-    for (final k in metadata.keys) {
-      final lk = k.toLowerCase();
-      if (lk == 'companyid' || lk == 'company_id') {
-        return metadata[k]?.toString();
-      }
     }
   }
   return null;
@@ -67,10 +60,10 @@ final currentUserProvider = StreamProvider<CurrentUser>((ref) async* {
     }
 
     // 2) JWT metadata como apoyo (si employees no respondió)
-    if (companyId == null || companyId == 'default' || companyId == '') {
+    if (companyId == null || companyId == AppConstants.defaultCompanyId || companyId.isEmpty) {
       final jwtCompanyId = _getMetadataKey(appMeta, 'company_id') ??
           _getMetadataKey(userMeta, 'company_id');
-      if (jwtCompanyId != null && jwtCompanyId != 'default' && jwtCompanyId != '') {
+      if (jwtCompanyId != null && jwtCompanyId != AppConstants.defaultCompanyId && jwtCompanyId.isNotEmpty) {
         companyId = jwtCompanyId;
       }
     }
