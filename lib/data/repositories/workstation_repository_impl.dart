@@ -51,6 +51,19 @@ class WorkstationRepositoryImpl implements WorkstationRepository {
   }
 
   @override
+  Stream<List<Workstation>> watchWorkstationsByCompany(String companyId) {
+    return _db.watchWorkstationRecordsByCompany(companyId).map(
+          (rows) => rows.map(_mapToEntity).toList(),
+        );
+  }
+
+  @override
+  Future<List<Workstation>> getWorkstationsByCompany(String companyId) async {
+    final rows = await _db.getWorkstationRecordsByCompany(companyId);
+    return rows.map(_mapToEntity).toList();
+  }
+
+  @override
   Future<void> deleteWorkstation(String id) async {
     await _db.transaction(() async {
       // 1. Eliminar localmente

@@ -199,10 +199,30 @@ class AppDatabase extends _$AppDatabase {
             ..limit(limit))
           .get();
 
+  Future<List<ActivityEntry>> getRecentActivityEntriesByCompany(
+    String companyId, {
+    int limit = 50,
+  }) =>
+      (select(activityEntries)
+            ..where((t) => t.companyId.equals(companyId))
+            ..orderBy([(t) => OrderingTerm.desc(t.timestamp)])
+            ..limit(limit))
+          .get();
+
   Stream<List<ActivityEntry>> watchRecentActivityEntries() =>
       (select(activityEntries)
             ..orderBy([(t) => OrderingTerm.desc(t.timestamp)])
             ..limit(50))
+          .watch();
+
+  Stream<List<ActivityEntry>> watchRecentActivityEntriesByCompany(
+    String companyId, {
+    int limit = 50,
+  }) =>
+      (select(activityEntries)
+            ..where((t) => t.companyId.equals(companyId))
+            ..orderBy([(t) => OrderingTerm.desc(t.timestamp)])
+            ..limit(limit))
           .watch();
 
   Future<List<ActivityEntry>> getPendingSyncEntries() =>
@@ -264,12 +284,34 @@ class AppDatabase extends _$AppDatabase {
             ..limit(limit))
           .get();
 
+  Future<List<ActivityEntry>> getActivityEntriesByCompanyDateRange({
+    required String companyId,
+    required DateTime from,
+    required DateTime to,
+    int limit = 2000,
+  }) =>
+      (select(activityEntries)
+            ..where((t) =>
+                t.companyId.equals(companyId) &
+                t.employeeId.isNotNull() &
+                t.timestamp.isBiggerOrEqualValue(from) &
+                t.timestamp.isSmallerOrEqualValue(to))
+            ..orderBy([(t) => OrderingTerm.desc(t.timestamp)])
+            ..limit(limit))
+          .get();
+
   Future<void> insertEmployeeRecord(EmployeeRecordsCompanion record) =>
       into(employeeRecords).insert(record, mode: InsertMode.insertOrReplace);
 
   Future<List<EmployeeRecord>> getAllEmployeeRecords() => select(employeeRecords).get();
 
+  Future<List<EmployeeRecord>> getEmployeeRecordsByCompany(String companyId) =>
+      (select(employeeRecords)..where((t) => t.companyId.equals(companyId))).get();
+
   Stream<List<EmployeeRecord>> watchAllEmployeeRecords() => select(employeeRecords).watch();
+
+  Stream<List<EmployeeRecord>> watchEmployeeRecordsByCompany(String companyId) =>
+      (select(employeeRecords)..where((t) => t.companyId.equals(companyId))).watch();
 
   Future<EmployeeRecord?> getEmployeeRecordById(String id) =>
       (select(employeeRecords)..where((t) => t.id.equals(id))).getSingleOrNull();
@@ -285,8 +327,14 @@ class AppDatabase extends _$AppDatabase {
   Future<List<WorkstationRecord>> getAllWorkstationRecords() =>
       select(workstationRecords).get();
 
+  Future<List<WorkstationRecord>> getWorkstationRecordsByCompany(String companyId) =>
+      (select(workstationRecords)..where((t) => t.companyId.equals(companyId))).get();
+
   Stream<List<WorkstationRecord>> watchAllWorkstationRecords() =>
       select(workstationRecords).watch();
+
+  Stream<List<WorkstationRecord>> watchWorkstationRecordsByCompany(String companyId) =>
+      (select(workstationRecords)..where((t) => t.companyId.equals(companyId))).watch();
 
   Future<void> insertWorkstationRecord(WorkstationRecordsCompanion record) =>
       into(workstationRecords).insert(record, mode: InsertMode.insertOrReplace);

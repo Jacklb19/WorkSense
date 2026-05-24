@@ -7,7 +7,11 @@ abstract class EmployeeRepository {
 
   Future<List<Employee>> getEmployees();
 
+  Future<List<Employee>> getEmployeesByCompany(String companyId);
+
   Stream<List<Employee>> watchEmployees();
+
+  Stream<List<Employee>> watchEmployeesByCompany(String companyId);
 
   Future<Employee?> getEmployeeById(String id);
 

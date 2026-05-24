@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
+import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/widgets/activity_event_tile.dart';
+import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
 
 class ActivityHistoryScreen extends ConsumerStatefulWidget {
@@ -20,7 +22,10 @@ class _ActivityHistoryScreenState
 
   @override
   Widget build(BuildContext context) {
-    final eventsAsync = ref.watch(recentEventsStreamProvider);
+    final role = ref.watch(currentUserProvider).valueOrNull?.role;
+    final eventsAsync = role == AppRole.employee
+        ? ref.watch(employeeRecentEventsProvider)
+        : ref.watch(recentEventsStreamProvider);
 
     return Scaffold(
       appBar: AppBar(

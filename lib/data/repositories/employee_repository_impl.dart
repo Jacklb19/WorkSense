@@ -47,8 +47,19 @@ class EmployeeRepositoryImpl implements EmployeeRepository {
   }
 
   @override
+  Future<List<Employee>> getEmployeesByCompany(String companyId) async {
+    final rows = await _db.getEmployeeRecordsByCompany(companyId);
+    return rows.map(_mapToEntity).toList();
+  }
+
+  @override
   Stream<List<Employee>> watchEmployees() =>
       _db.watchAllEmployeeRecords()
+          .map((rows) => rows.map(_mapToEntity).toList());
+
+  @override
+  Stream<List<Employee>> watchEmployeesByCompany(String companyId) =>
+      _db.watchEmployeeRecordsByCompany(companyId)
           .map((rows) => rows.map(_mapToEntity).toList());
 
   @override

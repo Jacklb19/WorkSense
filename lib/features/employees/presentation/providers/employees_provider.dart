@@ -22,12 +22,20 @@ final employeeRepositoryProvider = Provider<EmployeeRepository>((ref) {
 
 final employeesStreamProvider = StreamProvider<List<Employee>>((ref) {
   final repo = ref.watch(employeeRepositoryProvider);
-  return repo.watchEmployees();
+  final companyId = ref.watch(currentUserProvider).valueOrNull?.companyId;
+  if (companyId == null || companyId == AppConstants.defaultCompanyId) {
+    return repo.watchEmployees();
+  }
+  return repo.watchEmployeesByCompany(companyId);
 });
 
 final employeesProvider = FutureProvider<List<Employee>>((ref) async {
   final repo = ref.watch(employeeRepositoryProvider);
-  return repo.getEmployees();
+  final companyId = ref.watch(currentUserProvider).valueOrNull?.companyId;
+  if (companyId == null || companyId == AppConstants.defaultCompanyId) {
+    return repo.getEmployees();
+  }
+  return repo.getEmployeesByCompany(companyId);
 });
 
 Employee _mapRemoteEmployee(Map<String, dynamic> json) {
@@ -67,7 +75,9 @@ final adminEmployeesProvider = FutureProvider<List<Employee>>((ref) async {
   final merged = <String, Employee>{};
 
   try {
-    final localEmployees = await repo.getEmployees();
+    final localEmployees = companyId == AppConstants.defaultCompanyId
+        ? await repo.getEmployees()
+        : await repo.getEmployeesByCompany(companyId);
     for (final employee in localEmployees) {
       merged[employee.id] = employee;
     }
