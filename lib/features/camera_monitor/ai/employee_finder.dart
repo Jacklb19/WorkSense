@@ -140,7 +140,9 @@ import 'package:flutter/foundation.dart';
   _IsolatedFindResult _computeFindInFrameWorker(_FindInFrameParams params) {
     int? currentLockedTrackingId = params.lockedTrackingId;
     final bool multiplePeople = params.faces.length > 1;
-    final double identityThreshold = EmployeeProfile.identityThreshold;
+    final double identityThreshold = multiplePeople
+        ? EmployeeProfile.identityThreshold + 0.05
+        : EmployeeProfile.identityThreshold;
     // Umbral de seguimiento más estricto si hay intrusos (múltiples personas)
     final double trackingBodyThreshold = multiplePeople ? 0.60 : 0.30;
     const double maxFaceToPoseDistance = 200.0;
@@ -176,10 +178,13 @@ import 'package:flutter/foundation.dart';
             ? params.profile.bodySignature.similarityTo(closestPose.signature!)
             : null;
 
-        final score = params.profile.matchScore(
+        var score = params.profile.matchScore(
           faceScore: faceScore,
           bodyScore: bodyScore,
         );
+        if (multiplePeople) {
+          score -= 0.08;
+        }
 
         if (score >= trackingBodyThreshold) {
           return _IsolatedFindResult(
@@ -231,10 +236,22 @@ import 'package:flutter/foundation.dart';
         method = IdentificationMethod.body;
       }
 
-      final combined = params.profile.matchScore(
+      var combined = params.profile.matchScore(
         faceScore: faceScore > 0 ? faceScore : null,
         bodyScore: bodyScore,
       );
+      if (multiplePeople) {
+        combined -= 0.05;
+        for (final intruder in params.faces) {
+          if (intruder.index == face.index) continue;
+          final dx = intruder.centerX - face.centerX;
+          final dy = intruder.centerY - face.centerY;
+          final distSq = dx * dx + dy * dy;
+          if (distSq < 160 * 160) {
+            combined -= 0.03;
+          }
+        }
+      }
 
       if (combined > bestScore) {
         bestScore = combined;
@@ -383,4 +400,3 @@ import 'package:flutter/foundation.dart';
       _lastFoundTime = null;
     }
   }
-

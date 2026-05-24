@@ -213,6 +213,12 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
             bodySignature: drift.Value(w['body_signature']?.toString()),
             status: drift.Value(w['status'] ?? 'IDLE'),
           ));
+          if (w['roi'] != null) {
+            await _db.saveWorkstationRoi(
+              w['id'],
+              jsonEncode(w['roi']),
+            );
+          }
           
           // Cargar embedding directamente en memoria
           if (w['assigned_employee_id'] != null && w['face_embedding'] != null) {
@@ -341,6 +347,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
       final largestFace = faces.reduce((a, b) => 
         (a.boundingBox.width * a.boundingBox.height) > (b.boundingBox.width * b.boundingBox.height) ? a : b);
+      final bool hasIntruder = faces.length > 1;
 
       // --- PRESENCE VALIDATION (decoupled from identity) ---
       final widthRatio = largestFace.boundingBox.width / image.width;
@@ -379,6 +386,12 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
       final cropped = await _faceAnalyzer.cropFaceFromCameraImageAsync(image, largestFace);
       if (cropped == null) return;
 
+      final cropQuality = await _faceAnalyzer.assessCropQuality(cropped);
+      if (cropQuality.overallScore < AiThresholds.enrollMinCropQuality) {
+        state = state.copyWith(statusMessage: 'Ajusta luz o posicion');
+        return;
+      }
+
       final incomingEmb = await _embeddingService.generateEmbedding(cropped);
       
       if (_employeeRegistry.isEmpty) {
@@ -396,6 +409,10 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
           if (storedEmb.isEmpty || storedEmb.length != incomingEmb.length) continue;
           final sim = EmployeeProfile.cosineSimilarity(storedEmb, incomingEmb);
           if (sim > maxEmpSim) maxEmpSim = sim;
+        }
+
+        if (hasIntruder) {
+          maxEmpSim -= 0.03;
         }
         
         // Track best score ever seen for this employee in the window

@@ -7,33 +7,58 @@ import 'package:worksense_app/core/constants/app_constants.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/workstation.dart';
-import 'package:worksense_app/features/workstations/presentation/providers/workstations_provider.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
+import 'package:worksense_app/features/workstations/presentation/providers/workstations_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+
+enum _RoiPreset {
+  centerDesk(
+    'Puesto centrado',
+    'Pensado para una persona sentada frente a la camara.',
+    WorkstationRoi(x: 0.20, y: 0.15, width: 0.60, height: 0.70),
+  ),
+  wideDesk(
+    'Puesto amplio',
+    'Ideal cuando la camara esta mas lejos o el encuadre es abierto.',
+    WorkstationRoi(x: 0.12, y: 0.12, width: 0.76, height: 0.76),
+  ),
+  preciseDesk(
+    'Puesto preciso',
+    'Mas estricto para reducir interferencias de personas cercanas.',
+    WorkstationRoi(x: 0.28, y: 0.18, width: 0.44, height: 0.64),
+  );
+
+  final String label;
+  final String description;
+  final WorkstationRoi roi;
+
+  const _RoiPreset(this.label, this.description, this.roi);
+}
 
 class WorkstationFormScreen extends ConsumerStatefulWidget {
   const WorkstationFormScreen({super.key});
 
   @override
-  ConsumerState<WorkstationFormScreen> createState() => _WorkstationFormScreenState();
+  ConsumerState<WorkstationFormScreen> createState() =>
+      _WorkstationFormScreenState();
 }
 
 class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _deviceIdController = TextEditingController();
-  
+
   double? _latitude;
   double? _longitude;
   double _geofenceRadius = 100.0;
   bool _isLoadingLocation = false;
   bool _isSaving = false;
   String? _selectedEmployeeId;
+  _RoiPreset _selectedRoiPreset = _RoiPreset.centerDesk;
 
   @override
   void initState() {
     super.initState();
-    // Pre-llenar deviceId con UUID para fines del form (se puede adaptar si hay plugin info)
     _deviceIdController.text = const Uuid().v4();
   }
 
@@ -48,24 +73,26 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
     setState(() => _isLoadingLocation = true);
 
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        throw Exception('Los servicios de ubicación están deshabilitados.');
+        throw Exception('Los servicios de ubicacion estan deshabilitados.');
       }
 
-      LocationPermission permission = await Geolocator.checkPermission();
+      var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          throw Exception('Los permisos de ubicación fueron denegados.');
+          throw Exception('Los permisos de ubicacion fueron denegados.');
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        throw Exception('Los permisos de ubicación están denegados permanentemente.');
+        throw Exception(
+          'Los permisos de ubicacion estan denegados permanentemente.',
+        );
       }
 
-      Position position = await Geolocator.getCurrentPosition(
+      final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
@@ -76,17 +103,25 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.locationSuccess), backgroundColor: AppColors.success),
+          const SnackBar(
+            content: Text(AppStrings.locationSuccess),
+            backgroundColor: AppColors.success,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {
-      if (mounted) setState(() => _isLoadingLocation = false);
+      if (mounted) {
+        setState(() => _isLoadingLocation = false);
+      }
     }
   }
 
@@ -101,8 +136,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
       );
       return;
     }
-    
-    // As in employees_provider, use currentUserProvider companyId if available.
+
     final currentUser = ref.read(currentUserProvider).value;
     final companyId = currentUser?.companyId ?? AppConstants.defaultCompanyId;
 
@@ -118,24 +152,33 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
         longitude: _longitude,
         geofenceRadius: _geofenceRadius,
         assignedEmployeeId: _selectedEmployeeId,
+        roi: _selectedRoiPreset.roi,
       );
 
       await ref.read(saveWorkstationUseCaseProvider)(newWorkstation);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.workstationSaved), backgroundColor: AppColors.success),
+          const SnackBar(
+            content: Text(AppStrings.workstationSaved),
+            backgroundColor: AppColors.success,
+          ),
         );
         context.pop();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar: $e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text('Error al guardar: $e'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -149,7 +192,10 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
               AppStrings.noEmployeesRegistered,
-              style: TextStyle(color: AppColors.orangeWarning, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: AppColors.orangeWarning,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           );
         }
@@ -161,16 +207,16 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
             border: OutlineInputBorder(),
             prefixIcon: Icon(Icons.person_outline),
           ),
-          items: [
-            ...employees.map((e) => DropdownMenuItem(
-                  value: e.id,
-                  child: Text(e.name),
-                )),
-          ],
+          items: employees
+              .map(
+                (employee) => DropdownMenuItem<String>(
+                  value: employee.id,
+                  child: Text(employee.displayName),
+                ),
+              )
+              .toList(),
           onChanged: (value) {
-            setState(() {
-              _selectedEmployeeId = value;
-            });
+            setState(() => _selectedEmployeeId = value);
           },
         );
       },
@@ -202,8 +248,9 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
                   labelText: AppStrings.workstationNameLabel,
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) => 
-                  value == null || value.trim().isEmpty ? AppStrings.workstationNameRequired : null,
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? AppStrings.workstationNameRequired
+                    : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -212,8 +259,9 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
                   labelText: AppStrings.deviceIdLabel,
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) => 
-                  value == null || value.trim().isEmpty ? AppStrings.deviceIdRequired : null,
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? AppStrings.deviceIdRequired
+                    : null,
               ),
               const SizedBox(height: 16),
               _buildEmployeeSelector(),
@@ -225,14 +273,21 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: _isLoadingLocation ? null : _getCurrentLocation,
-                icon: _isLoadingLocation 
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                icon: _isLoadingLocation
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : const Icon(Icons.location_on),
                 label: const Text(AppStrings.useCurrentLocation),
               ),
               if (_latitude != null && _longitude != null) ...[
                 const SizedBox(height: 8),
-                Text('Ubicación: $_latitude, $_longitude', style: const TextStyle(color: AppColors.success)),
+                Text(
+                  'Ubicacion: $_latitude, $_longitude',
+                  style: const TextStyle(color: AppColors.success),
+                ),
               ],
               const SizedBox(height: 24),
               Text(
@@ -250,6 +305,52 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
                   setState(() => _geofenceRadius = value);
                 },
               ),
+              const SizedBox(height: 24),
+              const Text(
+                'Zona de deteccion del puesto',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _selectedRoiPreset.description,
+                style: const TextStyle(color: Colors.black54),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<_RoiPreset>(
+                value: _selectedRoiPreset,
+                decoration: const InputDecoration(
+                  labelText: 'Preset de encuadre',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.crop_free),
+                ),
+                items: _RoiPreset.values
+                    .map(
+                      (preset) => DropdownMenuItem<_RoiPreset>(
+                        value: preset,
+                        child: Text(preset.label),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _selectedRoiPreset = value);
+                },
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.primary.withOpacity(0.15),
+                  ),
+                ),
+                child: Text(
+                  'Se aplicara automaticamente el preset "${_selectedRoiPreset.label}" '
+                  'para concentrar la deteccion continua en la zona util del puesto.',
+                ),
+              ),
               const SizedBox(height: 32),
               FilledButton(
                 onPressed: _isSaving ? null : _submit,
@@ -257,9 +358,16 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
                   backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: _isSaving 
-                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: AppColors.white))
-                  : const Text(AppStrings.saveWorkstation, style: TextStyle(fontSize: 16)),
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(color: AppColors.white),
+                      )
+                    : const Text(
+                        AppStrings.saveWorkstation,
+                        style: TextStyle(fontSize: 16),
+                      ),
               ),
             ],
           ),

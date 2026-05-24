@@ -43,11 +43,13 @@ class CapturedBiometricSample {
   final List<double> embedding;
   final BodySignature? bodySignature;
   final double qualityScore;
+  final BiometricSampleMetadata metadata;
 
   const CapturedBiometricSample({
     required this.embedding,
     required this.bodySignature,
     required this.qualityScore,
+    required this.metadata,
   });
 }
 
@@ -66,7 +68,7 @@ class SampleAssessment {
 }
 
 class EmployeeProfiler {
-  static const int samplesRequired = 6;
+  static const int samplesRequired = 8;
   static const double minFaceConfidence = 0.40;
   static const double minPoseConfidence = 0.30;
 
@@ -101,10 +103,21 @@ class EmployeeProfiler {
       text: 'De frente otra vez para confirmar',
       emoji: '😐',
     ),
+    ScanInstruction(
+      index: 6,
+      text: 'Gira levemente la cabeza a tu izquierda otra vez',
+      emoji: 'ðŸ‘ˆ',
+    ),
+    ScanInstruction(
+      index: 7,
+      text: 'Gira levemente la cabeza a tu derecha otra vez',
+      emoji: 'ðŸ‘‰',
+    ),
   ];
 
   final List<List<double>> _faceEmbeddings = [];
   final List<BodySignature> _bodySignatures = [];
+  final List<BiometricSampleMetadata> _sampleMetadata = [];
 
   late final PoseDetector _poseDetector;
   late final FaceDetector _faceDetector;
@@ -280,6 +293,20 @@ class EmployeeProfiler {
         (cropQuality.overallScore * 0.40) +
         (poseConf.clamp(0.0, 1.0) * 0.15);
 
+    final sampleMetadata = BiometricSampleMetadata(
+      qualityScore: qualityScore,
+      yaw: face.headEulerAngleY ?? 0.0,
+      pitch: face.headEulerAngleX ?? 0.0,
+      capturedAt: DateTime.now(),
+    );
+
+    if (!_passesDiversityGate(sampleMetadata)) {
+      return const SampleAssessment(
+        result: SampleResult.wrongPosition,
+        feedback: 'Esa toma es muy parecida a una anterior',
+      );
+    }
+
     return SampleAssessment(
       result: SampleResult.success,
       feedback: 'Muestra valida',
@@ -287,6 +314,7 @@ class EmployeeProfiler {
         embedding: embedding,
         bodySignature: sig != null && sig.isValid ? sig : null,
         qualityScore: qualityScore,
+        metadata: sampleMetadata,
       ),
     );
   }
@@ -334,12 +362,15 @@ class EmployeeProfiler {
       bodySignature: avgBody,
       capturedAt: DateTime.now(),
       sampleCount: samplesRequired,
+      lastReenrollmentAt: DateTime.now(),
+      sampleMetadata: List<BiometricSampleMetadata>.from(_sampleMetadata),
     );
   }
 
   void reset() {
     _faceEmbeddings.clear();
     _bodySignatures.clear();
+    _sampleMetadata.clear();
   }
 
   void commitAssessedSample(CapturedBiometricSample sample) {
@@ -353,9 +384,21 @@ class EmployeeProfiler {
 
   void _commitSample(CapturedBiometricSample sample) {
     _faceEmbeddings.add(sample.embedding);
+    _sampleMetadata.add(sample.metadata);
     if (sample.bodySignature != null && sample.bodySignature!.isValid) {
       _bodySignatures.add(sample.bodySignature!);
     }
+  }
+
+  bool _passesDiversityGate(BiometricSampleMetadata candidate) {
+    for (final existing in _sampleMetadata) {
+      final yawDelta = (existing.yaw - candidate.yaw).abs();
+      final pitchDelta = (existing.pitch - candidate.pitch).abs();
+      if (yawDelta < 4.0 && pitchDelta < 4.0) {
+        return false;
+      }
+    }
+    return true;
   }
 
   double _estimateFaceConfidence(Face face, Size? frameSize) {
@@ -423,6 +466,10 @@ class EmployeeProfiler {
         return yaw.abs() <= 18.0 && pitch > 3.0;
       case 5: // Frente otra vez
         return yaw.abs() <= 12.0 && pitch.abs() <= 14.0;
+      case 6: // Izquierda otra vez
+        return yaw < -4.0 && pitch.abs() <= 18.0;
+      case 7: // Derecha otra vez
+        return yaw > 4.0 && pitch.abs() <= 18.0;
       default:
         return true;
     }

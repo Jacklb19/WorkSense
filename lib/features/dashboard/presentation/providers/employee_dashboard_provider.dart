@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/activity_event.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
 import 'package:worksense_app/features/dashboard/domain/entities/employee_analytics.dart';
+import 'package:worksense_app/features/dashboard/domain/entities/daily_work_summary.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/admin_analytics_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
@@ -70,4 +73,41 @@ final employeeTodayAnalyticsProvider =
       AnalyticsDateRange.today;
 
   return ref.watch(employeeDetailProvider(userId).future);
+});
+
+final employeeDailySummariesProvider =
+    FutureProvider.autoDispose<List<DailyWorkSummary>>((ref) async {
+  final currentUserState = await ref.watch(currentUserProvider.future);
+  final userId = currentUserState.user?.id;
+  if (userId == null) return const [];
+
+  final db = ref.watch(appDatabaseProvider);
+  final rows = await db.getDailySummaryPayloadsForEmployee(userId);
+  return rows.map((row) {
+    final payload = jsonDecode(row['payload_json'] as String) as Map<String, dynamic>;
+    return DailyWorkSummary.fromStoredPayload(
+      payload: payload,
+      updatedAt: DateTime.tryParse(row['updated_at'] as String? ?? '') ?? DateTime.now(),
+      synced: row['synced'] as bool? ?? false,
+    );
+  }).toList();
+});
+
+final employeeTodaySummaryProvider =
+    FutureProvider.autoDispose<DailyWorkSummary?>((ref) async {
+  final summaries = await ref.watch(employeeDailySummariesProvider.future);
+  if (summaries.isEmpty) return null;
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  for (final summary in summaries) {
+    final day = DateTime(
+      summary.workDate.year,
+      summary.workDate.month,
+      summary.workDate.day,
+    );
+    if (day == today) {
+      return summary;
+    }
+  }
+  return summaries.first;
 });

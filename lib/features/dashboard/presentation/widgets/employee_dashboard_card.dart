@@ -56,7 +56,9 @@ class EmployeeDashboardCard extends ConsumerWidget {
                     radius: 24,
                     backgroundColor: AppColors.primary.withOpacity(0.15),
                     child: Text(
-                      employee.name.isNotEmpty ? employee.name[0].toUpperCase() : '?',
+                      employee.displayName.isNotEmpty
+                          ? employee.displayName[0].toUpperCase()
+                          : '?',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppColors.primary),
                     ),
                   ),
@@ -66,7 +68,7 @@ class EmployeeDashboardCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          employee.name,
+                          employee.displayName,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             height: 1.2,

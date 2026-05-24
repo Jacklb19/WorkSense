@@ -77,8 +77,8 @@ serve(async (req) => {
 
     const adminSupabase = createClient(supabaseUrl, supabaseServiceKey)
     const {
+      id,
       email,
-      password,
       name,
       lastName,
       role,
@@ -86,7 +86,7 @@ serve(async (req) => {
       shiftId,
     } = await req.json()
 
-    if (!email || !password || !name || !lastName || !role || !companyId) {
+    if (!id || !email || !name || !lastName || !role || !companyId) {
       return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -96,37 +96,34 @@ serve(async (req) => {
     const canonicalRole = normalizeRole(role)
     const metadata = { role: canonicalRole, company_id: companyId }
 
-    const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
+    const { error: authError } = await adminSupabase.auth.admin.updateUserById(id, {
       email,
-      password,
-      email_confirm: true,
       user_metadata: metadata,
       app_metadata: metadata,
     })
 
-    if (authError || !authData.user) {
-      return new Response(JSON.stringify({ error: authError?.message || 'Error creating auth user' }), {
+    if (authError) {
+      return new Response(JSON.stringify({ error: authError.message }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const newUserId = authData.user.id
-
     const employeePayload = {
-      id: newUserId,
       name,
       last_name: lastName,
-      role: canonicalRole,
       email,
+      role: canonicalRole,
       company_id: companyId,
       shift_id: shiftId ?? null,
     }
 
-    const { error: dbError } = await adminSupabase.from('employees').insert(employeePayload)
+    const { error: dbError } = await adminSupabase
+      .from('employees')
+      .update(employeePayload)
+      .eq('id', id)
 
     if (dbError) {
-      await adminSupabase.auth.admin.deleteUser(newUserId)
       return new Response(JSON.stringify({ error: `DB Error: ${dbError.message}` }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -134,9 +131,9 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({
-      id: newUserId,
-      employee: employeePayload,
-      message: 'Employee created successfully',
+      id,
+      employee: { id, ...employeePayload },
+      message: 'Employee updated successfully',
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,

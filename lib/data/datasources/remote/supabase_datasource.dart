@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:worksense_app/domain/entities/app_role.dart';
 
 class SupabaseDataSource {
   final SupabaseClient _client = Supabase.instance.client;
@@ -147,6 +148,21 @@ class SupabaseDataSource {
     }
   }
 
+  Future<Map<String, dynamic>> updateEmployeeWithAuth(Map<String, dynamic> data) async {
+    try {
+      final response = await _client.functions.invoke(
+        'update-employee',
+        body: data,
+      );
+      if (response.status != 200) {
+        throw SyncException('Error en Edge Function: ${response.data}');
+      }
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      throw SyncException('Error actualizando empleado con Auth: $e');
+    }
+  }
+
   Future<Map<String, dynamic>?> fetchCurrentEmployee() async {
     final userId = currentUserId;
     if (userId == null) return null;
@@ -167,7 +183,20 @@ class SupabaseDataSource {
     if (user == null) return null;
     final meta = user.appMetadata ?? {};
     final userMeta = user.userMetadata ?? {};
-    return (meta['company_id']?.toString() ?? userMeta['company_id']?.toString());
+    final companyId =
+        meta['company_id']?.toString() ?? userMeta['company_id']?.toString();
+    if (companyId == null || companyId.isEmpty || companyId == 'default') {
+      return null;
+    }
+    return companyId;
+  }
+
+  AppRole get currentRole {
+    final user = _client.auth.currentUser;
+    if (user == null) return AppRole.employee;
+    final meta = user.appMetadata ?? {};
+    final userMeta = user.userMetadata ?? {};
+    return AppRoleX.fromRaw(meta['role'] ?? userMeta['role']);
   }
 
   Future<List<Map<String, dynamic>>> fetchAllEmployees(String? companyId) async {

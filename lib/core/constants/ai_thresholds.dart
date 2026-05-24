@@ -96,7 +96,7 @@ abstract final class AiThresholds {
   static const int faceMatchLockMin = 5;
 
   /// Numero de posiciones requeridas para registrar un empleado.
-  static const int requiredFacePhotos = 6;
+  static const int requiredFacePhotos = 8;
 
   /// Dimension del vector de embedding facial (MobileFaceNet).
   static const int embeddingDimension = 192;
@@ -231,6 +231,9 @@ abstract final class AiThresholds {
   /// Umbral minimo de similitud coseno en modo tracking. Mas bajo que el de
   /// identificacion fresca porque el tracking ID ya provee continuidad.
   static const double monitorTrackingEmbeddingFloor = 0.78;
+
+  /// Retención local para eventos crudos aún no consolidados/sincronizados.
+  static const int rawEventsRetentionDays = 5;
 
   AiThresholds._();
 }

@@ -28,6 +28,7 @@ import 'package:worksense_app/features/camera_monitor/ai/face_embedding_service.
 import 'package:worksense_app/features/camera_monitor/ai/pose_analyzer.dart';
 import 'package:worksense_app/features/camera_monitor/domain/usecases/save_activity_event_use_case.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
+import 'package:worksense_app/domain/entities/workstation.dart';
 
 // ── Database Provider ──────────────────────────────────────────────────────────
 
@@ -82,6 +83,7 @@ class KioskState {
   final String? identificationMethod;
   final double identityConfidence;
   final String? assignedEmployeeId;
+  final WorkstationRoi? workstationRoi;
   final DateTime? sessionStartTime;
   
   // Sentinel Mode
@@ -108,6 +110,7 @@ class KioskState {
     this.assignedEmployeeId,
     this.sessionStartTime,
     this.workstationStatus = 'IDLE',
+    this.workstationRoi,
   });
 
   KioskState copyWith({
@@ -131,6 +134,7 @@ class KioskState {
     String? assignedEmployeeId,
     DateTime? sessionStartTime,
     String? workstationStatus,
+    WorkstationRoi? workstationRoi,
   }) {
     return KioskState(
       currentState: currentState ?? this.currentState,
@@ -153,6 +157,7 @@ class KioskState {
       sessionStartTime: sessionStartTime ?? this.sessionStartTime,
       workstationStatus: workstationStatus ?? this.workstationStatus,
       companyId: companyId ?? this.companyId,
+      workstationRoi: workstationRoi ?? this.workstationRoi,
     );
   }
 }
@@ -307,29 +312,27 @@ class KioskNotifier extends StateNotifier<KioskState> {
     final record = await _db.getWorkstationById(workstationId);
     final assignedId = record?.assignedEmployeeId;
     final companyId = record?.companyId;
+    WorkstationRoi? roi;
+    final roiJson = record != null ? await _db.getWorkstationRoi(workstationId) : null;
+    if (roiJson != null && roiJson.isNotEmpty) {
+      try {
+        roi = WorkstationRoi.fromMap(
+          (jsonDecode(roiJson) as Map<String, dynamic>),
+        );
+      } catch (_) {}
+    }
 
     if (record != null &&
         record.faceEmbeddings != null &&
         record.bodySignature != null &&
         assignedId != null) {
-      // Reconstruir el perfil desde la BD usando el serializer centralizado
-      final embeddingRaw = BiometricSerializer.deserializeMultipleEmbeddings(record.faceEmbeddings);
-      
-      final bodyJson =
-          (jsonDecode(record.bodySignature!) as Map<String, dynamic>)
-              .map((k, v) => MapEntry(k, (v as num).toDouble()));
+      final profile = await _buildStoredProfile(
+        record,
+        assignedId,
+        workstationId,
+      );
 
-      if (embeddingRaw != null) {
-        final profile = EmployeeProfile(
-          employeeId: assignedId,
-          workstationId: workstationId,
-          faceEmbeddings: embeddingRaw,
-          bodySignature: BodySignature.fromJson(bodyJson),
-          capturedAt: record.profileCapturedAt ?? DateTime.now(),
-          sampleCount: 5,
-          version: record.profileVersion,
-        );
-
+      if (profile != null) {
         _finder = EmployeeFinder(profile);
         debugPrint('[MONITOR] Perfil cargado para ${profile.employeeId}.');
         state = state.copyWith(
@@ -339,6 +342,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
           currentState: ActivityState.ausente,
           sessionStatus: SessionStatus.idle,
           companyId: companyId,
+          workstationRoi: roi,
         );
 
         _listenRemoteStatus(workstationId);
@@ -353,10 +357,45 @@ class KioskNotifier extends StateNotifier<KioskState> {
       assignedEmployeeId: assignedId,
       currentState: ActivityState.noIdentificado,
       companyId: companyId,
+      workstationRoi: roi,
     );
     
     _listenRemoteStatus(workstationId);
     return false;
+  }
+
+  Future<EmployeeProfile?> _buildStoredProfile(
+    WorkstationRecord record,
+    String assignedId,
+    String workstationId,
+  ) async {
+    final snapshot = await _db.getProfileSnapshot(workstationId);
+    if (snapshot != null && snapshot.isNotEmpty) {
+      try {
+        return EmployeeProfile.fromJsonString(snapshot);
+      } catch (e) {
+        debugPrint('[MONITOR] Error parsing snapshot, fallback legacy: $e');
+      }
+    }
+
+    final embeddingRaw =
+        BiometricSerializer.deserializeMultipleEmbeddings(record.faceEmbeddings);
+    if (embeddingRaw == null || record.bodySignature == null) return null;
+
+    final bodyJson =
+        (jsonDecode(record.bodySignature!) as Map<String, dynamic>)
+            .map((k, v) => MapEntry(k, (v as num).toDouble()));
+
+    return EmployeeProfile(
+      employeeId: assignedId,
+      workstationId: workstationId,
+      faceEmbeddings: embeddingRaw,
+      bodySignature: BodySignature.fromJson(bodyJson),
+      capturedAt: record.profileCapturedAt ?? DateTime.now(),
+      sampleCount: embeddingRaw.length,
+      version: record.profileVersion,
+      lastReenrollmentAt: record.profileCapturedAt,
+    );
   }
   
   void _listenRemoteStatus(String workstationId) {
@@ -610,11 +649,19 @@ class KioskNotifier extends StateNotifier<KioskState> {
       }
 
       // Buscar al empleado en el frame con embeddings reales
-      final findResult = await _finder!.findInFrame(
+      var findResult = await _finder!.findInFrame(
         detectedFaces: allFaces,
         detectedPoses: allPoses,
         faceEmbeddings: embeddingsMap,
       );
+      if (findResult.status == FindStatus.found &&
+          !_isWithinAssignedRegion(
+            findResult.employeeFace,
+            findResult.employeePose,
+            imgSize,
+          )) {
+        findResult = FindResult.outsideArea();
+      }
       if (_disposed) return;
 
       switch (findResult.status) {
@@ -858,6 +905,35 @@ class KioskNotifier extends StateNotifier<KioskState> {
         frontal;
   }
 
+  bool _isWithinAssignedRegion(Face? face, Pose? pose, Size imgSize) {
+    final roi = state.workstationRoi;
+    if (roi == null) return true;
+
+    bool pointInside(double x, double y) {
+      final minX = imgSize.width * roi.x;
+      final minY = imgSize.height * roi.y;
+      final maxX = minX + (imgSize.width * roi.width);
+      final maxY = minY + (imgSize.height * roi.height);
+      return x >= minX && x <= maxX && y >= minY && y <= maxY;
+    }
+
+    if (face != null) {
+      final center = face.boundingBox.center;
+      if (!pointInside(center.dx, center.dy)) {
+        return false;
+      }
+    }
+
+    if (pose != null) {
+      final nose = pose.landmarks[PoseLandmarkType.nose];
+      if (nose != null && !pointInside(nose.x, nose.y)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   InputImage? _buildInputImage(CameraImage image) {
     if (_cameraController == null) return null;
     final camera = _cameraController!.description;
@@ -964,4 +1040,3 @@ final kioskProvider =
 final availableCamerasProvider = FutureProvider<List<CameraDescription>>((ref) {
   return availableCameras();
 });
-

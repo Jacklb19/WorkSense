@@ -43,8 +43,8 @@ class EmployeesListScreen extends ConsumerWidget {
                 leading: CircleAvatar(
                   backgroundColor: AppColors.primary.withOpacity(0.1),
                   child: Text(
-                    employee.name.isNotEmpty
-                        ? employee.name[0].toUpperCase()
+                    employee.displayName.isNotEmpty
+                        ? employee.displayName[0].toUpperCase()
                         : '?',
                     style: const TextStyle(
                       color: AppColors.primary,
@@ -52,7 +52,7 @@ class EmployeesListScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                title: Text(employee.name),
+                title: Text(employee.displayName),
                 subtitle: Text(
                   'Registrado el ${DateFormat('dd/MM/yyyy').format(employee.createdAt)}',
                   style: const TextStyle(
@@ -70,7 +70,7 @@ class EmployeesListScreen extends ConsumerWidget {
                         break;
                       case 'delete':
                         await _confirmAndDelete(
-                            context, ref, employee.id, employee.name);
+                            context, ref, employee.id, employee.displayName);
                         break;
                     }
                   },

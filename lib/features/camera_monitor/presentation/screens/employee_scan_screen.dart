@@ -314,6 +314,8 @@
         case 3: return 'Levanta levemente la cabeza';
         case 4: return 'Inclina levemente la cabeza hacia abajo';
         case 5: return 'De frente otra vez para confirmar';
+        case 6: return 'Gira de nuevo levemente a la izquierda';
+        case 7: return 'Gira de nuevo levemente a la derecha';
         default: return 'Ajusta tu posición';
       }
     }
@@ -441,6 +443,7 @@
           workstationId: workstationId,
           faceEmbeddings: profile.faceEmbeddings,
           bodySignature: profile.bodySignature,
+          profile: profile,
         );
       } catch (e) {
         if (_disposed) return;
@@ -1032,4 +1035,3 @@
       }
     }
   }
-

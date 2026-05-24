@@ -1,12 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:worksense_app/domain/entities/app_role.dart';
 
-enum AppRole {
-  superAdmin,
-  admin,
-  cameraMonitor,
-  employee,
-}
+export 'package:worksense_app/domain/entities/app_role.dart';
 
 class CurrentUser {
   final User? user;
@@ -30,28 +26,12 @@ final currentUserProvider = StreamProvider<CurrentUser>((ref) {
     final userMeta = user.userMetadata ?? {};
     final appMeta = user.appMetadata ?? {};
     
-    // El rol puede venir del backend (app_meta_data) o del signup (user_meta_data)
-    final rawRole = (appMeta['role']?.toString() ?? userMeta['role']?.toString())?.toUpperCase();
+    final role = AppRoleX.fromRaw(
+      appMeta['role'] ?? userMeta['role'],
+    );
     var companyId = (appMeta['company_id']?.toString() ?? userMeta['company_id']?.toString());
     if (companyId == 'default' || companyId == '') {
       companyId = null;
-    }
-
-    AppRole role;
-    switch (rawRole) {
-      case 'SUPER_ADMIN':
-        role = AppRole.superAdmin;
-        break;
-      case 'ADMIN':
-        role = AppRole.admin;
-        break;
-      case 'CAMERA_MONITOR':
-        role = AppRole.cameraMonitor;
-        break;
-      case 'EMPLOYEE':
-      default:
-        role = AppRole.employee;
-        break;
     }
 
     return CurrentUser(user: user, role: role, companyId: companyId);

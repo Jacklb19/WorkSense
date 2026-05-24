@@ -3,8 +3,6 @@ import 'package:drift_flutter/drift_flutter.dart';
 
 part 'database.g.dart';
 
-// ─── Table Definitions ────────────────────────────────────────────────────────
-
 class CompanyRecords extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
@@ -17,6 +15,9 @@ class CompanyRecords extends Table {
 class EmployeeRecords extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
+  TextColumn get lastName => text().withDefault(const Constant(''))();
+  TextColumn get email => text().withDefault(const Constant(''))();
+  TextColumn get role => text().withDefault(const Constant('EMPLOYEE'))();
   TextColumn get companyId => text()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get faceEmbeddings => text().named('face_embedding').nullable()();
@@ -69,16 +70,11 @@ class WorkstationRecords extends Table {
   RealColumn get latitude => real().nullable()();
   RealColumn get longitude => real().nullable()();
   RealColumn get geofenceRadius => real().nullable()();
-
-  // Perfil biométrico del empleado asignado
   TextColumn get assignedEmployeeId => text().nullable()();
   TextColumn get faceEmbeddings => text().named('face_embedding').nullable()();
   TextColumn get bodySignature => text().nullable()();
   DateTimeColumn get profileCapturedAt => dateTime().nullable()();
-  IntColumn get profileVersion =>
-      integer().withDefault(const Constant(0))();
-  
-  // Kiosk / Realtime status
+  IntColumn get profileVersion => integer().withDefault(const Constant(0))();
   TextColumn get status => text().withDefault(const Constant('IDLE'))();
 
   @override
@@ -89,13 +85,11 @@ class ActivityEntries extends Table {
   TextColumn get id => text()();
   TextColumn get employeeId => text().nullable()();
   TextColumn get workstationId => text()();
-  TextColumn get companyId => text().nullable()(); // Added in v8
+  TextColumn get companyId => text().nullable()();
   TextColumn get state => text()();
   RealColumn get confidence => real()();
   DateTimeColumn get timestamp => dateTime().withDefault(currentDateAndTime)();
   BoolColumn get synced => boolean().withDefault(const Constant(false))();
-
-  // Re-identificación
   RealColumn get identityConfidence => real().nullable()();
   TextColumn get identificationMethod => text().nullable()();
 
@@ -113,8 +107,6 @@ class SyncQueueEntries extends Table {
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 }
 
-// ─── Database ─────────────────────────────────────────────────────────────────
-
 @DriftDatabase(
   tables: [
     CompanyRecords,
@@ -129,83 +121,74 @@ class SyncQueueEntries extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
+  static const String _workstationRoiTable = 'workstation_roi_cache';
+  static const String _profileSnapshotTable = 'workstation_profile_snapshots';
+  static const String _dailySummaryTable = 'daily_work_summaries';
+  static const String _activityRollupTable = 'activity_rollups';
+
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (m) async {
-      await m.createAll();
-    },
-    onUpgrade: (m, from, to) async {
-      final migrator = m; // Alias for clarity
-      
-      if (from < 2) {
-        await migrator.addColumn(workstationRecords, workstationRecords.latitude);
-        await migrator.addColumn(workstationRecords, workstationRecords.longitude);
-        await migrator.addColumn(workstationRecords, workstationRecords.geofenceRadius);
-      }
-      
-      if (from < 3) {
-        // TABLA: sync_queue_entries
-        await migrator.createTable(syncQueueEntries);
+        onCreate: (m) async {
+          await m.createAll();
+          await _createAuxiliaryTables();
+        },
+        onUpgrade: (m, from, to) async {
+          final migrator = m;
 
-        // TABLA: workstation_records
-        // Verificamos antes de agregar para evitar errores si la base de datos
-        // está en un estado inconsistente (según roadmap)
-        await migrator.addColumn(workstationRecords, workstationRecords.assignedEmployeeId);
-        await migrator.addColumn(workstationRecords, workstationRecords.faceEmbeddings);
-        await migrator.addColumn(workstationRecords, workstationRecords.bodySignature);
-        await migrator.addColumn(workstationRecords, workstationRecords.profileCapturedAt);
-        await migrator.addColumn(workstationRecords, workstationRecords.profileVersion);
+          if (from < 2) {
+            await migrator.addColumn(workstationRecords, workstationRecords.latitude);
+            await migrator.addColumn(workstationRecords, workstationRecords.longitude);
+            await migrator.addColumn(workstationRecords, workstationRecords.geofenceRadius);
+          }
 
-        // TABLA: activity_entries
-        await migrator.addColumn(activityEntries, activityEntries.identityConfidence);
-        await migrator.addColumn(activityEntries, activityEntries.identificationMethod);
-      }
-      
-      if (from < 4) {
-        // La migración a v4 añade el campo central de face_embedding en Employee
-        // para permitir reconocimiento cross-workstation.
-        await migrator.addColumn(employeeRecords, employeeRecords.faceEmbeddings);
-      }
-      
-      if (from < 5) {
-        // Migración a v5: añadir status a workstations para realtime monitoring
-        await migrator.addColumn(workstationRecords, workstationRecords.status);
-      }
-      
-      if (from < 6) {
-        // Migración a v6: Asistencia y Turnos
-        await migrator.addColumn(employeeRecords, employeeRecords.shiftId);
-        await migrator.createTable(shiftRecords);
-        await migrator.createTable(attendanceLogs);
-      }
+          if (from < 3) {
+            await migrator.createTable(syncQueueEntries);
+            await migrator.addColumn(workstationRecords, workstationRecords.assignedEmployeeId);
+            await migrator.addColumn(workstationRecords, workstationRecords.faceEmbeddings);
+            await migrator.addColumn(workstationRecords, workstationRecords.bodySignature);
+            await migrator.addColumn(workstationRecords, workstationRecords.profileCapturedAt);
+            await migrator.addColumn(workstationRecords, workstationRecords.profileVersion);
+            await migrator.addColumn(activityEntries, activityEntries.identityConfidence);
+            await migrator.addColumn(activityEntries, activityEntries.identificationMethod);
+          }
 
-      if (from < 7) {
-        // Migración a v7: Almuerzo / Receso en turnos
-        await migrator.addColumn(shiftRecords, shiftRecords.breakStartHour);
-        await migrator.addColumn(shiftRecords, shiftRecords.breakStartMinute);
-        await migrator.addColumn(shiftRecords, shiftRecords.breakEndHour);
-        await migrator.addColumn(shiftRecords, shiftRecords.breakEndMinute);
-      }
+          if (from < 4) {
+            await migrator.addColumn(employeeRecords, employeeRecords.faceEmbeddings);
+          }
 
-      if (from < 8) {
-        // Migración a v8: añadir companyId a activity_entries para RLS en Supabase
-        await migrator.addColumn(activityEntries, activityEntries.companyId);
-      }
-    },
-    beforeOpen: (details) async {
-      if (details.wasCreated) {
-        // Logic for fresh install if needed
-      }
-      // Habilitar Foreign Keys si fuera necesario (sqlite_m)
-      // await customStatement('PRAGMA foreign_keys = ON');
-    },
-  );
+          if (from < 5) {
+            await migrator.addColumn(workstationRecords, workstationRecords.status);
+          }
 
+          if (from < 6) {
+            await migrator.addColumn(employeeRecords, employeeRecords.shiftId);
+            await migrator.createTable(shiftRecords);
+            await migrator.createTable(attendanceLogs);
+          }
 
-  // ── ActivityEntries DAO methods ───────────────────────────────────────────
+          if (from < 7) {
+            await migrator.addColumn(shiftRecords, shiftRecords.breakStartHour);
+            await migrator.addColumn(shiftRecords, shiftRecords.breakStartMinute);
+            await migrator.addColumn(shiftRecords, shiftRecords.breakEndHour);
+            await migrator.addColumn(shiftRecords, shiftRecords.breakEndMinute);
+          }
+
+          if (from < 8) {
+            await migrator.addColumn(activityEntries, activityEntries.companyId);
+          }
+
+          if (from < 12) {
+            await migrator.addColumn(employeeRecords, employeeRecords.lastName);
+            await migrator.addColumn(employeeRecords, employeeRecords.email);
+            await migrator.addColumn(employeeRecords, employeeRecords.role);
+          }
+
+          await _createAuxiliaryTables();
+        },
+      );
 
   Future<void> insertActivityEntry(ActivityEntriesCompanion entry) =>
       into(activityEntries).insert(entry);
@@ -236,8 +219,6 @@ class AppDatabase extends _$AppDatabase {
             ..limit(1))
           .getSingleOrNull();
 
-  // ── Analytics queries ─────────────────────────────────────────────────────
-
   Future<List<ActivityEntry>> getActivityEntriesForEmployee(
     String employeeId, {
     DateTime? from,
@@ -247,8 +228,12 @@ class AppDatabase extends _$AppDatabase {
       (select(activityEntries)
             ..where((t) {
               var predicate = t.employeeId.equals(employeeId);
-              if (from != null) predicate = predicate & t.timestamp.isBiggerOrEqualValue(from);
-              if (to != null) predicate = predicate & t.timestamp.isSmallerOrEqualValue(to);
+              if (from != null) {
+                predicate = predicate & t.timestamp.isBiggerOrEqualValue(from);
+              }
+              if (to != null) {
+                predicate = predicate & t.timestamp.isSmallerOrEqualValue(to);
+              }
               return predicate;
             })
             ..orderBy([(t) => OrderingTerm.desc(t.timestamp)])
@@ -279,31 +264,23 @@ class AppDatabase extends _$AppDatabase {
             ..limit(limit))
           .get();
 
-  // ── EmployeeRecords DAO methods ───────────────────────────────────────────
-
   Future<void> insertEmployeeRecord(EmployeeRecordsCompanion record) =>
       into(employeeRecords).insert(record, mode: InsertMode.insertOrReplace);
 
-  Future<List<EmployeeRecord>> getAllEmployeeRecords() =>
-      select(employeeRecords).get();
+  Future<List<EmployeeRecord>> getAllEmployeeRecords() => select(employeeRecords).get();
 
-  Stream<List<EmployeeRecord>> watchAllEmployeeRecords() =>
-      select(employeeRecords).watch();
+  Stream<List<EmployeeRecord>> watchAllEmployeeRecords() => select(employeeRecords).watch();
 
   Future<EmployeeRecord?> getEmployeeRecordById(String id) =>
-      (select(employeeRecords)..where((t) => t.id.equals(id)))
-          .getSingleOrNull();
+      (select(employeeRecords)..where((t) => t.id.equals(id))).getSingleOrNull();
 
   Future<void> updateEmployeeEmbedding(String employeeId, String faceEmbeddingJson) =>
-      (update(employeeRecords)..where((t) => t.id.equals(employeeId)))
-          .write(EmployeeRecordsCompanion(
-        faceEmbeddings: Value(faceEmbeddingJson),
-      ));
+      (update(employeeRecords)..where((t) => t.id.equals(employeeId))).write(
+        EmployeeRecordsCompanion(faceEmbeddings: Value(faceEmbeddingJson)),
+      );
 
   Future<void> deleteEmployeeRecord(String id) =>
       (delete(employeeRecords)..where((t) => t.id.equals(id))).go();
-
-  // ── WorkstationRecords DAO methods ────────────────────────────────────────
 
   Future<List<WorkstationRecord>> getAllWorkstationRecords() =>
       select(workstationRecords).get();
@@ -315,45 +292,55 @@ class AppDatabase extends _$AppDatabase {
       into(workstationRecords).insert(record, mode: InsertMode.insertOrReplace);
 
   Future<WorkstationRecord?> getWorkstationById(String id) =>
-      (select(workstationRecords)..where((t) => t.id.equals(id)))
-          .getSingleOrNull();
+      (select(workstationRecords)..where((t) => t.id.equals(id))).getSingleOrNull();
 
   Future<void> saveEmployeeProfile({
     required String workstationId,
     required String employeeId,
     required String faceEmbeddingJson,
     required String bodySignatureJson,
+    int profileVersion = 1,
   }) =>
-      (update(workstationRecords)..where((t) => t.id.equals(workstationId)))
-          .write(WorkstationRecordsCompanion(
-        assignedEmployeeId: Value(employeeId),
-        faceEmbeddings: Value(faceEmbeddingJson),
-        bodySignature: Value(bodySignatureJson),
-        profileCapturedAt: Value(DateTime.now()),
-        profileVersion: const Value(1),
-      ));
+      (update(workstationRecords)..where((t) => t.id.equals(workstationId))).write(
+        WorkstationRecordsCompanion(
+          assignedEmployeeId: Value(employeeId),
+          faceEmbeddings: Value(faceEmbeddingJson),
+          bodySignature: Value(bodySignatureJson),
+          profileCapturedAt: Value(DateTime.now()),
+          profileVersion: Value(profileVersion),
+        ),
+      );
 
-  Future<void> clearEmployeeProfile(String workstationId) =>
-      (update(workstationRecords)..where((t) => t.id.equals(workstationId)))
-          .write(const WorkstationRecordsCompanion(
+  Future<void> clearEmployeeProfile(String workstationId) async {
+    await (update(workstationRecords)..where((t) => t.id.equals(workstationId))).write(
+      const WorkstationRecordsCompanion(
         assignedEmployeeId: Value(null),
         faceEmbeddings: Value(null),
         bodySignature: Value(null),
         profileCapturedAt: Value(null),
         profileVersion: Value(0),
-      ));
+      ),
+    );
+    await deleteProfileSnapshot(workstationId);
+  }
 
-  Future<void> clearWorkstationProfilesByEmployeeId(String employeeId) =>
-      (update(workstationRecords)..where((t) => t.assignedEmployeeId.equals(employeeId)))
-          .write(const WorkstationRecordsCompanion(
+  Future<void> clearWorkstationProfilesByEmployeeId(String employeeId) async {
+    final impacted = await (select(workstationRecords)
+          ..where((t) => t.assignedEmployeeId.equals(employeeId)))
+        .get();
+    await (update(workstationRecords)..where((t) => t.assignedEmployeeId.equals(employeeId))).write(
+      const WorkstationRecordsCompanion(
         assignedEmployeeId: Value(null),
         faceEmbeddings: Value(null),
         bodySignature: Value(null),
         profileCapturedAt: Value(null),
         profileVersion: Value(0),
-      ));
-
-  // ── SyncQueueEntries methods ──────────────────────────────────────────────
+      ),
+    );
+    for (final row in impacted) {
+      await deleteProfileSnapshot(row.id);
+    }
+  }
 
   Future<void> insertSyncQueueEntry(SyncQueueEntriesCompanion entry) =>
       into(syncQueueEntries).insert(entry);
@@ -364,8 +351,6 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deleteSyncQueueEntry(int id) =>
       (delete(syncQueueEntries)..where((t) => t.id.equals(id))).go();
 
-  // ── ShiftRecords DAO methods ──────────────────────────────────────────────
-
   Future<void> insertShiftRecord(ShiftRecordsCompanion record) =>
       into(shiftRecords).insert(record, mode: InsertMode.insertOrReplace);
 
@@ -375,48 +360,235 @@ class AppDatabase extends _$AppDatabase {
   Future<List<ShiftRecordData>> getShiftsByCompany(String companyId) =>
       (select(shiftRecords)..where((t) => t.companyId.equals(companyId))).get();
 
-  // ── AttendanceLogs DAO methods ────────────────────────────────────────────
-
   Future<void> insertAttendanceLog(AttendanceLogsCompanion log) =>
       into(attendanceLogs).insert(log, mode: InsertMode.insertOrReplace);
 
   Future<void> updateAttendanceLog(AttendanceLogsCompanion log) =>
       (update(attendanceLogs)..where((t) => t.id.equals(log.id.value))).write(log);
 
-  Future<AttendanceLogData?> getOpenAttendanceLogForEmployee(String employeeId, DateTime today) =>
+  Future<AttendanceLogData?> getOpenAttendanceLogForEmployee(
+    String employeeId,
+    DateTime today,
+  ) =>
       (select(attendanceLogs)
-        ..where((t) => 
-          t.employeeId.equals(employeeId) & 
-          t.clockOutTime.isNull() &
-          // Comparar solo la fecha truncada si se puede, o al menos que el clockIn sea reciente.
-          // En SQLite, date/time logic es más compleja, pero asumimos que shiftDate mapea al día.
-          t.shiftDate.equals(today)
-        )
-        ..orderBy([(t) => OrderingTerm.desc(t.clockInTime)])
-        ..limit(1))
-      .getSingleOrNull();
+            ..where((t) =>
+                t.employeeId.equals(employeeId) &
+                t.clockOutTime.isNull() &
+                t.shiftDate.equals(today))
+            ..orderBy([(t) => OrderingTerm.desc(t.clockInTime)])
+            ..limit(1))
+          .getSingleOrNull();
 
-  Future<List<AttendanceLogData>> getEmployeeLogsForDate(String employeeId, DateTime date) =>
+  Future<List<AttendanceLogData>> getEmployeeLogsForDate(
+    String employeeId,
+    DateTime date,
+  ) =>
       (select(attendanceLogs)
-        ..where((t) => 
-          t.employeeId.equals(employeeId) & 
-          t.shiftDate.equals(date)
-        )
-        ..orderBy([(t) => OrderingTerm.asc(t.clockInTime)]))
-      .get();
+            ..where((t) => t.employeeId.equals(employeeId) & t.shiftDate.equals(date))
+            ..orderBy([(t) => OrderingTerm.asc(t.clockInTime)]))
+          .get();
 
-  Future<List<AttendanceLogData>> getEmployeeAttendanceLogs(String employeeId, DateTime start, DateTime end) =>
+  Future<List<AttendanceLogData>> getEmployeeAttendanceLogs(
+    String employeeId,
+    DateTime start,
+    DateTime end,
+  ) =>
       (select(attendanceLogs)
-        ..where((t) => 
-          t.employeeId.equals(employeeId) & 
-          t.shiftDate.isBiggerOrEqualValue(start) &
-          t.shiftDate.isSmallerOrEqualValue(end)
-        )
-        ..orderBy([(t) => OrderingTerm.desc(t.shiftDate)]))
-      .get();
+            ..where((t) =>
+                t.employeeId.equals(employeeId) &
+                t.shiftDate.isBiggerOrEqualValue(start) &
+                t.shiftDate.isSmallerOrEqualValue(end))
+            ..orderBy([(t) => OrderingTerm.desc(t.shiftDate)]))
+          .get();
 
-  Stream<List<AttendanceLogData>> watchAttendanceLogs() =>
-      select(attendanceLogs).watch();
+  Stream<List<AttendanceLogData>> watchAttendanceLogs() => select(attendanceLogs).watch();
+
+  Future<List<ActivityEntry>> getActivityEntriesForEmployeeDay(
+    String employeeId,
+    DateTime dayStart,
+    DateTime dayEnd,
+  ) =>
+      (select(activityEntries)
+            ..where((t) =>
+                t.employeeId.equals(employeeId) &
+                t.timestamp.isBiggerOrEqualValue(dayStart) &
+                t.timestamp.isSmallerThanValue(dayEnd))
+            ..orderBy([(t) => OrderingTerm.asc(t.timestamp)]))
+          .get();
+
+  Future<List<ActivityEntry>> getSyncedActivityEntriesBefore(DateTime threshold) =>
+      (select(activityEntries)
+            ..where((t) => t.synced.equals(true) & t.timestamp.isSmallerThanValue(threshold))
+            ..orderBy([(t) => OrderingTerm.asc(t.timestamp)]))
+          .get();
+
+  Future<void> deleteActivityEntriesByIds(Iterable<String> ids) async {
+    for (final id in ids) {
+      await (delete(activityEntries)..where((t) => t.id.equals(id))).go();
+    }
+  }
+
+  Future<void> saveWorkstationRoi(String workstationId, String roiJson) async {
+    await customStatement(
+      'INSERT OR REPLACE INTO $_workstationRoiTable (workstation_id, roi_json) VALUES (?, ?)',
+      [workstationId, roiJson],
+    );
+  }
+
+  Future<String?> getWorkstationRoi(String workstationId) async {
+    final rows = await customSelect(
+      'SELECT roi_json FROM $_workstationRoiTable WHERE workstation_id = ?',
+      variables: [Variable<String>(workstationId)],
+    ).get();
+    if (rows.isEmpty) return null;
+    return rows.first.read<String>('roi_json');
+  }
+
+  Future<void> saveProfileSnapshot(String workstationId, String profileJson) async {
+    await customStatement(
+      'INSERT OR REPLACE INTO $_profileSnapshotTable (workstation_id, profile_json) VALUES (?, ?)',
+      [workstationId, profileJson],
+    );
+  }
+
+  Future<String?> getProfileSnapshot(String workstationId) async {
+    final rows = await customSelect(
+      'SELECT profile_json FROM $_profileSnapshotTable WHERE workstation_id = ?',
+      variables: [Variable<String>(workstationId)],
+    ).get();
+    if (rows.isEmpty) return null;
+    return rows.first.read<String>('profile_json');
+  }
+
+  Future<void> deleteProfileSnapshot(String workstationId) async {
+    await customStatement(
+      'DELETE FROM $_profileSnapshotTable WHERE workstation_id = ?',
+      [workstationId],
+    );
+  }
+
+  Future<void> upsertDailySummaryPayload(
+    String id,
+    String payloadJson, {
+    required DateTime updatedAt,
+    bool synced = false,
+  }) async {
+    await customStatement(
+      'INSERT OR REPLACE INTO $_dailySummaryTable (id, payload_json, synced, updated_at) VALUES (?, ?, ?, ?)',
+      [id, payloadJson, synced ? 1 : 0, updatedAt.toIso8601String()],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingDailySummaryPayloads() async {
+    final rows = await customSelect(
+      'SELECT id, payload_json FROM $_dailySummaryTable WHERE synced = 0',
+    ).get();
+    return rows
+        .map(
+          (row) => {
+            'id': row.read<String>('id'),
+            'payload_json': row.read<String>('payload_json'),
+          },
+        )
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getDailySummaryPayloadsForEmployee(
+    String employeeId,
+  ) async {
+    final rows = await customSelect(
+      "SELECT id, payload_json, synced, updated_at FROM $_dailySummaryTable "
+      "WHERE json_extract(payload_json, '\$.employee_id') = ? "
+      "ORDER BY json_extract(payload_json, '\$.work_date') DESC",
+      variables: [Variable<String>(employeeId)],
+    ).get();
+    return rows
+        .map(
+          (row) => {
+            'id': row.read<String>('id'),
+            'payload_json': row.read<String>('payload_json'),
+            'synced': row.read<int>('synced') == 1,
+            'updated_at': row.read<String>('updated_at'),
+          },
+        )
+        .toList();
+  }
+
+  Future<void> markDailySummaryPayloadSynced(String id) async {
+    await customStatement(
+      'UPDATE $_dailySummaryTable SET synced = 1 WHERE id = ?',
+      [id],
+    );
+  }
+
+  Future<void> upsertActivityRollupPayload(
+    String id,
+    String payloadJson, {
+    required DateTime updatedAt,
+    bool synced = false,
+  }) async {
+    await customStatement(
+      'INSERT OR REPLACE INTO $_activityRollupTable (id, payload_json, synced, updated_at) VALUES (?, ?, ?, ?)',
+      [id, payloadJson, synced ? 1 : 0, updatedAt.toIso8601String()],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingActivityRollupPayloads() async {
+    final rows = await customSelect(
+      'SELECT id, payload_json FROM $_activityRollupTable WHERE synced = 0',
+    ).get();
+    return rows
+        .map(
+          (row) => {
+            'id': row.read<String>('id'),
+            'payload_json': row.read<String>('payload_json'),
+          },
+        )
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getActivityRollupPayloadsForEmployee(
+    String employeeId,
+  ) async {
+    final rows = await customSelect(
+      "SELECT id, payload_json, synced, updated_at FROM $_activityRollupTable "
+      "WHERE json_extract(payload_json, '\$.employee_id') = ? "
+      "ORDER BY json_extract(payload_json, '\$.window_start') DESC",
+      variables: [Variable<String>(employeeId)],
+    ).get();
+    return rows
+        .map(
+          (row) => {
+            'id': row.read<String>('id'),
+            'payload_json': row.read<String>('payload_json'),
+            'synced': row.read<int>('synced') == 1,
+            'updated_at': row.read<String>('updated_at'),
+          },
+        )
+        .toList();
+  }
+
+  Future<void> markActivityRollupPayloadSynced(String id) async {
+    await customStatement(
+      'UPDATE $_activityRollupTable SET synced = 1 WHERE id = ?',
+      [id],
+    );
+  }
+
+  Future<void> _createAuxiliaryTables() async {
+    await customStatement(
+      'CREATE TABLE IF NOT EXISTS $_workstationRoiTable (workstation_id TEXT PRIMARY KEY, roi_json TEXT NOT NULL)',
+    );
+    await customStatement(
+      'CREATE TABLE IF NOT EXISTS $_profileSnapshotTable (workstation_id TEXT PRIMARY KEY, profile_json TEXT NOT NULL)',
+    );
+    await customStatement(
+      'CREATE TABLE IF NOT EXISTS $_dailySummaryTable (id TEXT PRIMARY KEY, payload_json TEXT NOT NULL, synced INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL)',
+    );
+    await customStatement(
+      'CREATE TABLE IF NOT EXISTS $_activityRollupTable (id TEXT PRIMARY KEY, payload_json TEXT NOT NULL, synced INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL)',
+    );
+  }
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'worksense_db');

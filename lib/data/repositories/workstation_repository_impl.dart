@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'dart:convert';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/workstation.dart';
 import 'package:worksense_app/domain/repositories/workstation_repository.dart';
@@ -25,6 +26,12 @@ class WorkstationRepositoryImpl implements WorkstationRepository {
         assignedEmployeeId: Value(workstation.assignedEmployeeId),
         status: Value(workstation.status),
       ));
+      if (workstation.roi != null) {
+        await _db.saveWorkstationRoi(
+          workstation.id,
+          jsonEncode(workstation.roi!.toMap()),
+        );
+      }
 
       // 2. Encolar para sincronizaciÃ³n
       await _syncRepo.enqueue(
@@ -60,6 +67,7 @@ class WorkstationRepositoryImpl implements WorkstationRepository {
   }
 
   Workstation _mapToEntity(WorkstationRecord row) {
+    // ROI is resolved by higher-level flows when needed from auxiliary cache.
     return Workstation(
       id: row.id,
       name: row.name,
