@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/dashboard_provider.dart';
@@ -98,16 +99,21 @@ class _ActivityHistoryScreenState
                   ),
                 ),
 
-              // List
+// List
               Expanded(
-                child: ListView.separated(
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const Divider(
-                    height: 1,
-                    indent: AppDimensions.dividerIndent,
-                  ),
-                  itemBuilder: (context, index) => ActivityEventTile(
-                    event: filtered[index],
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: AppSpacing.listMaxWidth(context)),
+                    child: ListView.separated(
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const Divider(
+                        height: 1,
+                        indent: AppDimensions.dividerIndent,
+                      ),
+                      itemBuilder: (context, index) => ActivityEventTile(
+                        event: filtered[index],
+                      ),
+                    ),
                   ),
                 ),
               ),

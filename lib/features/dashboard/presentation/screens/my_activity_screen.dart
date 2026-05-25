@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/widgets/activity_event_tile.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
@@ -29,7 +30,7 @@ class MyActivityScreen extends ConsumerWidget {
                 centerTitle: false,
               ),
               SliverPadding(
-                padding: const EdgeInsets.all(AppDimensions.spacingXxl),
+                padding: AppSpacing.screenPadding(context),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) => ActivityEventTile(event: events[index]),

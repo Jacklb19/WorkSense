@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/dashboard/domain/entities/employee_analytics.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/admin_analytics_provider.dart';
@@ -94,15 +95,20 @@ padding: const EdgeInsets.all(AppDimensions.spacing24),
                 return RefreshIndicator(
                   onRefresh: () async =>
                       ref.invalidate(employeeAnalyticsProvider),
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacingMd, AppDimensions.spacingXxl, 80),
-                    itemCount: analyticsList.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: AppDimensions.spacing10),
-                    itemBuilder: (context, index) =>
-                        _EmployeeAnalyticsCard(
-                      analytics: analyticsList[index],
-                      onTap: () => context.push(
-                        '/analytics/${analyticsList[index].employee.id}',
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: AppSpacing.listMaxWidth(context)),
+                      child: ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacingMd, AppDimensions.spacingXxl, AppDimensions.scrollBottomPadding),
+                        itemCount: analyticsList.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: AppDimensions.spacing10),
+                        itemBuilder: (context, index) =>
+                            _EmployeeAnalyticsCard(
+                          analytics: analyticsList[index],
+                          onTap: () => context.push(
+                            '/analytics/${analyticsList[index].employee.id}',
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -138,8 +144,8 @@ padding: const EdgeInsets.all(AppDimensions.spacing24),
                 child: Row(
                   children: [
                     Container(
-                      width: 16,
-                      height: 16,
+                      width: AppDimensions.legendDotSize,
+                      height: AppDimensions.legendDotSize,
                       decoration: BoxDecoration(
                         color: s.color,
 borderRadius: BorderRadius.circular(AppDimensions.radiusSm),

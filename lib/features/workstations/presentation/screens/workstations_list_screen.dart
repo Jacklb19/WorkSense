@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
 import 'package:worksense_app/features/workstations/presentation/providers/workstations_provider.dart';
 import 'package:worksense_app/shared/utils/app_snack_bar.dart';
 import 'package:worksense_app/shared/widgets/async_value_widget.dart';
@@ -31,7 +32,10 @@ class WorkstationsListScreen extends ConsumerWidget {
             );
           }
 
-          return ListView.builder(
+          return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: AppSpacing.listMaxWidth(context)),
+                child: ListView.builder(
             itemCount: workstations.length,
             itemBuilder: (context, index) {
               final workstation = workstations[index];
@@ -57,9 +61,10 @@ class WorkstationsListScreen extends ConsumerWidget {
                   ),
                 ),
               );
-            },
-          );
-        },
+              },
+            ),
+          ),
+        );
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/workstations/new'),

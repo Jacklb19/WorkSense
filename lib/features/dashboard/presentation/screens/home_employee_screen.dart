@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_indicator.dart';
@@ -27,12 +28,14 @@ class HomeEmployeeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Center(
-        child: userState.when(
-          data: (currentUser) {
-            return Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: AppSpacing.formMaxWidth(context)),
+          child: userState.when(
+            data: (currentUser) {
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
                 const Icon(Icons.person, size: AppDimensions.iconLogo, color: AppColors.primaryLight),
                 const SizedBox(height: AppDimensions.spacingXxl),
                 Text(
@@ -55,6 +58,6 @@ class HomeEmployeeScreen extends ConsumerWidget {
           error: (error, _) => Text('Error: $error'),
         ),
       ),
-    );
-  }
+    ),
+  );
 }

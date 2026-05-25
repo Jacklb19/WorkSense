@@ -176,4 +176,30 @@ abstract final class AppDimensions {
   // Button heights
   static const double buttonHeightLg = 60.0;
   static const double buttonHeightMd = 50.0;
+
+  // ─────────────────────────────────────────────────────────
+  // RESPONSIVE BREAKPOINTS & MAX WIDTHS
+  // ─────────────────────────────────────────────────────────
+  static const double breakpointMobile = 600.0;
+  static const double breakpointTablet = 900.0;
+  static const double breakpointDesktop = 1200.0;
+
+  static const double formMaxWidth = 600.0;
+  static const double listMaxWidth = 700.0;
+  static const double dashboardMaxWidth = 900.0;
+
+  // Icon container sizes (replaces hardcoded values)
+  static const double iconContainerSm = 44.0;
+  static const double iconContainerLg = 92.0;
+
+  // Slider bounds (workstation geofence)
+  static const double geofenceRadiusMin = 50.0;
+  static const double geofenceRadiusMax = 500.0;
+  static const int geofenceRadiusDivisions = 9;
+
+  // Legend color dot size
+  static const double legendDotSize = 16.0;
+
+  // Bottom padding for scroll content (FAB clearance)
+  static const double scrollBottomPadding = 80.0;
 }

@@ -5,6 +5,7 @@ import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/admin_analytics_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/widgets/employee_dashboard_card.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
@@ -62,45 +63,59 @@ class AdminDashboardScreen extends ConsumerWidget {
                 return SliverMainAxisGroup(
                   slivers: [
                     SliverPadding(
-                      padding: const EdgeInsets.all(AppDimensions.spacing24),
+                      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing24),
                       sliver: SliverToBoxAdapter(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'COLABORADORES',
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
-                              ),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: AppSpacing.dashboardMaxWidth(context)),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'COLABORADORES',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                                const SizedBox(height: AppDimensions.spacingMd),
+                                Text(
+                                  'Tus trabajadores',
+                                  style: theme.textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: AppDimensions.spacingMd),
-                            Text(
-                              'Tus trabajadores',
-                              style: theme.textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
                     SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing24),
-                      sliver: SliverGrid(
-                        gridDelegate:
-                            const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 350,
-                          mainAxisExtent: 180,
-                          mainAxisSpacing: AppDimensions.spacingXxl,
-                          crossAxisSpacing: AppDimensions.spacingXxl,
-                        ),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) =>
-                              EmployeeDashboardCard(employee: employees[index]),
-                          childCount: employees.length,
-                        ),
+                      sliver: SliverLayoutBuilder(
+                        builder: (context, constraints) {
+                          final crossAxisCount = AppSpacing.gridCrossAxisCount(
+                            context,
+                            mobile: 1,
+                            tablet: 2,
+                            desktop: 3,
+                          );
+                          return SliverGrid(
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              mainAxisExtent: AppDimensions.gridMainAxisExtent + AppDimensions.spacing20,
+                              mainAxisSpacing: AppDimensions.spacingXxl,
+                              crossAxisSpacing: AppDimensions.spacingXxl,
+                            ),
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) =>
+                                  EmployeeDashboardCard(employee: employees[index]),
+                              childCount: employees.length,
+                            ),
+                          );
+                        },
                       ),
                     ),
                     const SliverToBoxAdapter(child: SizedBox(height: AppDimensions.spacing100)),

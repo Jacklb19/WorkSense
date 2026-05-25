@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/dashboard/domain/entities/employee_analytics.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/admin_analytics_provider.dart';
@@ -184,7 +185,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
       final pct = analytics.percentageFor(entry.key);
 
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: AppDimensions.spacingXs),
+        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacingXxs),
         child: Row(
           children: [
             // State color dot

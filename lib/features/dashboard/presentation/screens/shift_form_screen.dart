@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
 import 'package:worksense_app/shared/utils/app_snack_bar.dart';
 import 'package:worksense_app/shared/widgets/styled/app_section_header.dart';
@@ -184,7 +185,11 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
         title: const Text('Configurar Horario'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing24, vertical: AppDimensions.spacing32),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: AppSpacing.formMaxWidth(context)),
+            child: Padding(
+              padding: AppSpacing.formPadding(context),
         child: Form(
           key: _formKey,
           child: Column(
@@ -294,7 +299,8 @@ const SizedBox(height: AppDimensions.spacingXxl),
                   style: const TextStyle(color: AppColors.error, fontSize: AppDimensions.fontBody)
                 ),
               ],
-            ],
+],
+            ),
           ),
         ),
       ),

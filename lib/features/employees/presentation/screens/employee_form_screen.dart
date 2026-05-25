@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
 import 'package:worksense_app/domain/entities/app_role.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
@@ -145,13 +146,16 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
             title: Text(_isEditing ? 'Editar Perfil' : 'Nuevo Ingreso'),
           ),
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing24, vertical: AppDimensions.spacing32),
+            padding: AppSpacing.formPadding(context),
             sliver: SliverToBoxAdapter(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: AppSpacing.formMaxWidth(context)),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                     const AppSectionHeader(title: 'IDENTIDAD'),
                     TextFormField(
                       controller: _nameController,
@@ -304,16 +308,17 @@ loading: () =>
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(double.infinity, AppDimensions.buttonHeightMd),
                           side: const BorderSide(color: AppColors.error),
-                        ),
-                      ),
-                    ],
-                  ],
+),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+}
 }

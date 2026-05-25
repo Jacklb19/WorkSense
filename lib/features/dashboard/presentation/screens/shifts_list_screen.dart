@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
 import 'package:worksense_app/shared/widgets/styled/app_empty_state.dart';
@@ -30,7 +31,10 @@ class ShiftsListScreen extends ConsumerWidget {
               return const AppEmptyState(icon: Icons.event_busy, title: 'No hay turnos registrados', subtitle: 'Crea tu primer horario laboral\npara asignarlo a tus empleados.');
             }
 
-            return ListView.separated(
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: AppSpacing.listMaxWidth(context)),
+                child: ListView.separated(
               padding: const EdgeInsets.all(AppDimensions.spacingXxl),
               itemCount: shifts.length,
               separatorBuilder: (_, __) => const SizedBox(height: AppDimensions.spacingLg),
@@ -71,11 +75,11 @@ class ShiftsListScreen extends ConsumerWidget {
                       // TODO: Implementar edicion
                     },
                   ),
-                );
+);
               },
-            );
-          },
-        ),
+            ),
+          ),
+        );
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.shiftNew),

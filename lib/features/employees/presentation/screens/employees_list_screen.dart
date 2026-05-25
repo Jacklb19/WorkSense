@@ -5,6 +5,7 @@ import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/shared/utils/app_snack_bar.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
@@ -36,7 +37,10 @@ class EmployeesListScreen extends ConsumerWidget {
             return const AppEmptyState(icon: Icons.people_outline, title: AppStrings.noEmployees, subtitle: AppStrings.addEmployeeHint);
           }
 
-          return ListView.separated(
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: AppSpacing.listMaxWidth(context)),
+              child: ListView.separated(
             itemCount: employees.length,
             separatorBuilder: (_, __) =>
                 const Divider(height: 1, indent: AppDimensions.dividerIndent),
@@ -107,8 +111,8 @@ class EmployeesListScreen extends ConsumerWidget {
                 ),
               );
             },
-          );
-        },
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {

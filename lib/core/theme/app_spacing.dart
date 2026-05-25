@@ -4,42 +4,75 @@ import '../constants/app_dimensions.dart';
 abstract final class AppSpacing {
   AppSpacing._();
 
+  // ── Responsive screen padding ──────────────────────────────
   static EdgeInsets screenPadding(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    if (width > 1200) return const EdgeInsets.symmetric(horizontal: 80);
-    if (width > 800) return const EdgeInsets.symmetric(horizontal: 48);
-    return const EdgeInsets.symmetric(horizontal: 16);
+    if (width > AppDimensions.breakpointDesktop) return const EdgeInsets.symmetric(horizontal: 80);
+    if (width > AppDimensions.breakpointMobile) return const EdgeInsets.symmetric(horizontal: 48);
+    return const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl);
   }
 
   static EdgeInsets cardPadding(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    if (width > 1200) return const EdgeInsets.all(24);
-    if (width > 800) return const EdgeInsets.all(20);
-    return const EdgeInsets.all(16);
+    if (width > AppDimensions.breakpointDesktop) return const EdgeInsets.all(AppDimensions.spacing24);
+    if (width > AppDimensions.breakpointMobile) return const EdgeInsets.all(AppDimensions.spacing20);
+    return const EdgeInsets.all(AppDimensions.spacingXxl);
   }
 
   static EdgeInsets formPadding(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    if (width > 1200) return const EdgeInsets.symmetric(horizontal: 80, vertical: 32);
-    if (width > 800) return const EdgeInsets.symmetric(horizontal: 48, vertical: 24);
-    return const EdgeInsets.symmetric(horizontal: 16, vertical: 16);
+    if (width > AppDimensions.breakpointDesktop) return const EdgeInsets.symmetric(horizontal: 80, vertical: AppDimensions.spacing32);
+    if (width > AppDimensions.breakpointMobile) return const EdgeInsets.symmetric(horizontal: 48, vertical: AppDimensions.spacing24);
+    return const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacingXxl);
   }
 
+  // ── Responsive max widths ──────────────────────────────────
   static double contentMaxWidth(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    if (width > 1200) return 900;
-    if (width > 800) return 600;
+    if (width > AppDimensions.breakpointDesktop) return AppDimensions.dashboardMaxWidth;
+    if (width > AppDimensions.breakpointMobile) return AppDimensions.listMaxWidth;
     return width;
   }
 
-  static bool isMobile(BuildContext context) =>
-      MediaQuery.of(context).size.width < 600;
-  static bool isTablet(BuildContext context) =>
-      MediaQuery.of(context).size.width >= 600 &&
-      MediaQuery.of(context).size.width < 1200;
-  static bool isDesktop(BuildContext context) =>
-      MediaQuery.of(context).size.width >= 1200;
+  static double formMaxWidth(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width > AppDimensions.breakpointMobile) return AppDimensions.formMaxWidth;
+    return width;
+  }
 
+  static double listMaxWidth(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width > AppDimensions.breakpointDesktop) return AppDimensions.dashboardMaxWidth;
+    if (width > AppDimensions.breakpointMobile) return AppDimensions.listMaxWidth;
+    return width;
+  }
+
+  static double dashboardMaxWidth(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width > AppDimensions.breakpointDesktop) return AppDimensions.dashboardMaxWidth + 200;
+    if (width > AppDimensions.breakpointMobile) return AppDimensions.dashboardMaxWidth;
+    return width;
+  }
+
+  // ── Responsive grid cross-axis count ────────────────────────
+  static int gridCrossAxisCount(BuildContext context, {int mobile = 1, int tablet = 2, int desktop = 3}) {
+    final width = MediaQuery.of(context).size.width;
+    if (width >= AppDimensions.breakpointDesktop) return desktop;
+    if (width >= AppDimensions.breakpointMobile) return tablet;
+    return mobile;
+  }
+
+  // ── Breakpoint helpers ──────────────────────────────────────
+  static bool isMobile(BuildContext context) =>
+      MediaQuery.of(context).size.width < AppDimensions.breakpointMobile;
+  static bool isTablet(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    return width >= AppDimensions.breakpointMobile && width < AppDimensions.breakpointDesktop;
+  }
+  static bool isDesktop(BuildContext context) =>
+      MediaQuery.of(context).size.width >= AppDimensions.breakpointDesktop;
+
+  // ── Static spacing constants ───────────────────────────────
   static const EdgeInsets paddingXs = EdgeInsets.all(AppDimensions.spacingXs);
   static const EdgeInsets paddingSm = EdgeInsets.all(AppDimensions.spacingSm);
   static const EdgeInsets paddingMd = EdgeInsets.all(AppDimensions.spacingMd);

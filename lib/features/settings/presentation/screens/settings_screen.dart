@@ -6,6 +6,7 @@ import 'package:worksense_app/core/constants/ai_thresholds.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_indicator.dart';
 
@@ -50,8 +51,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       appBar: AppBar(
         title: const Text(AppStrings.settings),
       ),
-      body: ListView(
-        children: [
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: AppSpacing.formMaxWidth(context)),
+          child: ListView(
+            children: [
           // ── Account section ─────────────────────────────────────
           const _SectionHeader(title: AppStrings.accountSection),
           ListTile(
@@ -65,8 +69,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // ── AI Pipeline section ──────────────────────────────────
           const _SectionHeader(title: AppStrings.activityAnalysis),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: analysisIntervalAsync.when(
+padding: AppSpacing.screenPadding(context),
+          child: analysisIntervalAsync.when(
               data: (analysisInterval) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -109,7 +113,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ],
               ),
               loading: () => const Padding(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppDimensions.spacingXxl),
                 child: Center(child: AppLoadingIndicator()),
               ),
               error: (_, __) => const SizedBox.shrink(),
@@ -171,7 +175,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // ── Logout ───────────────────────────────────────────────
           const SizedBox(height: AppDimensions.spacingMd),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: AppSpacing.screenPadding(context),
             child: OutlinedButton.icon(
               onPressed: () => _handleLogout(context, ref),
               icon: const Icon(Icons.logout, color: AppColors.error),
@@ -181,15 +185,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: AppColors.error),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(vertical: AppDimensions.buttonPaddingVerticalSm),
               ),
             ),
-          ),
+),
           const SizedBox(height: AppDimensions.spacing24),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(

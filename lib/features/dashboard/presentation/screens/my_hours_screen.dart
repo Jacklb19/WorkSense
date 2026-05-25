@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/dashboard/domain/entities/daily_work_summary.dart';
 import 'package:worksense_app/features/dashboard/domain/entities/employee_analytics.dart';
@@ -9,6 +10,7 @@ import 'package:worksense_app/features/dashboard/presentation/helpers/hours_form
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
 import 'package:worksense_app/shared/widgets/styled/styled.dart';
+import 'package:worksense_app/shared/widgets/styled/app_content_constrainer.dart';
 
 class MyHoursScreen extends ConsumerWidget {
   const MyHoursScreen({super.key});
@@ -337,16 +339,13 @@ class _MetricsGrid extends StatelessWidget {
       _MetricData('Sesiones', '${summary.sessionCount}', Icons.login),
     ];
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: AppDimensions.spacingLg,
-        crossAxisSpacing: AppDimensions.spacingLg,
-        childAspectRatio: 1.45,
-      ),
+    return AppResponsiveGrid(
       itemCount: tiles.length,
+      mobileColumns: 2,
+      tabletColumns: 3,
+      desktopColumns: 4,
+      mainAxisExtent: AppDimensions.spacing100,
+      childAspectRatio: 1.45,
       itemBuilder: (context, index) {
         final item = tiles[index];
         return Container(
@@ -497,8 +496,8 @@ class _HistoryCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: AppDimensions.iconContainerSm,
+            height: AppDimensions.iconContainerSm,
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
@@ -606,8 +605,8 @@ class _EmptyHoursView extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 92,
-                height: 92,
+                width: AppDimensions.iconContainerLg,
+                height: AppDimensions.iconContainerLg,
                 decoration: BoxDecoration(
                   color: AppColors.cardDark,
                   shape: BoxShape.circle,

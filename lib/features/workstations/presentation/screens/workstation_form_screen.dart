@@ -7,6 +7,7 @@ import 'package:worksense_app/core/constants/app_constants.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
 import 'package:worksense_app/domain/entities/workstation.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/features/workstations/presentation/providers/workstations_provider.dart';
@@ -215,7 +216,11 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppDimensions.spacingXxl),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: AppSpacing.formMaxWidth(context)),
+            child: Padding(
+              padding: AppSpacing.formPadding(context),
         child: Form(
           key: _formKey,
           child: Column(
@@ -343,11 +348,12 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
                         AppStrings.saveWorkstation,
                         style: TextStyle(fontSize: AppDimensions.fontTitle),
                       ),
-              ),
+),
             ],
           ),
         ),
       ),
+    ),
     );
   }
 }

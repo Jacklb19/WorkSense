@@ -5,6 +5,7 @@ import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_spacing.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
@@ -39,10 +40,14 @@ class EmployeeDashboardScreen extends ConsumerWidget {
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(AppDimensions.spacingXxl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: AppSpacing.dashboardMaxWidth(context)),
+              child: Padding(
+                padding: const EdgeInsets.all(AppDimensions.spacingXxl),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
               // Header
               Text(
                 'Hola, $userEmail',
@@ -88,11 +93,12 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                 subtitle: 'Consultar horas, sesiones y resumen diario',
                 route: AppRoutes.myHours,
               ),
-              const SizedBox(height: AppDimensions.spacing40),
+const SizedBox(height: AppDimensions.spacing40),
             ],
           ),
         ),
       ),
+    ),
     );
   }
 }
