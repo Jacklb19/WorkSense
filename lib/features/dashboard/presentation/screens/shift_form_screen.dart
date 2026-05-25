@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:worksense_app/core/constants/app_dimensions.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/core/theme/app_spacing.dart';
-import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
-import 'package:worksense_app/shared/utils/app_snack_bar.dart';
-import 'package:worksense_app/shared/widgets/styled/app_section_header.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/styled/app_section_header.dart';
+import '../../presentation/providers/shifts_provider.dart';
+
 class ShiftFormScreen extends ConsumerStatefulWidget {
-  const ShiftFormScreen({super.key});
+  final String? shiftId;
+  const ShiftFormScreen({super.key, this.shiftId});
 
   @override
   ConsumerState<ShiftFormScreen> createState() => _ShiftFormScreenState();
@@ -19,13 +19,46 @@ class ShiftFormScreen extends ConsumerStatefulWidget {
 class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  
+
   TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 18, minute: 0);
   bool _hasBreak = false;
   TimeOfDay _breakStartTime = const TimeOfDay(hour: 13, minute: 0);
   TimeOfDay _breakEndTime = const TimeOfDay(hour: 14, minute: 0);
   bool _hasListened = false;
+
+  bool _isLoadingData = false;
+  String? _editingId;
+  bool get _isEditing => _editingId != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.shiftId != null) {
+      _loadExistingShift();
+    }
+  }
+
+  Future<void> _loadExistingShift() async {
+    setState(() => _isLoadingData = true);
+    try {
+      final repo = ref.read(shiftRepositoryProvider);
+      final shift = await repo.getShiftById(widget.shiftId!);
+      if (shift != null && mounted) {
+        setState(() {
+          _editingId = shift.id;
+          _nameController.text = shift.name;
+          _startTime = shift.startTime;
+          _endTime = shift.endTime;
+          _hasBreak = shift.hasBreak;
+          if (shift.breakStartTime != null) _breakStartTime = shift.breakStartTime!;
+          if (shift.breakEndTime != null) _breakEndTime = shift.breakEndTime!;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingData = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -74,7 +107,7 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
       return;
     }
 
-    final id = const Uuid().v4();
+    final id = _editingId ?? const Uuid().v4();
     await ref.read(shiftFormNotifierProvider.notifier).saveShift(
       id: id,
       name: _nameController.text.trim(),
@@ -86,11 +119,14 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
       breakStartMinute: _hasBreak ? _breakStartTime.minute : null,
       breakEndHour: _hasBreak ? _breakEndTime.hour : null,
       breakEndMinute: _hasBreak ? _breakEndTime.minute : null,
+      isEdit: _isEditing,
     );
   }
 
   void _showError(String message) {
-    AppSnackBar.showError(context, message);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   _ShiftTimeline? _buildShiftTimeline({
@@ -175,21 +211,29 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
     ref.listen<ShiftFormState>(shiftFormNotifierProvider, (_, next) {
       if (next.saved && !_hasListened) {
         _hasListened = true;
-        AppSnackBar.showSuccess(context, 'Turno registrado exitosamente');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_isEditing ? 'Turno actualizado exitosamente' : 'Turno registrado exitosamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
         context.pop();
       }
     });
 
+    if (_isLoadingData) {
+      return Scaffold(
+        appBar: AppBar(title: Text(_isEditing ? 'Editar Horario' : 'Configurar Horario')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Configurar Horario'),
+        title: Text(_isEditing ? 'Editar Horario' : 'Configurar Horario'),
       ),
       body: SingleChildScrollView(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: AppSpacing.formMaxWidth(context)),
-            child: Padding(
-              padding: AppSpacing.formPadding(context),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
         child: Form(
           key: _formKey,
           child: Column(
@@ -197,6 +241,7 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
             children: [
               // ── Name Section ─────────────────────────────────────
               const AppSectionHeader(title: 'DETALLES DEL TURNO'),
+              const SizedBox(height: AppDimensions.spacing20),
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -210,26 +255,27 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
               // ── Work Hours Section ───────────────────────────────
               const SizedBox(height: AppDimensions.spacing40),
               const AppSectionHeader(title: 'JORNADA LABORAL'),
+              const SizedBox(height: AppDimensions.spacing20),
               
               Row(
-                children: [
-                  Expanded(
-                    child: _TimeCard(
-                      title: 'ENTRADA',
-                      time: _startTime,
-                      onTap: () => _selectTime(
-                        context,
-                        initial: _startTime,
-                        onSelected: (t) => _startTime = t,
+                  children: [
+                    Expanded(
+                      child: _TimeCard(
+                        title: 'ENTRADA',
+                        time: _startTime,
+                        onTap: () => _selectTime(
+                          context,
+                          initial: _startTime,
+                          onSelected: (t) => _startTime = t,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: AppDimensions.spacingXxl),
-                  Expanded(
-                    child: _TimeCard(
-                      title: 'SALIDA',
-                      time: _endTime,
-                      onTap: () => _selectTime(
+                    const SizedBox(width: AppDimensions.spacingXxl),
+                    Expanded(
+                      child: _TimeCard(
+                        title: 'SALIDA',
+                        time: _endTime,
+                        onTap: () => _selectTime(
                         context,
                         initial: _endTime,
                         onSelected: (t) => _endTime = t,
@@ -240,11 +286,18 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
               ),
 
               // ── Break / Lunch Section ────────────────────────────
-const SizedBox(height: AppDimensions.spacingXxl),
-                const AppSectionHeader(title: 'RECESO / ALMUERZO'),
-                SwitchListTile(
+              const SizedBox(height: AppDimensions.spacing32),
+              SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Activar si aplica hora de almuerzo'),
+                title: const Text('RECESO / ALMUERZO', 
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                    fontSize: AppDimensions.fontSm,
+                  )
+                ),
+                subtitle: const Text('Activar si aplica hora de almuerzo'),
                 value: _hasBreak,
                 onChanged: (val) => setState(() => _hasBreak = val),
                 activeThumbColor: AppColors.primary,
@@ -284,13 +337,13 @@ const SizedBox(height: AppDimensions.spacingXxl),
               ],
               
               // ── Submit ────────────────────────────────────────────
-              const SizedBox(height: AppDimensions.spacingXxl),
+              const SizedBox(height: AppDimensions.spacing56),
               FilledButton(
                 onPressed: formState.isLoading ? null : _handleSubmit,
-                style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, AppDimensions.buttonHeightLg)),
-                child: formState.isLoading 
-                  ? const CircularProgressIndicator(color: AppColors.white, strokeWidth: AppDimensions.progressStrokeWidth) 
-                  : const Text('GUARDAR TURNO'),
+                style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, 60)),
+                child: formState.isLoading
+                  ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                  : Text(_isEditing ? 'ACTUALIZAR TURNO' : 'GUARDAR TURNO'),
               ),
               if (formState.errorMessage != null) ...[
                 const SizedBox(height: AppDimensions.spacingXxl),
@@ -299,8 +352,7 @@ const SizedBox(height: AppDimensions.spacingXxl),
                   style: const TextStyle(color: AppColors.error, fontSize: AppDimensions.fontBody)
                 ),
               ],
-],
-            ),
+            ],
           ),
         ),
       ),
@@ -348,20 +400,20 @@ class _TimeCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingXxl, horizontal: AppDimensions.spacingLg),
         decoration: BoxDecoration(
-          color: AppColors.cardDark,
+          color: AppColors.card,
           borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
           border: Border.all(color: AppColors.glassBorder),
         ),
         child: Column(
           children: [
-            Text(title, style: const TextStyle(color: AppColors.grey500, fontSize: AppDimensions.fontSm, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-            const SizedBox(height: AppDimensions.spacingMd),
+            Text(title, style: const TextStyle(color: AppColors.grey500, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+            const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.access_time, size: AppDimensions.iconSm, color: color),
+                Icon(Icons.access_time, size: 18, color: color),
                 const SizedBox(width: AppDimensions.spacingMd),
-                Text(timeStr, style: const TextStyle(fontSize: AppDimensions.fontDisplayXs, fontWeight: FontWeight.w600, color: AppColors.white)),
+                Text(timeStr, style: TextStyle(fontSize: AppDimensions.fontHeadline, fontWeight: FontWeight.w600, color: color)),
               ],
             ),
           ],

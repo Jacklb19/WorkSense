@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:worksense_app/core/constants/app_dimensions.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/core/theme/app_spacing.dart';
-import 'package:worksense_app/domain/entities/activity_state.dart';
-import 'package:worksense_app/features/dashboard/domain/entities/employee_analytics.dart';
-import 'package:worksense_app/features/dashboard/presentation/providers/admin_analytics_provider.dart';
-import 'package:worksense_app/shared/widgets/loading_widget.dart';
-import 'package:worksense_app/shared/widgets/loading_indicator.dart';
-import 'package:worksense_app/shared/widgets/styled/app_empty_state.dart';
+
+import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../domain/entities/activity_state.dart';
+import '../../../../shared/widgets/loading_widget.dart';
+import '../../../../shared/widgets/styled/app_avatar.dart';
+import '../../../../shared/widgets/styled/app_stat_chip.dart';
+import '../../domain/entities/employee_analytics.dart';
+import '../providers/admin_analytics_provider.dart';
 
 class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
   final String employeeId;
@@ -22,7 +22,8 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detailAsync = ref.watch(employeeDetailProvider(employeeId));
-    final attendanceAsync = ref.watch(employeeAttendanceProvider(employeeId));
+    final attendanceAsync =
+        ref.watch(employeeAttendanceProvider(employeeId));
     final dateRange = ref.watch(analyticsDateRangeProvider);
 
     return Scaffold(
@@ -46,15 +47,19 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
           }
 
           if (!analytics.hasData) {
-            return AppEmptyState(icon: Icons.person_search_outlined, title: 'Sin datos para ${analytics.employee.displayName}', subtitle: 'No se han registrado eventos\nen el período seleccionado.');
+            return _EmptyDetailView(name: analytics.employee.displayName);
           }
 
           return CustomScrollView(
             slivers: [
-              // ── Date toggles ──────────────────────────────
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacingLg, AppDimensions.spacingXxl, AppDimensions.spacingXs),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppDimensions.spacingXxl,
+                    AppDimensions.spacingLg,
+                    AppDimensions.spacingXxl,
+                    AppDimensions.spacingXs,
+                  ),
                   child: Row(
                     children: [
                       _Chip(
@@ -67,8 +72,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                       const SizedBox(width: AppDimensions.spacingMd),
                       _Chip(
                         label: 'Esta semana',
-                        selected:
-                            dateRange == AnalyticsDateRange.thisWeek,
+                        selected: dateRange == AnalyticsDateRange.thisWeek,
                         onTap: () => ref
                             .read(analyticsDateRangeProvider.notifier)
                             .state = AnalyticsDateRange.thisWeek,
@@ -77,19 +81,17 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-
-              // ── Summary header ────────────────────────────
               SliverToBoxAdapter(
                 child: _SummaryHeader(analytics: analytics),
               ),
-
-              // ── State breakdown list ──────────────────────
               SliverToBoxAdapter(
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacingMd),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimensions.spacingXxl,
+                    vertical: AppDimensions.spacingMd,
+                  ),
                   child: Text(
-                    'Distribución por estado',
+                    'Distribucion por estado',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -101,11 +103,14 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                   _buildStateBreakdown(context, analytics),
                 ),
               ),
-
-              // ── Attendance list ───────────────────────────────
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacing24, AppDimensions.spacingXxl, AppDimensions.spacingMd),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppDimensions.spacingXxl,
+                    AppDimensions.spacing24,
+                    AppDimensions.spacingXxl,
+                    AppDimensions.spacingMd,
+                  ),
                   child: Text(
                     'Asistencia Diaria (Horas Reales)',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -120,12 +125,14 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                     return const SliverToBoxAdapter(
                       child: Padding(
                         padding: EdgeInsets.all(AppDimensions.spacingXxl),
-                        child: Text('No hay registros de asistencia en el escáner.', style: TextStyle(color: AppColors.grey500)),
+                        child: Text(
+                          'No hay registros de asistencia en el scanner.',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
                       ),
                     );
                   }
-                  
-                  // Calcular tiempo total neto
+
                   Duration totalNetTime = Duration.zero;
                   for (final log in logs) {
                     final outTime = log.clockOutTime ?? DateTime.now();
@@ -135,31 +142,50 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                   return SliverList(
                     delegate: SliverChildListDelegate([
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacingMd),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppDimensions.spacingXxl,
+                          vertical: AppDimensions.spacingMd,
+                        ),
                         child: Text(
                           'Total horas en oficina: ${_fmtDur(totalNetTime)}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
                         ),
                       ),
                       ...logs.map((log) {
-                        final inStr = DateFormat('HH:mm').format(log.clockInTime);
-                        final outStr = log.clockOutTime != null ? DateFormat('HH:mm').format(log.clockOutTime!) : 'En curso';
-                        final diff = (log.clockOutTime ?? DateTime.now()).difference(log.clockInTime);
+                        final inStr =
+                            DateFormat('HH:mm').format(log.clockInTime);
+                        final outStr = log.clockOutTime != null
+                            ? DateFormat('HH:mm').format(log.clockOutTime!)
+                            : 'En curso';
+                        final diff = (log.clockOutTime ?? DateTime.now())
+                            .difference(log.clockInTime);
                         return ListTile(
-                          leading: const Icon(Icons.sensor_door, color: AppColors.grey400),
+                          leading: const Icon(
+                            Icons.sensor_door,
+                            color: AppColors.textDisabled,
+                          ),
                           title: Text('Entrada: $inStr - Salida: $outStr'),
-                          trailing: Text(_fmtDur(diff), style: const TextStyle(fontWeight: FontWeight.w600)),
+                          trailing: Text(
+                            _fmtDur(diff),
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
                         );
                       }),
                     ]),
                   );
                 },
-                loading: () => const SliverToBoxAdapter(child: Center(child: AppLoadingIndicator())),
-                error: (e, _) => SliverToBoxAdapter(child: Text('Error: $e')),
+                loading: () => const SliverToBoxAdapter(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (e, _) =>
+                    SliverToBoxAdapter(child: Text('Error: $e')),
               ),
-
-              // Bottom padding
-              const SliverToBoxAdapter(child: SizedBox(height: AppDimensions.spacing40)),
+              const SliverToBoxAdapter(
+                child: SizedBox(height: AppDimensions.spacing40),
+              ),
             ],
           );
         },
@@ -171,7 +197,6 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
     BuildContext context,
     EmployeeAnalytics analytics,
   ) {
-    // Sort by duration descending, show all states even if 0
     final statesWithData = <ActivityState, Duration>{};
     for (final state in ActivityState.values) {
       statesWithData[state] =
@@ -185,21 +210,21 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
       final pct = analytics.percentageFor(entry.key);
 
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacingXxs),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.spacingXxl,
+          vertical: AppDimensions.spacingXs,
+        ),
         child: Row(
           children: [
-            // State color dot
             Container(
               width: AppDimensions.stateBreakdownDotSize,
-                height: AppDimensions.stateBreakdownDotSize,
+              height: AppDimensions.stateBreakdownDotSize,
               decoration: BoxDecoration(
                 color: entry.key.color,
                 borderRadius: BorderRadius.circular(AppDimensions.radiusXs),
               ),
             ),
             const SizedBox(width: AppDimensions.spacingLg),
-
-            // Label
             Expanded(
               flex: 3,
               child: Text(
@@ -207,30 +232,26 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                 style: const TextStyle(fontSize: AppDimensions.fontBody),
               ),
             ),
-
-            // Bar
             Expanded(
               flex: 5,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppDimensions.radiusXs),
                 child: LinearProgressIndicator(
                   value: pct,
-                  backgroundColor: AppColors.grey200,
+                  backgroundColor: AppColors.surface,
                   color: entry.key.color,
                   minHeight: AppDimensions.progressBarHeight,
                 ),
               ),
             ),
             const SizedBox(width: AppDimensions.spacingLg),
-
-            // Percentage + duration
             SizedBox(
               width: AppDimensions.stateBreakdownPercentageWidth,
               child: Text(
-                '${(pct * 100).round()}% · ${_fmtDur(entry.value)}',
+                '${(pct * 100).round()}% - ${_fmtDur(entry.value)}',
                 style: const TextStyle(
                   fontSize: AppDimensions.fontSm,
-                  color: AppColors.grey600,
+                  color: AppColors.textSecondary,
                 ),
                 textAlign: TextAlign.right,
               ),
@@ -241,8 +262,6 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
     }).toList();
   }
 }
-
-// ── Summary Header ───────────────────────────────────────────────────────────
 
 class _SummaryHeader extends StatelessWidget {
   final EmployeeAnalytics analytics;
@@ -256,17 +275,19 @@ class _SummaryHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(AppDimensions.spacingXxl),
       child: Card(
-        elevation: 1,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusXxl)),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+          side: BorderSide(color: AppColors.glassBorder),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(AppDimensions.spacingXxl),
           child: Column(
             children: [
-              // Avatar + name
               Row(
                 children: [
                   CircleAvatar(
-                    radius: AppDimensions.avatarRadiusMd,
+                    radius: 24,
                     backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                     child: Text(
                       analytics.employee.displayName.isNotEmpty
@@ -275,7 +296,7 @@ class _SummaryHeader extends StatelessWidget {
                       style: const TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,
-                        fontSize: AppDimensions.fontHeadlineLg,
+                        fontSize: 22,
                       ),
                     ),
                   ),
@@ -292,9 +313,9 @@ class _SummaryHeader extends StatelessWidget {
                         ),
                         if (analytics.lastUpdate != null)
                           Text(
-                            'Última actividad: ${DateFormat('HH:mm').format(analytics.lastUpdate!)}',
+                            'Ultima actividad: ${DateFormat('HH:mm').format(analytics.lastUpdate!)}',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.grey500,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                       ],
@@ -303,16 +324,24 @@ class _SummaryHeader extends StatelessWidget {
                   if (analytics.lastState != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: AppDimensions.spacingXs),
+                        horizontal: AppDimensions.spacingXl,
+                        vertical: AppDimensions.spacingXs,
+                      ),
                       decoration: BoxDecoration(
-                        color: analytics.lastState!.color.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
+                        color:
+                            analytics.lastState!.color.withAlpha(30),
+                        borderRadius: BorderRadius.circular(
+                          AppDimensions.radiusPill,
+                        ),
+                        border: Border.all(
+                          color: analytics.lastState!.color.withAlpha(76),
+                        ),
                       ),
                       child: Text(
                         analytics.lastState!.label,
                         style: TextStyle(
                           color: analytics.lastState!.color,
-fontSize: AppDimensions.fontSm,
+                          fontSize: AppDimensions.fontSm,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -320,22 +349,20 @@ fontSize: AppDimensions.fontSm,
                 ],
               ),
               const SizedBox(height: AppDimensions.spacingXxl),
-
-              // Stats row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _StatChip(
+                  AppStatChip(
                     icon: Icons.timer_outlined,
                     label: 'Tiempo total',
-                    value: _fmtDuration(analytics.totalTrackedTime),
+                    value: _fmtDur(analytics.totalTrackedTime),
                   ),
-                  _StatChip(
+                  AppStatChip(
                     icon: Icons.event_note_outlined,
                     label: 'Eventos',
                     value: '${analytics.totalEvents}',
                   ),
-                  _StatChip(
+                  AppStatChip(
                     icon: Icons.trending_up,
                     label: 'Productividad',
                     value:
@@ -349,54 +376,7 @@ fontSize: AppDimensions.fontSm,
       ),
     );
   }
-
-  String _fmtDuration(Duration d) {
-    if (d.inHours > 0) {
-      return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
-    }
-    return '${d.inMinutes}m';
-  }
 }
-
-// ── Stat Chip ────────────────────────────────────────────────────────────────
-
-class _StatChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _StatChip({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Icon(icon, size: AppDimensions.statChipIconSize, color: AppColors.primary),
-        const SizedBox(height: AppDimensions.spacingXs),
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: AppDimensions.fontTitle,
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: AppDimensions.fontCaption,
-            color: AppColors.grey500,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Date Chip ────────────────────────────────────────────────────────────────
 
 class _Chip extends StatelessWidget {
   final String label;
@@ -415,21 +395,54 @@ class _Chip extends StatelessWidget {
       label: Text(label),
       selected: selected,
       onSelected: (_) => onTap(),
-      selectedColor: AppColors.primary.withValues(alpha: 0.15),
+      selectedColor: AppColors.primary.withAlpha(38),
       labelStyle: TextStyle(
-        color: selected ? AppColors.primary : AppColors.grey600,
+        color: selected ? AppColors.primary : AppColors.textSecondary,
         fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
       ),
       side: BorderSide(
-        color: selected ? AppColors.primary : AppColors.grey300,
+        color: selected ? AppColors.primary : AppColors.glassBorder,
       ),
     );
   }
 }
 
+class _EmptyDetailView extends StatelessWidget {
+  final String name;
+  const _EmptyDetailView({required this.name});
 
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.person_search_outlined,
+            size: AppDimensions.iconEmptyStateLg,
+            color: AppColors.textDisabled,
+          ),
+          const SizedBox(height: AppDimensions.spacingXxl),
+          Text(
+            'Sin datos para $name',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppDimensions.spacingMd),
+          Text(
+            'No se han registrado eventos\nen el periodo seleccionado.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.textDisabled,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 String _fmtDur(Duration d) {
   if (d.inHours > 0) {

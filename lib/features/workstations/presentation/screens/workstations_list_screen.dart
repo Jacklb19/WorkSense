@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
-import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/core/theme/app_spacing.dart';
 import 'package:worksense_app/features/workstations/presentation/providers/workstations_provider.dart';
-import 'package:worksense_app/shared/utils/app_snack_bar.dart';
 import 'package:worksense_app/shared/widgets/async_value_widget.dart';
 
 class WorkstationsListScreen extends ConsumerWidget {
@@ -32,17 +30,14 @@ class WorkstationsListScreen extends ConsumerWidget {
             );
           }
 
-          return Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: AppSpacing.listMaxWidth(context)),
-                child: ListView.builder(
+          return ListView.builder(
             itemCount: workstations.length,
             itemBuilder: (context, index) {
               final workstation = workstations[index];
               return Card(
-                margin: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacingMd),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: ListTile(
                   title: Text(
@@ -54,22 +49,33 @@ class WorkstationsListScreen extends ConsumerWidget {
                     'Compañía: ${workstation.companyId}',
                   ),
                   isThreeLine: true,
-                  trailing: IconButton(
-                    tooltip: 'Eliminar',
-                    icon: const Icon(Icons.delete_outline, color: AppColors.error),
-                    onPressed: () => _confirmDelete(context, ref, workstation.id, workstation.name),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
+                        tooltip: 'Editar',
+                        onPressed: () => context.push(
+                          AppRoutes.workstationEdit.replaceFirst(':workstationId', workstation.id),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                        tooltip: 'Eliminar',
+                        onPressed: () => _confirmDelete(context, ref, workstation.id, workstation.name),
+                      ),
+                    ],
                   ),
                 ),
               );
-              },
-            ),
-          ),
-        );
+            },
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/workstations/new'),
         backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: AppColors.white),
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -98,10 +104,14 @@ class WorkstationsListScreen extends ConsumerWidget {
       try {
         await ref.read(deleteWorkstationUseCaseProvider)(id);
         if (!context.mounted) return;
-        AppSnackBar.showSuccess(context, AppStrings.workstationDeleted);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(AppStrings.workstationDeleted)),
+        );
       } catch (e) {
         if (!context.mounted) return;
-        AppSnackBar.showError(context, 'Error: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+        );
       }
     }
   }

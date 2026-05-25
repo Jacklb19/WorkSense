@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:worksense_app/core/constants/app_dimensions.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/core/theme/app_spacing.dart';
-import 'package:worksense_app/domain/entities/activity_state.dart';
-import 'package:worksense_app/features/dashboard/domain/entities/employee_analytics.dart';
-import 'package:worksense_app/features/dashboard/presentation/providers/admin_analytics_provider.dart';
-import 'package:worksense_app/shared/widgets/loading_widget.dart';
-import 'package:worksense_app/shared/widgets/styled/app_empty_state.dart';
+
+import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../domain/entities/activity_state.dart';
+import '../../../../shared/widgets/loading_widget.dart';
+import '../../../../shared/widgets/styled/app_empty_state.dart';
+import '../../domain/entities/employee_analytics.dart';
+import '../providers/admin_analytics_provider.dart';
 
 class AdminAnalyticsScreen extends ConsumerWidget {
   const AdminAnalyticsScreen({super.key});
@@ -20,10 +21,9 @@ class AdminAnalyticsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Analíticas'),
+        title: const Text('Analiticas'),
         centerTitle: false,
         actions: [
-          // Refresh
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Actualizar',
@@ -33,9 +33,13 @@ class AdminAnalyticsScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          // ── Date Range Toggle ──────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacingLg, AppDimensions.spacingXxl, AppDimensions.spacingXs),
+            padding: const EdgeInsets.fromLTRB(
+              AppDimensions.spacingXxl,
+              AppDimensions.spacingLg,
+              AppDimensions.spacingXxl,
+              AppDimensions.spacingXs,
+            ),
             child: Row(
               children: [
                 _DateChip(
@@ -54,63 +58,79 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                       .state = AnalyticsDateRange.thisWeek,
                 ),
                 const Spacer(),
-                // Legend popover
                 IconButton(
-                  icon: const Icon(Icons.info_outline, size: AppDimensions.iconMd),
+                  icon: const Icon(Icons.info_outline, size: 20),
                   tooltip: 'Leyenda de estados',
                   onPressed: () => _showLegend(context),
                 ),
               ],
             ),
           ),
-
-          // ── Content ────────────────────────────────────────────
           Expanded(
             child: analyticsAsync.when(
               loading: () => const AppLoadingWidget(),
               error: (e, _) => Center(
                 child: Padding(
-padding: const EdgeInsets.all(AppDimensions.spacing24),
+                  padding: const EdgeInsets.all(AppDimensions.spacing24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: AppColors.error,
-                        size: AppDimensions.iconEmptyState,
+                      Container(
+                        padding: const EdgeInsets.all(AppDimensions.spacingXl),
+                        decoration: BoxDecoration(
+                          color: AppColors.errorSoft,
+                          borderRadius: BorderRadius.circular(
+                            AppDimensions.radiusCard,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.error_outline,
+                          color: AppColors.error,
+                          size: AppDimensions.iconEmptyState,
+                        ),
                       ),
                       const SizedBox(height: AppDimensions.spacingXxl),
-                      Text('Error: $e',
-                          style: const TextStyle(color: AppColors.grey500),
-                          textAlign: TextAlign.center,
-                        ),
+                      Text(
+                        'Error: $e',
+                        style: const TextStyle(color: AppColors.textSecondary),
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 ),
               ),
               data: (analyticsList) {
                 if (analyticsList.isEmpty) {
-                  return const AppEmptyState(icon: Icons.bar_chart_outlined, title: 'Sin datos de analíticas', subtitle: 'Los datos aparecerán cuando el sistema\nregistre actividad de empleados.');
+                  return const AppEmptyState(
+                    icon: Icons.analytics_outlined,
+                    title: 'Sin datos de analiticas',
+                    subtitle:
+                        'Los datos apareceran cuando el sistema registre actividad de empleados.',
+                  );
                 }
                 return RefreshIndicator(
                   onRefresh: () async =>
                       ref.invalidate(employeeAnalyticsProvider),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: AppSpacing.listMaxWidth(context)),
-                      child: ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacingMd, AppDimensions.spacingXxl, AppDimensions.scrollBottomPadding),
-                        itemCount: analyticsList.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: AppDimensions.spacing10),
-                        itemBuilder: (context, index) =>
-                            _EmployeeAnalyticsCard(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppDimensions.spacingXxl,
+                      AppDimensions.spacingMd,
+                      AppDimensions.spacingXxl,
+                      AppDimensions.spacing80,
+                    ),
+                    itemCount: analyticsList.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: AppDimensions.spacingXl),
+                    itemBuilder: (context, index) =>
+                        _EmployeeAnalyticsCard(
                           analytics: analyticsList[index],
                           onTap: () => context.push(
                             '/analytics/${analyticsList[index].employee.id}',
                           ),
-                        ),
-                      ),
-                    ),
+                        ).animate().fadeIn(
+                              delay: (index * 60).ms,
+                              duration: AppDimensions.animEntrance,
+                            ),
                   ),
                 );
               },
@@ -122,10 +142,12 @@ padding: const EdgeInsets.all(AppDimensions.spacing24),
   }
 
   void _showLegend(BuildContext context) {
+    final theme = Theme.of(context);
     showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppDimensions.radiusRound)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppDimensions.radiusModal)),
       ),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.all(AppDimensions.spacing24),
@@ -135,20 +157,24 @@ padding: const EdgeInsets.all(AppDimensions.spacing24),
           children: [
             Text(
               'Leyenda de estados',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: AppDimensions.spacingXxl),
             ...ActivityState.values.map(
               (s) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingXs),
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppDimensions.spacingXs,
+                ),
                 child: Row(
                   children: [
                     Container(
-                      width: AppDimensions.legendDotSize,
-                      height: AppDimensions.legendDotSize,
+                      width: AppDimensions.spacingXxl,
+                      height: AppDimensions.spacingXxl,
                       decoration: BoxDecoration(
                         color: s.color,
-borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                        borderRadius: BorderRadius.circular(
+                          AppDimensions.radiusSm,
+                        ),
                       ),
                     ),
                     const SizedBox(width: AppDimensions.spacingLg),
@@ -163,8 +189,6 @@ borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
     );
   }
 }
-
-// ── Date Range Chip ──────────────────────────────────────────────────────────
 
 class _DateChip extends StatelessWidget {
   final String label;
@@ -183,19 +207,17 @@ class _DateChip extends StatelessWidget {
       label: Text(label),
       selected: selected,
       onSelected: (_) => onTap(),
-      selectedColor: AppColors.primary.withValues(alpha: 0.15),
+      selectedColor: AppColors.primary.withAlpha(38),
       labelStyle: TextStyle(
-        color: selected ? AppColors.primary : AppColors.grey600,
+        color: selected ? AppColors.primary : AppColors.textSecondary,
         fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
       ),
       side: BorderSide(
-        color: selected ? AppColors.primary : AppColors.grey300,
+        color: selected ? AppColors.primary : AppColors.glassBorder,
       ),
     );
   }
 }
-
-// ── Employee Analytics Card ──────────────────────────────────────────────────
 
 class _EmployeeAnalyticsCard extends StatelessWidget {
   final EmployeeAnalytics analytics;
@@ -212,22 +234,24 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
     final emp = analytics.employee;
 
     return Card(
-      elevation: AppDimensions.cardElevation,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusXxl)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
+        side: BorderSide(color: AppColors.glassBorder),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(AppDimensions.spacingXxl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
               Row(
                 children: [
                   CircleAvatar(
-                    radius: AppDimensions.avatarRadiusSm,
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                    radius: AppDimensions.avatarSm / 2,
+                    backgroundColor: AppColors.primary.withAlpha(25),
                     child: Text(
                       emp.name.isNotEmpty
                           ? emp.name[0].toUpperCase()
@@ -255,150 +279,79 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
                         const SizedBox(height: AppDimensions.spacingXxs),
                         Text(
                           analytics.hasData
-                              ? '${analytics.totalEvents} eventos · ${_formatDuration(analytics.totalTrackedTime)}'
+                              ? '${analytics.totalEvents} eventos - ${_formatDuration(analytics.totalTrackedTime)}'
                               : 'Sin datos registrados',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.grey500,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  if (analytics.lastState != null) _StateDot(analytics.lastState!),
-                  const SizedBox(width: AppDimensions.spacingXs),
-                  const Icon(Icons.chevron_right, color: AppColors.grey400),
+                  const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.textDisabled,
+                  ),
                 ],
               ),
-
-              // Distribution bar
-              if (analytics.hasData) ...[
-                const SizedBox(height: AppDimensions.spacingXl),
-                _DistributionBar(analytics: analytics),
-                const SizedBox(height: AppDimensions.spacingMd),
-                _TopStatesRow(analytics: analytics),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Distribution Bar (horizontal stacked) ────────────────────────────────────
-
-class _DistributionBar extends StatelessWidget {
-  final EmployeeAnalytics analytics;
-
-  const _DistributionBar({required this.analytics});
-
-  @override
-  Widget build(BuildContext context) {
-    final totalSec = analytics.totalTrackedTime.inSeconds;
-    if (totalSec == 0) return const SizedBox.shrink();
-
-    // Build segments sorted by duration desc
-    final segments = analytics.stateDurations.entries.toList()
-      ..sort((a, b) => b.value.inSeconds.compareTo(a.value.inSeconds));
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
-      child: SizedBox(
-        height: AppDimensions.distributionBarHeight,
-        child: Row(
-          children: segments.map((entry) {
-            final fraction = entry.value.inSeconds / totalSec;
-            if (fraction < 0.01) return const SizedBox.shrink();
-            return Expanded(
-              flex: (fraction * 1000).round(),
-              child: Container(color: entry.key.color),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Top States Row (labels below bar) ────────────────────────────────────────
-
-class _TopStatesRow extends StatelessWidget {
-  final EmployeeAnalytics analytics;
-
-  const _TopStatesRow({required this.analytics});
-
-  @override
-  Widget build(BuildContext context) {
-    final sorted = analytics.stateDurations.entries.toList()
-      ..sort((a, b) => b.value.inSeconds.compareTo(a.value.inSeconds));
-
-    final top = sorted.take(3);
-
-    return Row(
-      children: top.map((entry) {
-        final pct = (analytics.percentageFor(entry.key) * 100).round();
-        return Padding(
-          padding: const EdgeInsets.only(right: AppDimensions.spacingLg),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: AppDimensions.stateIndicatorSize,
-                height: AppDimensions.stateIndicatorSize,
-                decoration: BoxDecoration(
-                  color: entry.key.color,
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusXxs),
-                ),
-              ),
-              const SizedBox(width: AppDimensions.spacingXs),
-              Text(
-                '${entry.key.label} $pct%',
-                style: const TextStyle(
-                  fontSize: AppDimensions.fontXs,
-                  color: AppColors.grey600,
-                ),
+              const SizedBox(height: AppDimensions.spacingXxl),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _MiniStat(
+                    label: 'Tiempo total',
+                    value: _formatDuration(analytics.totalTrackedTime),
+                  ),
+                  _MiniStat(
+                    label: 'Eventos',
+                    value: '${analytics.totalEvents}',
+                  ),
+                  _MiniStat(
+                    label: 'Productividad',
+                    value: '${(analytics.percentageFor(ActivityState.trabajando) * 100).round()}%',
+                  ),
+                ],
               ),
             ],
           ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-// ── State Dot ────────────────────────────────────────────────────────────────
-
-class _StateDot extends StatelessWidget {
-  final ActivityState state;
-  const _StateDot(this.state);
-
-  @override
-Widget build(BuildContext context) {
-    return Semantics(
-      label: state.label,
-      child: Tooltip(
-        message: state.label,
-        child: Container(
-          width: AppDimensions.stateBreakdownDotSize,
-          height: AppDimensions.stateBreakdownDotSize,
-          decoration: BoxDecoration(
-            color: state.color,
-            shape: BoxShape.circle,
-          ),
         ),
       ),
     );
   }
+
+  String _formatDuration(Duration d) {
+    if (d.inHours > 0) {
+      return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
+    }
+    return '${d.inMinutes}m';
+  }
 }
 
+class _MiniStat extends StatelessWidget {
+  final String label;
+  final String value;
 
+  const _MiniStat({required this.label, required this.value});
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-String _formatDuration(Duration d) {
-  if (d.inHours > 0) {
-    final mins = d.inMinutes.remainder(60);
-    return '${d.inHours}h ${mins}m';
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+        ),
+        const SizedBox(height: AppDimensions.spacingXxs),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+        ),
+      ],
+    );
   }
-  return '${d.inMinutes}m';
 }

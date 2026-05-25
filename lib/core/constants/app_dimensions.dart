@@ -202,4 +202,49 @@ abstract final class AppDimensions {
 
   // Bottom padding for scroll content (FAB clearance)
   static const double scrollBottomPadding = 80.0;
+
+  // ── Incoming branch aliases (develop2 screens) ─────────────
+  static const double mobileBreakpoint = 480.0;
+  static const double tabletBreakpoint = breakpointMobile;
+  static const double desktopBreakpoint = breakpointDesktop;
+
+  static const double screenPaddingMobile = spacing20;
+  static const double screenPaddingTablet = spacing40;
+  static const double screenPaddingDesktop = spacing64;
+
+  static const double contentMaxWidthMobile = double.infinity;
+  static const double contentMaxWidthTablet = listMaxWidth;
+  static const double contentMaxWidthDesktop = dashboardMaxWidth;
+
+  static const double radiusModal = radiusPill + 4;
+
+  static const double avatarXs = spacing24;
+  static const double avatarSm = 36.0;
+  static const double avatarMd = iconContainerSm;
+  static const double avatarLg = 56.0;
+  static const double avatarXl = iconHero;
+
+  static const double cardInnerPadding = spacing20;
+  static const double cardMaxWidth = loginMaxWidth;
+
+  static const double buttonMinHeightLg = buttonHeightLg;
+
+  static const double formFieldHeight = 60.0;
+  static const double formHorizontalPadding = spacing24;
+  static const double formVerticalPadding = spacing32;
+
+  static const double glassBlur = 10.0;
+  static const double glassBorderWidth = 1.0;
+
+  static const double sliverAppBarHeight = spacing64;
+  static const double bottomNavHeight = 72.0;
+  static const double fabExtendedHeight = spacing48;
+
+  static const Duration animFast = Duration(milliseconds: 150);
+  static const Duration animNormal = Duration(milliseconds: 300);
+  static const Duration animSlow = Duration(milliseconds: 500);
+  static const Duration animEntrance = Duration(milliseconds: 600);
+  static const Duration animShimmer = Duration(milliseconds: 1000);
+
+  static const double spacing120 = 120.0;
 }

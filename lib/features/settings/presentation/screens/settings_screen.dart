@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:worksense_app/core/constants/app_constants.dart';
 import 'package:worksense_app/core/constants/ai_thresholds.dart';
-import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/core/constants/app_constants.dart';
+import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/core/theme/app_spacing.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
-import 'package:worksense_app/shared/widgets/loading_indicator.dart';
+import 'package:worksense_app/shared/providers/locale_provider.dart';
+import 'package:worksense_app/shared/providers/theme_provider.dart';
 
-// Settings provider using shared_preferences
+// ── Analysis interval provider ────────────────────────────────────────────────
+
 final analysisIntervalProvider =
     AsyncNotifierProvider<AnalysisIntervalNotifier, int>(() {
   return AnalysisIntervalNotifier();
@@ -33,6 +36,8 @@ class AnalysisIntervalNotifier extends AsyncNotifier<int> {
   }
 }
 
+// ── Screen ────────────────────────────────────────────────────────────────────
+
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
@@ -43,34 +48,128 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme    = Theme.of(context);
+    final l10n     = AppLocalizations.of(context);
     final analysisIntervalAsync = ref.watch(analysisIntervalProvider);
     final userEmail = ref.watch(currentUserEmailProvider);
+    final themeMode = ref.watch(themeModeProvider).valueOrNull ?? ThemeMode.dark;
+    final locale    = ref.watch(localeProvider).valueOrNull ?? const Locale('es');
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppStrings.settings),
+        title: Text(l10n.settings),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: AppSpacing.formMaxWidth(context)),
-          child: ListView(
-            children: [
+      body: ListView(
+        children: [
           // ── Account section ─────────────────────────────────────
-          const _SectionHeader(title: AppStrings.accountSection),
+          _SectionHeader(title: l10n.accountSection),
           ListTile(
             leading: const Icon(Icons.account_circle_outlined),
-            title: const Text(AppStrings.user),
-            subtitle: Text(userEmail ?? AppStrings.notAvailable),
+            title: Text(l10n.user),
+            subtitle: Text(userEmail ?? l10n.notAvailable),
+          ),
+          ListTile(
+            leading: const Icon(Icons.person_outline, color: AppColors.primary),
+            title: Text(l10n.myProfile),
+            subtitle: Text(
+              l10n.myProfileSubtitle,
+              style: const TextStyle(fontSize: 12),
+            ),
+            trailing: const Icon(Icons.chevron_right, size: 20),
+            onTap: () => context.push(AppRoutes.profile),
+          ),
+
+          const Divider(),
+
+          // ── Appearance section ───────────────────────────────────
+          _SectionHeader(title: l10n.appearance),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Theme toggle ──────────────────────────────────
+                Row(
+                  children: [
+                    const Icon(Icons.dark_mode_outlined, size: 18,
+                        color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Text(l10n.themeMode,
+                        style: theme.textTheme.bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.w600)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                SegmentedButton<ThemeMode>(
+                  segments: [
+                    ButtonSegment(
+                      value: ThemeMode.dark,
+                      icon: const Icon(Icons.dark_mode, size: 16),
+                      label: Text(l10n.themeDark),
+                    ),
+                    ButtonSegment(
+                      value: ThemeMode.light,
+                      icon: const Icon(Icons.light_mode, size: 16),
+                      label: Text(l10n.themeLight),
+                    ),
+                    ButtonSegment(
+                      value: ThemeMode.system,
+                      icon: const Icon(Icons.settings_suggest, size: 16),
+                      label: Text(l10n.themeSystem),
+                    ),
+                  ],
+                  selected: {themeMode},
+                  onSelectionChanged: (s) =>
+                      ref.read(themeModeProvider.notifier).setMode(s.first),
+                  style: const ButtonStyle(
+                    visualDensity: VisualDensity(horizontal: -2, vertical: -2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // ── Language toggle ───────────────────────────────
+                Row(
+                  children: [
+                    const Icon(Icons.language_outlined, size: 18,
+                        color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Text(l10n.language,
+                        style: theme.textTheme.bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.w600)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                SegmentedButton<Locale>(
+                  segments: [
+                    ButtonSegment(
+                      value: const Locale('es'),
+                      icon: const Text('🇪🇸', style: TextStyle(fontSize: 14)),
+                      label: Text(l10n.langSpanish),
+                    ),
+                    ButtonSegment(
+                      value: const Locale('en'),
+                      icon: const Text('🇺🇸', style: TextStyle(fontSize: 14)),
+                      label: Text(l10n.langEnglish),
+                    ),
+                  ],
+                  selected: {locale},
+                  onSelectionChanged: (s) =>
+                      ref.read(localeProvider.notifier).setLocale(s.first),
+                  style: const ButtonStyle(
+                    visualDensity: VisualDensity(horizontal: -2, vertical: -2),
+                  ),
+                ),
+              ],
+            ),
           ),
 
           const Divider(),
 
           // ── AI Pipeline section ──────────────────────────────────
-          const _SectionHeader(title: AppStrings.activityAnalysis),
+          _SectionHeader(title: l10n.activityAnalysis),
           Padding(
-padding: AppSpacing.screenPadding(context),
-          child: analysisIntervalAsync.when(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: analysisIntervalAsync.when(
               data: (analysisInterval) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -78,7 +177,7 @@ padding: AppSpacing.screenPadding(context),
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        AppStrings.analysisInterval,
+                        l10n.analysisInterval,
                         style: theme.textTheme.bodyMedium,
                       ),
                       Text(
@@ -103,18 +202,17 @@ padding: AppSpacing.screenPadding(context),
                     },
                   ),
                   Text(
-                    'Frecuencia con la que se analiza la actividad del trabajador. '
-                    'Valores menores son más precisos pero consumen más batería.',
+                    l10n.analysisIntervalDesc,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: AppColors.grey500,
                     ),
                   ),
-                  const SizedBox(height: AppDimensions.spacingXxl),
+                  const SizedBox(height: 16),
                 ],
               ),
               loading: () => const Padding(
-                padding: const EdgeInsets.all(AppDimensions.spacingXxl),
-                child: Center(child: AppLoadingIndicator()),
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
               ),
               error: (_, __) => const SizedBox.shrink(),
             ),
@@ -123,7 +221,7 @@ padding: AppSpacing.screenPadding(context),
           const Divider(),
 
           // ── Thresholds info ──────────────────────────────────────
-          const _SectionHeader(title: AppStrings.detectionThresholds),
+          _SectionHeader(title: l10n.detectionThresholds),
           const _ThresholdTile(
             label: AppStrings.maxYawLabel,
             value: '${AiThresholds.maxYawAngle}°',
@@ -148,10 +246,10 @@ padding: AppSpacing.screenPadding(context),
           const Divider(),
 
           // ── App info ─────────────────────────────────────────────
-          const _SectionHeader(title: AppStrings.about),
+          _SectionHeader(title: l10n.about),
           ListTile(
             leading: const Icon(Icons.info_outline),
-            title: const Text(AppStrings.version),
+            title: Text(l10n.version),
             trailing: Text(
               AppConstants.appVersion,
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -161,7 +259,7 @@ padding: AppSpacing.screenPadding(context),
           ),
           ListTile(
             leading: const Icon(Icons.apps),
-            title: const Text(AppStrings.application),
+            title: Text(l10n.application),
             trailing: Text(
               AppConstants.appName,
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -173,45 +271,44 @@ padding: AppSpacing.screenPadding(context),
           const Divider(),
 
           // ── Logout ───────────────────────────────────────────────
-          const SizedBox(height: AppDimensions.spacingMd),
+          const SizedBox(height: 8),
           Padding(
-            padding: AppSpacing.screenPadding(context),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: OutlinedButton.icon(
               onPressed: () => _handleLogout(context, ref),
               icon: const Icon(Icons.logout, color: AppColors.error),
-              label: const Text(
-                AppStrings.logout,
-                style: TextStyle(color: AppColors.error),
+              label: Text(
+                l10n.logout,
+                style: const TextStyle(color: AppColors.error),
               ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: AppColors.error),
-                padding: const EdgeInsets.symmetric(vertical: AppDimensions.buttonPaddingVerticalSm),
+                padding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
-),
-          const SizedBox(height: AppDimensions.spacing24),
+          ),
+          const SizedBox(height: 24),
         ],
       ),
-    ),
-  );
-}
+    );
+  }
 
   Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text(AppStrings.logout),
-        content: const Text(AppStrings.logoutConfirmation),
+        title: Text(l10n.logout),
+        content: Text(l10n.logoutConfirmation),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(AppStrings.cancel),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style:
-                FilledButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text(AppStrings.logout),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: Text(l10n.logout),
           ),
         ],
       ),
@@ -223,6 +320,8 @@ padding: AppSpacing.screenPadding(context),
   }
 }
 
+// ── Helper widgets ────────────────────────────────────────────────────────────
+
 class _SectionHeader extends StatelessWidget {
   final String title;
 
@@ -231,11 +330,11 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacingXxl, AppDimensions.spacingXxl, AppDimensions.spacingXs),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       child: Text(
         title,
         style: const TextStyle(
-          fontSize: AppDimensions.fontCaption,
+          fontSize: 12,
           fontWeight: FontWeight.w600,
           color: AppColors.primary,
           letterSpacing: 0.5,
@@ -257,12 +356,12 @@ class _ThresholdTile extends StatelessWidget {
       dense: true,
       title: Text(
         label,
-        style: const TextStyle(fontSize: AppDimensions.fontBody),
+        style: const TextStyle(fontSize: 13),
       ),
       trailing: Text(
         value,
         style: const TextStyle(
-          fontSize: AppDimensions.fontBody,
+          fontSize: 13,
           fontWeight: FontWeight.w500,
           color: AppColors.grey600,
         ),

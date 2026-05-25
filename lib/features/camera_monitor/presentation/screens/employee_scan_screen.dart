@@ -4,19 +4,17 @@
   import 'package:flutter/material.dart';
   import 'package:flutter/services.dart';
   import 'package:flutter_riverpod/flutter_riverpod.dart';
+  import 'package:screen_brightness/screen_brightness.dart';
   import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
   import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
   import 'package:worksense_app/core/constants/ai_thresholds.dart';
-import 'package:worksense_app/core/constants/app_dimensions.dart';
-import 'package:worksense_app/core/constants/app_strings.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
+  import 'package:worksense_app/core/theme/app_colors.dart';
   import 'package:worksense_app/domain/repositories/employee_repository.dart';
   import 'package:worksense_app/features/camera_monitor/ai/employee_profiler.dart';
   import 'package:worksense_app/features/camera_monitor/ai/face_analyzer.dart';
   import 'package:worksense_app/features/camera_monitor/ai/face_embedding_service.dart';
   import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
   import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
-import 'package:worksense_app/shared/widgets/loading_indicator.dart';
 
 
   // ── Estado del escaneo ─────────────────────────────────────────────────────────
@@ -40,7 +38,7 @@ import 'package:worksense_app/shared/widgets/loading_indicator.dart';
       this.currentSampleIndex = 0,
       List<bool>? completedSamples,
       this.frameStatus = FrameStatus.searching,
-      this.feedback = AppStrings.positionInFrontOfCamera,
+      this.feedback = 'Posiciónate frente a la cámara',
       this.isCapturing = false,
       this.isComplete = false,
       this.error,
@@ -216,14 +214,14 @@ import 'package:worksense_app/shared/widgets/loading_indicator.dart';
           _stableLiveFrames = 0;
           state = state.copyWith(
             frameStatus: FrameStatus.error,
-            feedback: AppStrings.onlyOnePerson,
+            feedback: 'Solo debe estar el empleado en cámara',
           );
         } else if (poses.isEmpty) {
           _resetBlinkState();
           _stableLiveFrames = 0;
           state = state.copyWith(
             frameStatus: FrameStatus.searching,
-            feedback: AppStrings.bodyMustBeVisible,
+            feedback: 'Asegúrate de que tu cuerpo sea visible',
           );
         } else {
           if (!state.isCapturing && (state.frameStatus != FrameStatus.capturing)) {
@@ -251,7 +249,7 @@ import 'package:worksense_app/shared/widgets/loading_indicator.dart';
                       if (!_disposed) {
                         state = state.copyWith(
                           frameStatus: FrameStatus.error,
-                          feedback: AppStrings.improveLighting,
+                          feedback: 'Mejora la iluminación o tu posición',
                         );
                       }
                       _isCheckingQuality = false;
@@ -287,7 +285,7 @@ import 'package:worksense_app/shared/widgets/loading_indicator.dart';
               }
               state = state.copyWith(
                 frameStatus: FrameStatus.detected,
-                feedback: AppStrings.correctPosition,
+                feedback: 'Posición correcta',
               );
             } else {
               if (_requiresBlinkChallenge) {
@@ -308,15 +306,15 @@ import 'package:worksense_app/shared/widgets/loading_indicator.dart';
 
     String _getGuidanceMessage(int index) {
       switch (index) {
-        case 0: return AppStrings.lookStraight;
-        case 1: return AppStrings.turnLeft;
-        case 2: return AppStrings.turnRight;
-        case 3: return AppStrings.lookUp;
-        case 4: return AppStrings.lookDown;
-        case 5: return AppStrings.lookFrontAgain;
-        case 6: return AppStrings.turnLeftAgain;
-        case 7: return AppStrings.turnRightAgain;
-        default: return AppStrings.adjustPosition;
+        case 0: return 'Mira directo a la cámara';
+        case 1: return 'Gira levemente la cabeza a tu derecha';
+        case 2: return 'Gira levemente la cabeza a tu izquierda';
+        case 3: return 'Levanta levemente la cabeza';
+        case 4: return 'Inclina levemente la cabeza hacia abajo';
+        case 5: return 'De frente otra vez para confirmar';
+        case 6: return 'Gira levemente la cabeza a tu derecha otra vez';
+        case 7: return 'Gira levemente la cabeza a tu izquierda otra vez';
+        default: return 'Ajusta tu posición';
       }
     }
 
@@ -643,6 +641,9 @@ import 'package:worksense_app/shared/widgets/loading_indicator.dart';
   class _EmployeeScanScreenState extends ConsumerState<EmployeeScanScreen> with WidgetsBindingObserver {
     ScanParams get _params => (workstationId: widget.workstationId, employeeId: widget.employeeId);
 
+    /// Brillo original guardado antes de activar el screen flash.
+    double? _originalBrightness;
+
     @override
     void initState() {
       super.initState();
@@ -659,8 +660,30 @@ import 'package:worksense_app/shared/widgets/loading_indicator.dart';
       }
     }
 
+    /// Maximiza el brillo de pantalla para iluminar el rostro del sujeto.
+    Future<void> _activateScreenFlash() async {
+      try {
+        _originalBrightness = await ScreenBrightness().current;
+        await ScreenBrightness().setScreenBrightness(1.0);
+      } catch (_) {
+        // screen_brightness no disponible — el overlay blanco igual ayuda.
+      }
+    }
+
+    /// Restaura el brillo al valor guardado antes del flash.
+    Future<void> _restoreScreenBrightness() async {
+      try {
+        final saved = _originalBrightness;
+        if (saved != null) {
+          _originalBrightness = null;
+          await ScreenBrightness().setScreenBrightness(saved);
+        }
+      } catch (_) {}
+    }
+
     @override
     void dispose() {
+      _restoreScreenBrightness(); // Siempre restaurar brillo al salir.
       WidgetsBinding.instance.removeObserver(this);
       SystemChrome.setPreferredOrientations([
         DeviceOrientation.portraitUp,
@@ -678,14 +701,33 @@ import 'package:worksense_app/shared/widgets/loading_indicator.dart';
 
       ref.listen<EmployeeScanState>(employeeScanProvider(_params), (prev, next) {
         if (next.isComplete && !(prev?.isComplete ?? false)) {
-          Future.delayed(const Duration(milliseconds: 1000), () {
-            if (mounted) widget.onComplete();
+          // Give the user 1.2s to see the success state, then:
+          // 1. Stop the enrollment camera so the device camera is free.
+          // 2. Pop this screen from its own context (not the parent's).
+          // 3. Notify the kiosk to re-init (which will start the monitoring camera).
+          // Capture context-dependent refs synchronously, before scheduling.
+          final nav = Navigator.of(context);
+          final notifier = ref.read(employeeScanProvider(_params).notifier);
+          final onComplete = widget.onComplete;
+          Future.delayed(const Duration(milliseconds: 1200), () async {
+            if (!mounted) return;
+            await notifier.stopCamera();
+            nav.pop();
+            onComplete();
           });
+        }
+
+        // Screen flash: maximizar brillo al capturar, restaurar al terminar.
+        final wasIlluminating = prev?.isIlluminating ?? false;
+        if (next.isIlluminating && !wasIlluminating) {
+          _activateScreenFlash();
+        } else if (!next.isIlluminating && wasIlluminating) {
+          _restoreScreenBrightness();
         }
       });
 
       return Scaffold(
-        backgroundColor: AppColors.black,
+        backgroundColor: Colors.black,
         body: Stack(
           fit: StackFit.expand,
           children: [
@@ -694,15 +736,32 @@ import 'package:worksense_app/shared/widgets/loading_indicator.dart';
                 child: CameraPreview(controller),
               )
             else
-              const Center(child: AppLoadingIndicator()),
+              const Center(child: CircularProgressIndicator(color: AppColors.primary)),
 
-            if (scanState.isIlluminating) const _ScreenFlashOverlay(),
+            // Screen flash overlay — fade suave al entrar y salir.
+            AnimatedOpacity(
+              opacity: scanState.isIlluminating ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 120),
+              child: const _ScreenFlashOverlay(),
+            ),
 
             // Glassmorphism HUD
             const _HUDOverlay(),
 
             // Guide Frame
             _GuideFrame(status: scanState.frameStatus),
+
+            // Step instruction card — shown between guide frame and bottom HUD
+            if (!scanState.isComplete)
+              Positioned(
+                bottom: 240,
+                left: 32,
+                right: 32,
+                child: _StepInstructionCard(
+                  currentIndex: scanState.currentSampleIndex,
+                  frameStatus: scanState.frameStatus,
+                ),
+              ),
 
             // Top Info
             Positioned(
@@ -712,6 +771,7 @@ import 'package:worksense_app/shared/widgets/loading_indicator.dart';
               child: _TopHUD(
                 current: scanState.capturedCount,
                 total: EmployeeProfiler.samplesRequired,
+                completedSamples: scanState.completedSamples,
               ),
             ),
 
@@ -743,9 +803,9 @@ import 'package:worksense_app/shared/widgets/loading_indicator.dart';
               center: Alignment.center,
               radius: 0.8,
               colors: [
-                AppColors.transparent,
-                AppColors.black.withValues(alpha: 0.2),
-                AppColors.black.withValues(alpha: 0.6),
+                Colors.transparent,
+                Colors.black.withValues(alpha: 0.2),
+                Colors.black.withValues(alpha: 0.6),
               ],
               stops: const [0.5, 0.8, 1.0],
             ),
@@ -755,26 +815,21 @@ import 'package:worksense_app/shared/widgets/loading_indicator.dart';
     }
   }
 
+  /// Overlay blanco sólido que funciona como flash de cámara frontal.
+  ///
+  /// Combinado con [ScreenBrightness] al máximo, convierte la pantalla en
+  /// una fuente de luz de alta intensidad — la misma técnica de Instagram,
+  /// Snapchat y WhatsApp para selfies con flash.
+  ///
+  /// Siempre está en el árbol; la visibilidad la controla [AnimatedOpacity]
+  /// en el padre para transiciones suaves sin mount/unmount.
   class _ScreenFlashOverlay extends StatelessWidget {
     const _ScreenFlashOverlay();
 
     @override
     Widget build(BuildContext context) {
-      return IgnorePointer(
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: RadialGradient(
-              center: Alignment.center,
-              radius: 0.9,
-              colors: [
-                AppColors.white.withValues(alpha: 0.70),
-                AppColors.white.withValues(alpha: 0.32),
-                AppColors.white.withValues(alpha: 0.10),
-              ],
-              stops: const [0.0, 0.55, 1.0],
-            ),
-          ),
-        ),
+      return const IgnorePointer(
+        child: ColoredBox(color: Colors.white),
       );
     }
   }
@@ -782,54 +837,139 @@ import 'package:worksense_app/shared/widgets/loading_indicator.dart';
   class _TopHUD extends StatelessWidget {
     final int current;
     final int total;
-    const _TopHUD({required this.current, required this.total});
+    final List<bool> completedSamples;
+    const _TopHUD({required this.current, required this.total, required this.completedSamples});
 
     @override
     Widget build(BuildContext context) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing24, vertical: AppDimensions.spacingXxl),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppColors.black.withValues(alpha: 0.8), AppColors.transparent],
+            colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
           ),
         ),
         child: SafeArea(
           bottom: false,
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              IconButton(
-                tooltip: 'Cerrar',
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close, color: AppColors.white),
-              ),
-              const SizedBox(width: AppDimensions.spacingXxl),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+              Row(
                 children: [
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close, color: Colors.white),
+                  ),
+                  const SizedBox(width: 8),
                   const Text(
-                    AppStrings.biometricEnrollment,
+                    'ENROLAMIENTO BIOMÉTRICO',
                     style: TextStyle(
                       color: AppColors.primaryLight,
-                      fontSize: AppDimensions.fontCaption,
+                      fontSize: 12,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 2.0,
                     ),
                   ),
-                  Text(
-                    'Progreso: $current / $total muestras',
-                    style: const TextStyle(
-                      color: AppColors.white70,
-                      fontSize: AppDimensions.fontBodyMd,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              // Sample progress dots
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(total, (i) {
+                    final done = i < completedSamples.length && completedSamples[i];
+                    final active = i == current && !done;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: active ? 20 : 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: done
+                            ? AppColors.feedbackDetected
+                            : active
+                                ? AppColors.primaryLight
+                                : Colors.white24,
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Center(
+                child: Text(
+                  'Muestra $current de $total',
+                  style: const TextStyle(color: Colors.white54, fontSize: 11),
+                ),
               ),
             ],
           ),
+        ),
+      );
+    }
+  }
+
+  // ── Step Instruction Card ──────────────────────────────────────────────────────
+
+  class _StepInstructionCard extends StatelessWidget {
+    final int currentIndex;
+    final FrameStatus frameStatus;
+
+    const _StepInstructionCard({
+      required this.currentIndex,
+      required this.frameStatus,
+    });
+
+    @override
+    Widget build(BuildContext context) {
+      if (currentIndex >= EmployeeProfiler.instructions.length) return const SizedBox.shrink();
+      final instr = EmployeeProfiler.instructions[currentIndex];
+      final isDetected = frameStatus == FrameStatus.detected;
+      final isCapturing = frameStatus == FrameStatus.capturing;
+
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isDetected
+              ? AppColors.feedbackDetected.withValues(alpha: 0.15)
+              : Colors.black.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDetected
+                ? AppColors.feedbackDetected.withValues(alpha: 0.5)
+                : Colors.white12,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(instr.emoji, style: const TextStyle(fontSize: 22)),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Text(
+                isCapturing ? 'Capturando…' : instr.text,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isDetected ? AppColors.feedbackDetected : Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            if (isDetected) ...[
+              const SizedBox(width: 12),
+              const Icon(Icons.check_circle, color: AppColors.feedbackDetected, size: 20),
+            ],
+          ],
         ),
       );
     }
@@ -841,7 +981,7 @@ import 'package:worksense_app/shared/widgets/loading_indicator.dart';
 
     Color get _color {
       switch (status) {
-        case FrameStatus.searching: return AppColors.white38;
+        case FrameStatus.searching: return Colors.white38;
         case FrameStatus.detected: return AppColors.feedbackDetected;
         case FrameStatus.error: return AppColors.feedbackError;
         case FrameStatus.capturing: return AppColors.feedbackCapturing;
@@ -860,7 +1000,7 @@ import 'package:worksense_app/shared/widgets/loading_indicator.dart';
           height: frameH,
           decoration: BoxDecoration(
             border: Border.all(color: _color.withValues(alpha: 0.5), width: 1),
-            borderRadius: BorderRadius.circular(AppDimensions.guideFrameRadius),
+            borderRadius: BorderRadius.circular(32),
           ),
           child: Stack(
             children: [
@@ -871,7 +1011,7 @@ import 'package:worksense_app/shared/widgets/loading_indicator.dart';
               
               if (status == FrameStatus.capturing)
                 const Center(
-                  child: AppLoadingIndicator(color: AppColors.primaryLight, size: AppDimensions.iconMd),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryLight),
                 ),
             ],
           ),
@@ -889,15 +1029,15 @@ import 'package:worksense_app/shared/widgets/loading_indicator.dart';
     Widget build(BuildContext context) {
       return Positioned(
         top: top, bottom: bottom, left: left, right: right,
-child: Container(
-           width: AppDimensions.cornerIndicatorSize,
-           height: AppDimensions.cornerIndicatorSize,
-           decoration: BoxDecoration(
-             border: Border(
-               top: top != null ? BorderSide(color: color, width: AppDimensions.cornerIndicatorWidth) : BorderSide.none,
-               bottom: bottom != null ? BorderSide(color: color, width: AppDimensions.cornerIndicatorWidth) : BorderSide.none,
-               left: left != null ? BorderSide(color: color, width: AppDimensions.cornerIndicatorWidth) : BorderSide.none,
-               right: right != null ? BorderSide(color: color, width: AppDimensions.cornerIndicatorWidth) : BorderSide.none,
+        child: Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            border: Border(
+              top: top != null ? BorderSide(color: color, width: 4) : BorderSide.none,
+              bottom: bottom != null ? BorderSide(color: color, width: 4) : BorderSide.none,
+              left: left != null ? BorderSide(color: color, width: 4) : BorderSide.none,
+              right: right != null ? BorderSide(color: color, width: 4) : BorderSide.none,
             ),
           ),
         ),
@@ -916,12 +1056,12 @@ child: Container(
       final bool canCapture = state.frameStatus == FrameStatus.detected && !state.isCapturing;
 
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing32, vertical: AppDimensions.spacing32),
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
-            colors: [AppColors.black.withValues(alpha: 0.9), AppColors.transparent],
+            colors: [Colors.black.withValues(alpha: 0.9), Colors.transparent],
           ),
         ),
         child: SafeArea(
@@ -935,84 +1075,69 @@ child: Container(
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: _getStatusColor(state.frameStatus),
-                  fontSize: AppDimensions.fontBody,
+                  fontSize: 13,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.5,
                 ),
               ),
               if (state.isCapturing) ...[
-                const SizedBox(height: AppDimensions.spacingMd),
+                const SizedBox(height: 12),
                 Text(
                   'RAFAGA ${state.burstProgress}/${state.burstTotal}',
                   style: const TextStyle(
-                    color: AppColors.white70,
-                    fontSize: AppDimensions.fontXs,
+                    color: Colors.white70,
+                    fontSize: 11,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.2,
                   ),
                 ),
               ],
-              const SizedBox(height: AppDimensions.spacingXxl),
+              const SizedBox(height: 24),
 
               // Capture Button
               if (!state.isComplete)
-                Semantics(
-                  button: true,
-                  label: canCapture ? AppStrings.captureSample : AppStrings.captureUnavailable,
-                  enabled: canCapture,
-                  child: GestureDetector(
-                    onTap: canCapture ? onCapture : null,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      height: AppDimensions.captureButtonSize,
-                      width: AppDimensions.captureButtonSize,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: canCapture ? AppColors.white : AppColors.white24,
-                          width: AppDimensions.captureButtonBorderWidth,
-                        ),
-                        color: canCapture
-                            ? AppColors.primary.withValues(alpha: 0.2)
-                            : AppColors.transparent,
+                GestureDetector(
+                  onTap: canCapture ? onCapture : null,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    height: 80,
+                    width: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: canCapture ? Colors.white : Colors.white24,
+                        width: 4,
                       ),
-                      child: Center(
-                        child: Container(
-                          height: AppDimensions.captureButtonInnerSize,
-                          width: AppDimensions.captureButtonInnerSize,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: canCapture ? AppColors.white : AppColors.white10,
-                          ),
-                          child: state.isCapturing 
-                              ? const Padding(
-                                  padding: EdgeInsets.all(AppDimensions.spacingXxl),
-                                  child: CircularProgressIndicator(strokeWidth: AppDimensions.progressStrokeWidth, color: AppColors.primary),
-                                )
-                              : Icon(
-                                  Icons.fingerprint, 
-                                  color: canCapture ? AppColors.primary : AppColors.white24, 
-                                  size: AppDimensions.captureButtonIconSize
-                                ),
+                      color: canCapture
+                          ? AppColors.primary.withValues(alpha: 0.2)
+                          : Colors.transparent,
+                    ),
+                    child: Center(
+                      child: Container(
+                        height: 60,
+                        width: 60,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: canCapture ? Colors.white : Colors.white10,
                         ),
+                        child: state.isCapturing 
+                          ? const Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.primary),
+                            )
+                          : Icon(
+                              Icons.fingerprint, 
+                              color: canCapture ? AppColors.primary : Colors.white24, 
+                              size: 32
+                            ),
                       ),
                     ),
                   ),
                 )
               else
-                const Icon(Icons.check_circle, color: AppColors.success, size: AppDimensions.captureButtonSize),
+                const Icon(Icons.check_circle, color: AppColors.success, size: 80),
 
-              const SizedBox(height: AppDimensions.spacingXxl),
-              // Progreso textual en vez de puntos
-              Text(
-                '${state.capturedCount} / ${EmployeeProfiler.samplesRequired} muestras',
-                style: const TextStyle(
-                  color: AppColors.white,
-                  fontSize: AppDimensions.fontTitle,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                ),
-              ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -1023,7 +1148,7 @@ child: Container(
       switch (status) {
         case FrameStatus.detected: return AppColors.feedbackDetected;
         case FrameStatus.error: return AppColors.feedbackError;
-        default: return AppColors.white70;
+        default: return Colors.white70;
       }
     }
   }

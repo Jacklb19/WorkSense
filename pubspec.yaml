@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # ── Navegacion ──────────────────────────────────────────────
   go_router: ^14.0.0
@@ -30,6 +32,7 @@ dependencies:
 
   # ── Camara y ML Kit ──────────────────────────────────────────
   camera: ^0.11.0
+  screen_brightness: ^0.2.2
   google_mlkit_pose_detection: ^0.13.0
   google_mlkit_face_detection: ^0.12.0
   google_mlkit_commons: ^0.9.0
@@ -63,13 +66,13 @@ dependencies:
   # ── Variables de entorno ─────────────────────────────────────
   flutter_dotenv: ^5.2.1
 
-  # ── Animaciones ────────────────────────────────────────────────
+  # ── Animaciones y diseno ─────────────────────────────────────
   flutter_animate: ^4.5.0
   rive: ^0.14.0
   google_fonts: ^6.3.3
 
   # ── Utilidades generales ─────────────────────────────────────
-  intl: ^0.19.0
+  intl: ^0.20.2
   uuid: ^4.4.2
   freezed_annotation: ^2.4.4
   json_annotation: ^4.9.0
@@ -81,6 +84,10 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+  # ── Icono y splash ───────────────────────────────────────────
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.3
 
   # ── Generacion de codigo ─────────────────────────────────────
   build_runner: ^2.4.11
@@ -113,3 +120,26 @@ flutter:
   #         weight: 500
   #       - asset: assets/fonts/Inter-Bold.ttf
   #         weight: 700
+
+# ── Flutter Launcher Icons ────────────────────────────────────────────────────
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icons/app_icon.png"
+  min_sdk_android: 21
+  web:
+    generate: false
+  windows:
+    generate: false
+
+# ── Flutter Native Splash ─────────────────────────────────────────────────────
+flutter_native_splash:
+  color: "#080C18"
+  image: assets/icons/app_icon.png
+  color_dark: "#080C18"
+  image_dark: assets/icons/app_icon.png
+  android_12:
+    color: "#080C18"
+    image: assets/icons/app_icon.png
+    icon_background_color: "#080C18"
+  fullscreen: false

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_animations.dart';
+
 import '../../../core/constants/app_dimensions.dart';
+import '../../../core/theme/app_animations.dart';
+import '../../../core/theme/app_colors.dart';
 
 class AppEmptyState extends StatelessWidget {
   const AppEmptyState({
@@ -12,6 +13,7 @@ class AppEmptyState extends StatelessWidget {
     this.subtitle,
     this.action,
     this.actionLabel,
+    this.actionIcon,
     this.onAction,
     this.iconColor,
     this.titleStyle,
@@ -23,6 +25,7 @@ class AppEmptyState extends StatelessWidget {
   final String? subtitle;
   final Widget? action;
   final String? actionLabel;
+  final IconData? actionIcon;
   final VoidCallback? onAction;
   final Color? iconColor;
   final TextStyle? titleStyle;
@@ -31,6 +34,8 @@ class AppEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final color = iconColor ?? AppColors.textDisabled;
+
     return Semantics(
       label: '$title${subtitle != null ? '. $subtitle' : ''}',
       child: Center(
@@ -38,39 +43,64 @@ class AppEmptyState extends StatelessWidget {
           padding: const EdgeInsets.all(AppDimensions.spacing48),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: AppDimensions.iconEmptyStateLg, color: iconColor ?? AppColors.textDisabled)
+              Container(
+                padding: const EdgeInsets.all(AppDimensions.spacing24),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: color.withValues(alpha: 0.16)),
+                ),
+                child: Icon(
+                  icon,
+                  size: AppDimensions.iconEmptyStateLg,
+                  color: color.withValues(alpha: 0.47),
+                ),
+              )
                   .animate()
                   .fadeIn(duration: AppAnimations.fast, curve: AppAnimations.entranceCurve)
                   .scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1)),
               const SizedBox(height: AppDimensions.spacingXxl),
               Text(
                 title,
-                style: titleStyle ?? theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
+                style: titleStyle ??
+                    theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
                 textAlign: TextAlign.center,
-              ),
+              ).animate().fadeIn(
+                    delay: AppAnimations.fast,
+                    duration: AppAnimations.normal,
+                  ),
               if (subtitle != null) ...[
                 const SizedBox(height: AppDimensions.spacingMd),
                 Text(
                   subtitle!,
-                  style: subtitleStyle ?? theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+                  style: subtitleStyle ??
+                      theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                   textAlign: TextAlign.center,
-                ),
+                ).animate().fadeIn(
+                      delay: AppAnimations.normal,
+                      duration: AppAnimations.normal,
+                    ),
               ],
               if (action != null) ...[
                 const SizedBox(height: AppDimensions.spacingXxl),
                 action!,
-              ] else if (actionLabel != null) ...[
+              ] else if (actionLabel != null && onAction != null) ...[
                 const SizedBox(height: AppDimensions.spacing24),
-                FilledButton(
+                FilledButton.icon(
                   onPressed: onAction,
-                  child: Text(actionLabel!),
-                ),
+                  icon: Icon(actionIcon ?? Icons.add),
+                  label: Text(actionLabel!),
+                ).animate().fadeIn(
+                      delay: AppAnimations.slow,
+                      duration: AppAnimations.normal,
+                    ),
               ],
             ],
           ),

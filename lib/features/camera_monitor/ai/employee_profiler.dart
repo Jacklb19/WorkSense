@@ -76,18 +76,18 @@ class EmployeeProfiler {
   static const List<ScanInstruction> instructions = [
     ScanInstruction(
       index: 0,
-      text: 'Mira directo a la camara',
+      text: 'Mira directo a la cámara',
       emoji: '😐',
     ),
     ScanInstruction(
       index: 1,
-      text: 'Gira levemente la cabeza a tu izquierda',
-      emoji: '👈',
+      text: 'Gira levemente la cabeza a tu derecha',
+      emoji: '👉',
     ),
     ScanInstruction(
       index: 2,
-      text: 'Gira levemente la cabeza a tu derecha',
-      emoji: '👉',
+      text: 'Gira levemente la cabeza a tu izquierda',
+      emoji: '👈',
     ),
     ScanInstruction(
       index: 3,
@@ -106,13 +106,13 @@ class EmployeeProfiler {
     ),
     ScanInstruction(
       index: 6,
-      text: 'Gira levemente la cabeza a tu izquierda otra vez',
-      emoji: 'ðŸ‘ˆ',
+      text: 'Gira levemente la cabeza a tu derecha otra vez',
+      emoji: '👉',
     ),
     ScanInstruction(
       index: 7,
-      text: 'Gira levemente la cabeza a tu derecha otra vez',
-      emoji: 'ðŸ‘‰',
+      text: 'Gira levemente la cabeza a tu izquierda otra vez',
+      emoji: '👈',
     ),
   ];
 
@@ -301,7 +301,11 @@ class EmployeeProfiler {
       capturedAt: DateTime.now(),
     );
 
-    if (!_passesDiversityGate(sampleMetadata)) {
+    // The diversity gate only applies to the first 5 unique poses (indices 0-4).
+    // Samples 5, 6, 7 are intentional repeats of frontal/left/right — they are
+    // meant to be angularly similar to earlier samples for redundancy.
+    // Applying the gate here would permanently block enrollment at those steps.
+    if (_faceEmbeddings.length < 5 && !_passesDiversityGate(sampleMetadata)) {
       return const SampleAssessment(
         result: SampleResult.wrongPosition,
         feedback: 'Esa toma es muy parecida a una anterior',

@@ -6,7 +6,7 @@ import 'package:worksense_app/domain/entities/app_role.dart';
 class SupabaseDataSource {
   final SupabaseClient _client = Supabase.instance.client;
 
-  /// MÃ©todo genÃ©rico â€” el nÃºcleo del Outbox Pattern
+  /// Método genérico — el núcleo del Outbox Pattern
   Future<void> upsert(String table, Map<String, dynamic> data) async {
     try {
       await _client.from(table).upsert(data);
@@ -52,7 +52,7 @@ class SupabaseDataSource {
     }
   }
 
-  // MÃ©todos especÃficos (usan el genÃ©rico internamente)
+  // Métodos específicos (usan el genérico internamente)
   Future<void> insertEmployee(Map<String, dynamic> data) =>
       upsert('employees', data);
 
@@ -286,6 +286,36 @@ String? get currentCompanyId {
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       throw SyncException('Error obteniendo shifts: $e');
+    }
+  }
+
+  /// Generic fetch by company_id for Phase 1+2 tables (tasks, leave_requests,
+  /// alert_logs, announcements).
+  Future<List<Map<String, dynamic>>> fetchByCompany(
+    String table,
+    String companyId, {
+    String orderBy = 'created_at',
+    bool ascending = false,
+    int? limit,
+  }) async {
+    try {
+      var query = _client
+          .from(table)
+          .select()
+          .eq('company_id', companyId)
+          .order(orderBy, ascending: ascending);
+      if (limit != null) {
+        query = query.limit(limit);
+      }
+      final response = await query;
+      return List<Map<String, dynamic>>.from(response);
+    } on PostgrestException catch (e) {
+      // Table may not exist in remote yet — return empty gracefully
+      debugPrint('[SupabaseDataSource] fetchByCompany($table): ${e.message}');
+      return [];
+    } catch (e) {
+      debugPrint('[SupabaseDataSource] fetchByCompany($table) unexpected: $e');
+      return [];
     }
   }
 

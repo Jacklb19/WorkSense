@@ -107,6 +107,94 @@ class SyncQueueEntries extends Table {
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 }
 
+// ── Tareas ────────────────────────────────────────────────────────────────────
+
+@DataClassName('TaskData')
+class TaskRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get companyId => text()();
+  TextColumn get assignedToId => text()();
+  TextColumn get createdById => text()();
+  TextColumn get title => text()();
+  TextColumn get description => text().nullable()();
+  TextColumn get status => text().withDefault(const Constant('PENDING'))();
+  TextColumn get priority => text().withDefault(const Constant('NORMAL'))();
+  DateTimeColumn get dueDate => dateTime().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get synced => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// ── Solicitudes de Permiso ────────────────────────────────────────────────────
+
+@DataClassName('LeaveRequestData')
+class LeaveRequestRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get employeeId => text()();
+  TextColumn get companyId => text()();
+  TextColumn get type => text().withDefault(const Constant('PERSONAL'))();
+  TextColumn get status => text().withDefault(const Constant('PENDING'))();
+  DateTimeColumn get startDate => dateTime()();
+  DateTimeColumn get endDate => dateTime()();
+  TextColumn get reason => text().nullable()();
+  TextColumn get reviewedById => text().nullable()();
+  TextColumn get reviewNote => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get synced => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// ── Registro de Alertas ───────────────────────────────────────────────────────
+
+@DataClassName('AlertLogData')
+class AlertLogRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get companyId => text()();
+  TextColumn get employeeId => text().nullable()();
+  TextColumn get workstationId => text().nullable()();
+  TextColumn get alertType => text()();
+  IntColumn get durationSeconds => integer()();
+  DateTimeColumn get triggeredAt => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get acknowledged => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// ── Comunicados ───────────────────────────────────────────────────────────────
+
+@DataClassName('AnnouncementData')
+class AnnouncementRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get companyId => text()();
+  TextColumn get authorId => text()();
+  TextColumn get title => text()();
+  TextColumn get content => text()();
+  TextColumn get priority => text().withDefault(const Constant('NORMAL'))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get expiresAt => dateTime().nullable()();
+  BoolColumn get synced => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('AnnouncementReadData')
+class AnnouncementReadRecords extends Table {
+  TextColumn get announcementId => text()();
+  TextColumn get userId => text()();
+  DateTimeColumn get readAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {announcementId, userId};
+}
+
 @DriftDatabase(
   tables: [
     CompanyRecords,
@@ -116,6 +204,11 @@ class SyncQueueEntries extends Table {
     SyncQueueEntries,
     ShiftRecords,
     AttendanceLogs,
+    TaskRecords,
+    LeaveRequestRecords,
+    AlertLogRecords,
+    AnnouncementRecords,
+    AnnouncementReadRecords,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -127,7 +220,7 @@ class AppDatabase extends _$AppDatabase {
   static const String _activityRollupTable = 'activity_rollups';
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -184,6 +277,17 @@ class AppDatabase extends _$AppDatabase {
             await migrator.addColumn(employeeRecords, employeeRecords.lastName);
             await migrator.addColumn(employeeRecords, employeeRecords.email);
             await migrator.addColumn(employeeRecords, employeeRecords.role);
+          }
+
+          if (from < 13) {
+            await migrator.createTable(taskRecords);
+            await migrator.createTable(leaveRequestRecords);
+            await migrator.createTable(alertLogRecords);
+          }
+
+          if (from < 14) {
+            await migrator.createTable(announcementRecords);
+            await migrator.createTable(announcementReadRecords);
           }
 
           await _createAuxiliaryTables();
@@ -408,6 +512,9 @@ class AppDatabase extends _$AppDatabase {
   Future<List<ShiftRecordData>> getShiftsByCompany(String companyId) =>
       (select(shiftRecords)..where((t) => t.companyId.equals(companyId))).get();
 
+  Future<void> deleteShiftRecord(String id) =>
+      (delete(shiftRecords)..where((t) => t.id.equals(id))).go();
+
   Future<void> insertAttendanceLog(AttendanceLogsCompanion log) =>
       into(attendanceLogs).insert(log, mode: InsertMode.insertOrReplace);
 
@@ -622,6 +729,166 @@ class AppDatabase extends _$AppDatabase {
       [id],
     );
   }
+
+  // ── Tasks ────────────────────────────────────────────────────────────────
+
+  Future<void> insertTask(TaskRecordsCompanion task) =>
+      into(taskRecords).insert(task, mode: InsertMode.insertOrReplace);
+
+  Future<List<TaskData>> getTasksByCompany(String companyId) =>
+      (select(taskRecords)
+            ..where((t) => t.companyId.equals(companyId))
+            ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .get();
+
+  Future<List<TaskData>> getTasksByEmployee(String employeeId) =>
+      (select(taskRecords)
+            ..where((t) => t.assignedToId.equals(employeeId))
+            ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .get();
+
+  Stream<List<TaskData>> watchTasksByCompany(String companyId) =>
+      (select(taskRecords)
+            ..where((t) => t.companyId.equals(companyId))
+            ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .watch();
+
+  Stream<List<TaskData>> watchTasksByEmployee(String employeeId) =>
+      (select(taskRecords)
+            ..where((t) => t.assignedToId.equals(employeeId))
+            ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .watch();
+
+  Future<TaskData?> getTaskById(String id) =>
+      (select(taskRecords)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  Future<void> updateTaskStatus(String taskId, String status) =>
+      (update(taskRecords)..where((t) => t.id.equals(taskId))).write(
+        TaskRecordsCompanion(
+          status: Value(status),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
+  Future<void> deleteTask(String taskId) =>
+      (delete(taskRecords)..where((t) => t.id.equals(taskId))).go();
+
+  // ── Leave Requests ────────────────────────────────────────────────────────
+
+  Future<void> insertLeaveRequest(LeaveRequestRecordsCompanion request) =>
+      into(leaveRequestRecords).insert(request, mode: InsertMode.insertOrReplace);
+
+  Future<List<LeaveRequestData>> getLeavesByEmployee(String employeeId) =>
+      (select(leaveRequestRecords)
+            ..where((t) => t.employeeId.equals(employeeId))
+            ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .get();
+
+  Future<List<LeaveRequestData>> getLeavesByCompany(String companyId) =>
+      (select(leaveRequestRecords)
+            ..where((t) => t.companyId.equals(companyId))
+            ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .get();
+
+  Stream<List<LeaveRequestData>> watchLeavesByEmployee(String employeeId) =>
+      (select(leaveRequestRecords)
+            ..where((t) => t.employeeId.equals(employeeId))
+            ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .watch();
+
+  Stream<List<LeaveRequestData>> watchLeavesByCompany(String companyId) =>
+      (select(leaveRequestRecords)
+            ..where((t) => t.companyId.equals(companyId))
+            ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .watch();
+
+  Future<void> updateLeaveRequestReview({
+    required String requestId,
+    required String status,
+    required String reviewedById,
+    String? reviewNote,
+  }) =>
+      (update(leaveRequestRecords)..where((t) => t.id.equals(requestId))).write(
+        LeaveRequestRecordsCompanion(
+          status: Value(status),
+          reviewedById: Value(reviewedById),
+          reviewNote: Value(reviewNote),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
+  Future<void> deleteLeaveRequest(String requestId) =>
+      (delete(leaveRequestRecords)..where((t) => t.id.equals(requestId))).go();
+
+  // ── Alert Logs ────────────────────────────────────────────────────────────
+
+  Future<void> insertAlertLog(AlertLogRecordsCompanion log) =>
+      into(alertLogRecords).insert(log, mode: InsertMode.insertOrReplace);
+
+  Future<List<AlertLogData>> getAlertLogsByCompany(
+    String companyId, {
+    int limit = 100,
+  }) =>
+      (select(alertLogRecords)
+            ..where((t) => t.companyId.equals(companyId))
+            ..orderBy([(t) => OrderingTerm.desc(t.triggeredAt)])
+            ..limit(limit))
+          .get();
+
+  Stream<List<AlertLogData>> watchAlertLogsByCompany(
+    String companyId, {
+    int limit = 100,
+  }) =>
+      (select(alertLogRecords)
+            ..where((t) => t.companyId.equals(companyId))
+            ..orderBy([(t) => OrderingTerm.desc(t.triggeredAt)])
+            ..limit(limit))
+          .watch();
+
+  Future<void> acknowledgeAlertLog(String alertId) =>
+      (update(alertLogRecords)..where((t) => t.id.equals(alertId))).write(
+        const AlertLogRecordsCompanion(acknowledged: Value(true)),
+      );
+
+  Future<void> acknowledgeAllAlertLogs(String companyId) =>
+      (update(alertLogRecords)..where((t) => t.companyId.equals(companyId))).write(
+        const AlertLogRecordsCompanion(acknowledged: Value(true)),
+      );
+
+  // ── Announcements ─────────────────────────────────────────────────────────
+
+  Future<void> insertAnnouncement(AnnouncementRecordsCompanion record) =>
+      into(announcementRecords).insert(record, mode: InsertMode.insertOrReplace);
+
+  Future<List<AnnouncementData>> getAnnouncementsByCompany(String companyId) =>
+      (select(announcementRecords)
+            ..where((t) => t.companyId.equals(companyId))
+            ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .get();
+
+  Stream<List<AnnouncementData>> watchAnnouncementsByCompany(String companyId) =>
+      (select(announcementRecords)
+            ..where((t) => t.companyId.equals(companyId))
+            ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .watch();
+
+  Future<void> deleteAnnouncement(String id) =>
+      (delete(announcementRecords)..where((t) => t.id.equals(id))).go();
+
+  Future<void> markAnnouncementRead(String announcementId, String userId) =>
+      into(announcementReadRecords).insertOnConflictUpdate(
+        AnnouncementReadRecordsCompanion.insert(
+          announcementId: announcementId,
+          userId: userId,
+        ),
+      );
+
+  Future<List<AnnouncementReadData>> getReadAnnouncements(String userId) =>
+      (select(announcementReadRecords)
+            ..where((t) => t.userId.equals(userId)))
+          .get();
+
+  // ── Auxiliary Tables ──────────────────────────────────────────────────────
 
   Future<void> _createAuxiliaryTables() async {
     await customStatement(

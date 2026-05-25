@@ -3,11 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:camera/camera.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:worksense_app/core/constants/app_dimensions.dart';
-import 'package:worksense_app/core/constants/app_strings.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/entrance_kiosk_provider.dart';
-import 'package:worksense_app/shared/widgets/loading_indicator.dart';
 
 class EntranceKioskScreen extends ConsumerStatefulWidget {
   const EntranceKioskScreen({super.key});
@@ -24,6 +22,12 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
   late Animation<double> _welcomeScaleAnimation;
   late Animation<double> _welcomeFadeAnimation;
 
+  /// Controla si el overlay blanco de flash está activo.
+  bool _isFlashing = false;
+
+  /// Brillo guardado antes de activar el flash — restaurado al apagarlo.
+  double? _originalBrightness;
+
   @override
   void initState() {
     super.initState();
@@ -32,7 +36,6 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
   }
 
   void _initAnimations() {
-    // Pulsing scanner border animation
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
@@ -41,7 +44,6 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    // Welcome overlay animation
     _welcomeController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
@@ -64,8 +66,37 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
     }
   }
 
+  // ── Flash de pantalla ────────────────────────────────────────────────────────
+
+  /// Maximiza brillo y muestra el overlay blanco para iluminar el rostro
+  /// del usuario durante la verificación biométrica.
+  Future<void> _activateFlash() async {
+    if (_isFlashing || !mounted) return;
+    setState(() => _isFlashing = true);
+    try {
+      _originalBrightness = await ScreenBrightness().current;
+      await ScreenBrightness().setScreenBrightness(1.0);
+    } catch (_) {
+      // screen_brightness no disponible — el overlay blanco igual ayuda.
+    }
+  }
+
+  /// Restaura el brillo original y oculta el overlay blanco.
+  Future<void> _restoreFlash() async {
+    if (!_isFlashing) return;
+    if (mounted) setState(() => _isFlashing = false);
+    try {
+      final saved = _originalBrightness;
+      if (saved != null) {
+        _originalBrightness = null;
+        await ScreenBrightness().setScreenBrightness(saved);
+      }
+    } catch (_) {}
+  }
+
   @override
   void dispose() {
+    _restoreFlash(); // Siempre restaurar brillo al salir de la pantalla.
     _pulseController.dispose();
     _welcomeController.dispose();
     super.dispose();
@@ -76,12 +107,26 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
     final state = ref.watch(entranceKioskProvider);
     final controller = ref.read(entranceKioskProvider.notifier).cameraController;
 
-    // Trigger welcome animation when phase changes
+    // ── Escuchar cambios de fase ─────────────────────────────────────────────
     ref.listen<EntranceKioskState>(entranceKioskProvider, (prev, next) {
-      if (next.phase == KioskPhase.welcome && prev?.phase != KioskPhase.welcome) {
+      // Flash ON → fase verifying (blink superado, analizando identidad)
+      if (next.phase == KioskPhase.verifying &&
+          prev?.phase != KioskPhase.verifying) {
+        _activateFlash();
+      }
+      // Flash OFF → salida de verifying (éxito o rechazo)
+      if (next.phase != KioskPhase.verifying &&
+          prev?.phase == KioskPhase.verifying) {
+        _restoreFlash();
+      }
+
+      // Animación de bienvenida
+      if (next.phase == KioskPhase.welcome &&
+          prev?.phase != KioskPhase.welcome) {
         _welcomeController.forward(from: 0.0);
       }
-      if (next.phase == KioskPhase.scanning && prev?.phase != KioskPhase.scanning) {
+      if (next.phase == KioskPhase.scanning &&
+          prev?.phase != KioskPhase.scanning) {
         _welcomeController.reset();
       }
     });
@@ -89,36 +134,46 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
     final isWelcome = state.phase == KioskPhase.welcome;
 
     return Scaffold(
-      backgroundColor: AppColors.black,
+      backgroundColor: Colors.black,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Camera Preview
+          // 1 ── Camera Preview
           if (controller != null && controller.value.isInitialized)
             Transform.scale(
               scale: 1.1,
-              child: Center(
-                child: CameraPreview(controller),
-              ),
+              child: Center(child: CameraPreview(controller)),
             ),
-            
-          // Dark Overlay – heavier during welcome
+
+          // 2 ── Dark overlay (más opaco durante bienvenida)
           AnimatedContainer(
             duration: const Duration(milliseconds: 400),
             color: isWelcome
-                ? AppColors.black.withValues(alpha: 0.75)
-                : AppColors.black.withValues(alpha: 0.4),
+                ? Colors.black.withValues(alpha: 0.75)
+                : Colors.black.withValues(alpha: 0.4),
           ),
 
-          // Scanner HUD (visible when scanning or cooldown)
-          if (!isWelcome) _buildScannerHUD(state),
+          // 3 ── Flash overlay blanco (activo solo en fase verifying)
+          //      Posicionado ENCIMA del overlay oscuro pero DEBAJO del HUD
+          //      para que el HUD siga siendo visible durante el flash.
+          //      IgnorePointer: el overlay no absorbe toques.
+          IgnorePointer(
+            child: AnimatedOpacity(
+              opacity: _isFlashing ? 0.72 : 0.0,
+              duration: const Duration(milliseconds: 150),
+              child: const ColoredBox(color: Colors.white),
+            ),
+          ),
 
-          // Welcome Overlay (visible when recognized)
+          // 4 ── HUD principal (scanner o bienvenida) — siempre encima
+          if (!isWelcome) _buildScannerHUD(state),
           if (isWelcome) _buildWelcomeOverlay(state),
         ],
       ),
     );
   }
+
+  // ── Scanner HUD ──────────────────────────────────────────────────────────────
 
   Widget _buildScannerHUD(EntranceKioskState state) {
     final isVerifying = state.phase == KioskPhase.verifying;
@@ -133,21 +188,20 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
         children: [
           _TopBar(),
           const Spacer(),
-          
-          // Scanner target with pulse animation
+
+          // Marco de escaneo con animación de pulso
           AnimatedBuilder(
             animation: _pulseAnimation,
             builder: (context, child) {
               return Container(
-                width: MediaQuery.of(context).size.width * 0.65,
-                height: MediaQuery.of(context).size.height * 0.45,
-                constraints: const BoxConstraints(maxWidth: 280, maxHeight: 400),
+                width: 250,
+                height: 350,
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: borderColor.withValues(alpha: _pulseAnimation.value),
                     width: 4,
                   ),
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
                       color: borderColor.withValues(
@@ -160,49 +214,90 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                 ),
                 child: state.phase == KioskPhase.cooldown
                     ? const Center(
-                        child: AppLoadingIndicator(
+                        child: CircularProgressIndicator(
                           color: AppColors.warning,
+                          strokeWidth: 3,
                         ),
                       )
                     : isVerifying
                         ? const Center(
-                            child: AppLoadingIndicator(
+                            child: CircularProgressIndicator(
                               color: AppColors.feedbackCapturing,
+                              strokeWidth: 3,
                             ),
                           )
                         : null,
               );
             },
           ),
-          
+
           const Spacer(),
-          
-          // Status Message
+
+          // Indicador de flash activo (pequeño chip sobre el status card)
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _isFlashing
+                ? Padding(
+                    key: const ValueKey('flash-chip'),
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: Colors.white30, width: 1),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.flash_on_rounded,
+                              color: Colors.white70, size: 14),
+                          SizedBox(width: 6),
+                          Text(
+                            'Iluminación activa',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(key: ValueKey('no-flash')),
+          ),
+
+          // Tarjeta de estado
           Container(
-            margin: const EdgeInsets.only(bottom: AppDimensions.spacing40, left: AppDimensions.spacing20, right: AppDimensions.spacing20),
-            padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing32, vertical: AppDimensions.spacing24),
+            margin: const EdgeInsets.only(bottom: 40, left: 20, right: 20),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
             decoration: BoxDecoration(
               color: AppColors.cardDark,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: AppColors.glassBorder,
                 width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.black.withValues(alpha: 0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   blurRadius: 15,
                   offset: const Offset(0, 5),
-                )
-              ]
+                ),
+              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (isVerifying)
                   const SizedBox(
-                    width: AppDimensions.spacing24, height: AppDimensions.spacing24,
-                    child: AppLoadingIndicator(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
                       strokeWidth: 3,
                       color: AppColors.feedbackCapturing,
                     ),
@@ -212,18 +307,17 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                     state.phase == KioskPhase.scanning
                         ? Icons.face_retouching_natural
                         : Icons.hourglass_top,
-                    color: AppColors.white70,
+                    color: Colors.white70,
                     size: 28,
                   ),
-                   
-                const SizedBox(width: AppDimensions.spacingXxl),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Text(
                     state.statusMessage,
                     style: const TextStyle(
-                      color: AppColors.white, 
-                      fontSize: AppDimensions.fontTitleLg, 
-                      fontWeight: FontWeight.bold
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -236,6 +330,8 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
     );
   }
 
+  // ── Welcome Overlay ──────────────────────────────────────────────────────────
+
   Widget _buildWelcomeOverlay(EntranceKioskState state) {
     return FadeTransition(
       opacity: _welcomeFadeAnimation,
@@ -244,23 +340,19 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
         child: SafeArea(
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing32),
+              padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Success check icon
-Container(
-                     width: AppDimensions.iconEmptyStateLg,
-                     height: AppDimensions.iconEmptyStateLg,
+                  Container(
+                    width: 120,
+                    height: 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: const LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [
-                          AppColors.success,
-                          AppColors.successDark,
-                        ],
+                        colors: [Color(0xFF43A047), Color(0xFF2E7D32)],
                       ),
                       boxShadow: [
                         BoxShadow(
@@ -272,46 +364,43 @@ Container(
                     ),
                     child: const Icon(
                       Icons.check_rounded,
-                      color: AppColors.white,
-                      size: AppDimensions.iconEmptyStateLg,
+                      color: Colors.white,
+                      size: 64,
                     ),
                   ),
-                  
-                  const SizedBox(height: AppDimensions.spacing32),
-                  
-                  // Welcome text
-const Text(
-                     AppStrings.success,
+
+                  const SizedBox(height: 32),
+
+                  const Text(
+                    '¡ÉXITO!',
                     style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: AppDimensions.fontTitle,
+                      color: Colors.white,
+                      fontSize: 16,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 6,
                     ),
                   ),
-                  
-                  const SizedBox(height: AppDimensions.spacingLg),
-                  
-                  // Message From Kiosk Status
+
+                  const SizedBox(height: 12),
+
                   Text(
                     state.statusMessage,
                     style: const TextStyle(
-                      color: AppColors.white,
-                      fontSize: AppDimensions.fontDisplay,
+                      color: Colors.white,
+                      fontSize: 24,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: 0,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  
-                  const SizedBox(height: AppDimensions.spacing24),
-                  
-                  // Workstation info card
+
+                  const SizedBox(height: 24),
+
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing24, vertical: AppDimensions.spacingXxl),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 16),
                     decoration: BoxDecoration(
                       color: AppColors.cardDark.withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: AppColors.success.withValues(alpha: 0.3),
                         width: 1,
@@ -323,8 +412,9 @@ const Text(
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppColors.success.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+                            color:
+                                AppColors.success.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(
                             Icons.desktop_mac_rounded,
@@ -332,25 +422,25 @@ const Text(
                             size: 28,
                           ),
                         ),
-                        const SizedBox(width: AppDimensions.spacingXxl),
+                        const SizedBox(width: 16),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-const Text(
-                               AppStrings.workstation,
+                            const Text(
+                              'ESTACIÓN DE TRABAJO',
                               style: TextStyle(
-                                color: AppColors.white54,
-                                fontSize: AppDimensions.fontSm,
+                                color: Colors.white54,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 1.5,
                               ),
                             ),
-                            const SizedBox(height: AppDimensions.spacingXs),
+                            const SizedBox(height: 4),
                             Text(
                               state.matchedWorkstationName ?? 'Activada',
                               style: const TextStyle(
-                                color: AppColors.white,
-                                fontSize: AppDimensions.fontTitleLg,
+                                color: Colors.white,
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -359,12 +449,12 @@ const Text(
                       ],
                     ),
                   ),
-                  
-                  const SizedBox(height: AppDimensions.spacing20),
-                  
-                  // Status text
+
+                  const SizedBox(height: 20),
+
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing20, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 10),
                     decoration: BoxDecoration(
                       color: AppColors.success.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(30),
@@ -375,14 +465,14 @@ const Text(
                         Icon(
                           Icons.verified_rounded,
                           color: AppColors.success,
-                          size: AppDimensions.iconSm,
+                          size: 18,
                         ),
-                        SizedBox(width: AppDimensions.spacingMd),
+                        SizedBox(width: 8),
                         Text(
                           'Acceso Autorizado · Puedes pasar',
                           style: TextStyle(
                             color: AppColors.success,
-                            fontSize: AppDimensions.fontBodyMd,
+                            fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -403,22 +493,32 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(AppDimensions.spacing24),
+      padding: const EdgeInsets.all(24.0),
       child: Row(
         children: [
           IconButton(
-            tooltip: 'Volver',
-            icon: const Icon(Icons.arrow_back, color: AppColors.white),
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => context.pop(),
           ),
-          const SizedBox(width: AppDimensions.spacingXxl),
+          const SizedBox(width: 16),
           const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('WORKSENSE', style: TextStyle(color: AppColors.white, fontSize: AppDimensions.fontDisplay, fontWeight: FontWeight.w900, letterSpacing: 2)),
-              Text(AppStrings.kioskAccessFrontal, style: TextStyle(color: AppColors.white70, fontSize: AppDimensions.fontBodyMd)),
+              Text(
+                'WORKSENSE',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                ),
+              ),
+              Text(
+                'Kiosco de Acceso Frontal',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
             ],
-          )
+          ),
         ],
       ),
     );

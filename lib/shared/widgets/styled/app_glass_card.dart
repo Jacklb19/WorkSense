@@ -1,12 +1,14 @@
-import 'dart:ui';
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
+
 import '../../../core/constants/app_dimensions.dart';
+import '../../../core/theme/app_colors.dart';
 
 class AppGlassCard extends StatelessWidget {
   const AppGlassCard({
     super.key,
-    this.child,
+    required this.child,
     this.padding,
     this.margin,
     this.borderRadius,
@@ -15,9 +17,13 @@ class AppGlassCard extends StatelessWidget {
     this.sigmaX = 10.0,
     this.sigmaY = 10.0,
     this.color,
+    this.boxShadow,
+    this.onTap,
+    this.height,
+    this.width,
   });
 
-  final Widget? child;
+  final Widget child;
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
   final double? borderRadius;
@@ -26,12 +32,29 @@ class AppGlassCard extends StatelessWidget {
   final double sigmaX;
   final double sigmaY;
   final Color? color;
+  final List<BoxShadow>? boxShadow;
+  final VoidCallback? onTap;
+  final double? height;
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
     final radius = borderRadius ?? AppDimensions.radiusRound;
-    return Container(
+    final card = Container(
+      width: width,
+      height: height,
       margin: margin ?? const EdgeInsets.symmetric(vertical: AppDimensions.spacingMd),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(radius),
+        boxShadow: boxShadow ??
+            [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.03),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+              ),
+            ],
+      ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),
         child: BackdropFilter(
@@ -56,5 +79,15 @@ class AppGlassCard extends StatelessWidget {
         ),
       ),
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(radius),
+        child: card,
+      );
+    }
+
+    return card;
   }
 }

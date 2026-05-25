@@ -17,7 +17,7 @@ class ActivityRepositoryImpl implements ActivityRepository {
       // 1. Guardar localmente
       await _db.insertActivityEntry(_mapToCompanion(event));
 
-      // 2. Encolar para sincronizaciÃ³n genÃ©rica
+      // 2. Encolar para sincronización genérica
       await _syncRepo.enqueue(
         targetTable: 'activity_events',
         operation: 'UPSERT',

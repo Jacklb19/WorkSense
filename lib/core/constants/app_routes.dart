@@ -20,4 +20,39 @@ class AppRoutes {
   static const entrance = '/entrance';
   static const shifts = '/shifts';
   static const shiftNew = '/shifts/new';
+  static const shiftEdit = '/shifts/edit/:shiftId';
+
+  // ── Fase 1: Tasks, Leaves, Alerts ──────────────────────────
+  static const tasks = '/tasks';
+  static const taskNew = '/tasks/new';
+  static const taskEdit = '/tasks/edit/:taskId';
+  static const leaves = '/leaves';
+  static const leaveNew = '/leaves/new';
+  static const alertLog = '/alert-log';
+
+  // ── Fase 2: Announcements, Reports ─────────────────────────
+  static const announcements = '/announcements';
+  static const announcementNew = '/announcements/new';
+  static const reports = '/reports';
+
+  // ── Fase 3: Profile, Workstation Edit ──────────────────────
+  static const profile = '/profile';
+  static const workstationEdit = '/workstations/edit/:workstationId';
+
+  // ── Chat ────────────────────────────────────────────────────
+  /// Lista de conversaciones (admin) o entrada al chat con admin (employee).
+  static const chatList = '/chat-list';
+
+  /// Pantalla de conversación individual. :userId = ID del otro usuario,
+  /// :userName = nombre codificado URI del otro usuario.
+  static const chat = '/chat/:userId/:userName';
+
+  // ── Nómina ───────────────────────────────────────────────────
+  static const payroll       = '/payroll';
+  static const payrollPeriod = '/payroll/:periodId';
+
+  // ── Evaluaciones ─────────────────────────────────────────────
+  static const evaluations      = '/evaluations';
+  static const evaluationNew    = '/evaluations/new';
+  static const evaluationDetail = '/evaluations/:evalId';
 }

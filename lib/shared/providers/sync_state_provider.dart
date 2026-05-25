@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/data/repositories/sync_repository_impl.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart'
@@ -59,6 +60,19 @@ final syncNotifierProvider =
       notifier.sync();
     }
   });
+
+  // Pull periódico cada 60 s — garantiza que tareas y permisos asignados por
+  // admin aparezcan en el dispositivo del empleado aunque no tenga nada pendiente.
+  // SyncNotifier.sync() ya protege contra ejecuciones concurrentes internamente.
+  final periodicTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+    final isOnline = ref.read(isOnlineProvider);
+    final isLoggedIn =
+        ref.read(currentUserProvider).valueOrNull?.user != null;
+    if (isOnline && isLoggedIn) {
+      notifier.sync();
+    }
+  });
+  ref.onDispose(() => periodicTimer.cancel());
 
   return notifier;
 });

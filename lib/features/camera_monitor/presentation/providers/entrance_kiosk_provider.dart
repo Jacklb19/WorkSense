@@ -97,7 +97,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   bool _hasBlinked = false;
   DateTime _lastAnalysisTime = DateTime.fromMillisecondsSinceEpoch(0);
 
-  // â”€â”€ Evidence window for multi-frame identity confirmation â”€â”€
+  // ── Evidence window for multi-frame identity confirmation ──
   /// Best score seen per employee across the current evidence window.
   final Map<String, double> _evidenceBestScores = {};
 
@@ -175,7 +175,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
   Future<void> initialize(List<CameraDescription> cameras) async {
     state = const EntranceKioskState(
-      statusMessage: 'Cargando base de datos biomÃ©trica...',
+      statusMessage: 'Cargando base de datos biométrica...',
       phase: KioskPhase.initializing,
     );
 
@@ -198,7 +198,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
     _cameraController = CameraController(
       camera,
-      ResolutionPreset.medium, // Aumentado de low a medium para mejor precisiÃ³n facial
+      ResolutionPreset.medium, // Aumentado de low a medium para mejor precisión facial
       enableAudio: false,
       imageFormatGroup: ImageFormatGroup.nv21,
     );
@@ -208,7 +208,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
       if (_disposed) return;
       state = state.copyWith(
         isReady: true,
-        statusMessage: 'RecepciÃ³n Activa',
+        statusMessage: 'Recepción Activa',
         phase: KioskPhase.scanning,
       );
       _startImageStream();
@@ -242,7 +242,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
         );
       } else {
         debugPrint(
-          '[ENTRANCE] BD local vacÃ­a. Descargando workstations de Supabase...',
+          '[ENTRANCE] BD local vacía. Descargando workstations de Supabase...',
         );
         state = state.copyWith(
           statusMessage: 'Descargando perfiles de la nube...',
@@ -295,7 +295,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
                   _employeeRegistry[w['assigned_employee_id']] =
                       embeddings;
                   _workstationNames[w['assigned_employee_id']] =
-                      w['name'] ?? 'EstaciÃ³n';
+                      w['name'] ?? 'Estación';
                   _workstationIds[w['assigned_employee_id']] = w['id'];
                   count++;
                 }
@@ -335,11 +335,11 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
     // Actualizar UI
     if (count == 0) {
       state = state.copyWith(
-        statusMessage: 'Advertencia: 0 perfiles con biomÃ©tricos.',
+        statusMessage: 'Advertencia: 0 perfiles con biométricos.',
       );
     } else {
       state = state.copyWith(
-        statusMessage: 'RecepciÃ³n activa ($count perfiles cargados).',
+        statusMessage: 'Recepción activa ($count perfiles cargados).',
       );
     }
     debugPrint('[ENTRANCE] Cargados $count perfiles faciales en memoria.');
@@ -429,7 +429,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
       final faces = await _faceDetector.processImage(inputImage);
       if (faces.isEmpty || _disposed) {
-        // No face: if we were verifying, don't hard-reset â€” tolerate brief dropouts
+        // No face: if we were verifying, don't hard-reset — tolerate brief dropouts
         if (state.phase == KioskPhase.verifying) {
           _evidenceFrameCount++;
           if (_evidenceFrameCount >=
@@ -442,8 +442,8 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
           }
           return;
         }
-        if (state.statusMessage != 'RecepciÃ³n Activa') {
-          state = state.copyWith(statusMessage: 'RecepciÃ³n Activa');
+        if (state.statusMessage != 'Recepción Activa') {
+          state = state.copyWith(statusMessage: 'Recepción Activa');
           _hasBlinked = false;
         }
         return;
@@ -461,7 +461,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
       // --- PRESENCE VALIDATION (decoupled from identity) ---
       final widthRatio = largestFace.boundingBox.width / image.width;
       if (widthRatio < AiThresholds.entranceMinFaceWidthRatio) {
-        state = state.copyWith(statusMessage: 'AcÃ©rcate a la cÃ¡mara');
+        state = state.copyWith(statusMessage: 'Acércate a la cámara');
         // Don't reset blink or evidence for momentary distance issues
         return;
       }
@@ -554,21 +554,34 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
       _evidenceFrameCount++;
       debugPrint(
-        '[ENTRANCE] Frame $_evidenceFrameCount/${AiThresholds.entranceEvidenceWindowSize} â€” '
+        '[ENTRANCE] Frame $_evidenceFrameCount/${AiThresholds.entranceEvidenceWindowSize} — '
         'best: ${frameBestSim.toStringAsFixed(3)} (${frameBestId ?? "?"}) | '
         'confirmations: $_evidenceConfirmations',
       );
 
-      // Check if any employee reached required confirmations
+      // Check if any employee reached required confirmations AND best-score floor.
+      // Both conditions must be met to prevent low-but-repeated scores from
+      // granting access (e.g. an impostor scoring 0.82 on 3 frames but never
+      // reaching a truly distinctive peak).
       for (final entry in _evidenceConfirmations.entries) {
         if (entry.value >= AiThresholds.entranceRequiredConfirmations) {
-          debugPrint(
-            '[ENTRANCE] âœ… Match confirmed for ${entry.key} '
-            'with ${entry.value} confirmations, best=${_evidenceBestScores[entry.key]?.toStringAsFixed(3)}',
-          );
-          _resetEvidence();
-          await _triggerEntrance(entry.key);
-          return;
+          final bestScore = _evidenceBestScores[entry.key] ?? 0.0;
+          if (bestScore >= AiThresholds.entranceMinBestScore) {
+            debugPrint(
+              '[ENTRANCE] ✅ Match confirmed for ${entry.key} '
+              'with ${entry.value} confirmations, best=${bestScore.toStringAsFixed(3)}',
+            );
+            _resetEvidence();
+            await _triggerEntrance(entry.key);
+            return;
+          } else {
+            // Enough frames but peak not high enough — keep sampling.
+            debugPrint(
+              '[ENTRANCE] ⚠️ ${entry.key} reached ${entry.value} confirmations '
+              'but best score ${bestScore.toStringAsFixed(3)} < '
+              '${AiThresholds.entranceMinBestScore} — continuing...',
+            );
+          }
         }
       }
 
@@ -598,7 +611,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
                     AiThresholds.entranceNearMatchMargin &&
             (_evidenceConfirmations[topEmployee.key] ?? 0) >= 1 &&
             _nearMatchRetries < AiThresholds.entranceMaxNearMatchRetries) {
-          // Near match with at least 1 confirmation â€” extend window once
+          // Near match with at least 1 confirmation — extend window once
           _nearMatchRetries++;
           _evidenceFrameCount =
               0; // Reset frame counter for a clean extra window
@@ -637,7 +650,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
     // Immediately transition to welcome phase to stop all further processing
     final employeeName = _employeeNames[employeeId] ?? 'Empleado';
     final workstationName =
-        _workstationNames[employeeId] ?? 'EstaciÃ³n de Trabajo';
+        _workstationNames[employeeId] ?? 'Estación de Trabajo';
 
     state = EntranceKioskState(
       isReady: true,
@@ -645,33 +658,33 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
       lastMatchedEmployeeId: employeeId,
       matchedEmployeeName: employeeName,
       matchedWorkstationName: workstationName,
-      statusMessage: 'Â¡Bienvenido, $employeeName!',
+      statusMessage: '¡Bienvenido, $employeeName!',
     );
 
-    // Detener la cÃ¡mara para evitar procesamiento extra
+    // Detener la cámara para evitar procesamiento extra
     try {
       await _cameraController?.stopImageStream();
     } catch (_) {}
 
     try {
-      // 1. LÃ³gica de Asistencia (Clock IN / OUT)
+      // 1. Lógica de Asistencia (Clock IN / OUT)
       final openSession = await _attendanceRepo.getOpenSession(employeeId);
       final todaySessions = await _attendanceRepo.getTodaySessions(employeeId);
 
-      // Corregido: Buscar por el ID de la estaciÃ³n almacenado en cache, no por el nombre.
+      // Corregido: Buscar por el ID de la estación almacenado en cache, no por el nombre.
       final wsId = _workstationIds[employeeId];
       final workstation =
           wsId != null ? await _db.getWorkstationById(wsId) : null;
       final employee = await _db.getEmployeeRecordById(employeeId);
 
       if (openSession != null) {
-        // Tiene sesiÃ³n abierta -> CLOCK OUT
+        // Tiene sesión abierta -> CLOCK OUT
         await _attendanceRepo.clockOut(
           employeeId: employeeId,
           workstationId: workstation?.id,
         );
 
-        // Apagar estaciÃ³n
+        // Apagar estación
         await Supabase.instance.client
             .from('workstations')
             .update({'status': 'IDLE'})
@@ -681,20 +694,20 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
         final min = DateTime.now().minute.toString().padLeft(2, '0');
         state = state.copyWith(
           statusMessage:
-              'Â¡Hasta luego $employeeName! SesiÃ³n cerrada a las $hour:$min.',
+              '¡Hasta luego $employeeName! Sesión cerrada a las $hour:$min.',
         );
         debugPrint(
-          '[ENTRANCE] âœ… Clock-OUT y estaciÃ³n apagada para $employeeName',
+          '[ENTRANCE] ✅ Clock-OUT y estación apagada para $employeeName',
         );
       } else {
-        // No tiene sesiÃ³n -> CLOCK IN
+        // No tiene sesión -> CLOCK IN
         await _attendanceRepo.clockIn(
           employeeId: employeeId,
           companyId: employee?.companyId ?? '',
           workstationId: workstation?.id,
         );
 
-        // Prender estaciÃ³n
+        // Prender estación
         await Supabase.instance.client
             .from('workstations')
             .update({'status': 'ACTIVE', 'last_employee_id': employeeId})
@@ -709,15 +722,15 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
         String welcomeMsg;
         if (count == 1) {
           welcomeMsg =
-              'Â¡Bienvenido $employeeName!\nPrimera entrada a las $timeStr.';
+              '¡Bienvenido $employeeName!\nPrimera entrada a las $timeStr.';
         } else {
           welcomeMsg =
-              'Â¡Hola de nuevo $employeeName!\nEntrada #$count del dÃ­a a las $timeStr.';
+              '¡Hola de nuevo $employeeName!\nEntrada #$count del día a las $timeStr.';
         }
 
         state = state.copyWith(statusMessage: welcomeMsg);
         debugPrint(
-          '[ENTRANCE] âœ… Clock-IN y estaciÃ³n activada para $employeeName',
+          '[ENTRANCE] ✅ Clock-IN y estación activada para $employeeName',
         );
       }
     } catch (e) {
@@ -736,7 +749,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
       state = const EntranceKioskState(
         isReady: true,
         phase: KioskPhase.cooldown,
-        statusMessage: 'Preparando escÃ¡ner...',
+        statusMessage: 'Preparando escáner...',
       );
 
       // Restart camera stream
@@ -748,7 +761,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
         state = const EntranceKioskState(
           isReady: true,
           phase: KioskPhase.scanning,
-          statusMessage: 'RecepciÃ³n Activa',
+          statusMessage: 'Recepción Activa',
         );
       });
     });

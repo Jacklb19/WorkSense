@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/core/constants/app_dimensions.dart';
-import 'package:worksense_app/core/constants/app_routes.dart';
-import 'package:worksense_app/domain/entities/employee.dart';
-import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
-import 'package:worksense_app/features/dashboard/presentation/providers/admin_analytics_provider.dart';
-import 'package:worksense_app/features/camera_monitor/presentation/widgets/state_badge_widget.dart';
-import 'package:worksense_app/shared/widgets/loading_indicator.dart';
+
+import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/constants/app_routes.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../domain/entities/employee.dart';
+import '../../../camera_monitor/presentation/widgets/state_badge_widget.dart';
+import '../../presentation/providers/admin_analytics_provider.dart';
+import '../../presentation/providers/shifts_provider.dart';
 
 class EmployeeDashboardCard extends ConsumerWidget {
   final Employee employee;
@@ -19,192 +20,273 @@ class EmployeeDashboardCard extends ConsumerWidget {
     required this.employee,
   });
 
+  // Color del avatar basado en el primer char del nombre
+  Color _avatarColor() {
+    const colors = [
+      AppColors.primary,
+      AppColors.accent,
+      AppColors.secondary,
+      AppColors.success,
+      AppColors.warning,
+    ];
+    final idx = employee.displayName.codeUnitAt(0) % colors.length;
+    return colors[idx];
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final shiftsAsync = ref.watch(shiftsProvider);
     final attendanceAsync = ref.watch(employeeAttendanceProvider(employee.id));
-
-    // Encontrar shift actual de la memoria si está cargado
-    final shifts = shiftsAsync.valueOrNull ?? [];
-    final currentShift = shifts.where((s) => s.id == employee.shiftId).firstOrNull;
-
-    // Obtener analíticas reales
     final analyticsAsync = ref.watch(employeeDetailProvider(employee.id));
 
-    return Card(
-      elevation: AppDimensions.cardElevation,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
-        side: BorderSide(
-          color: AppColors.primary.withValues(alpha: 0.3),
-          width: 1,
-        ),
+    final shifts = shiftsAsync.valueOrNull ?? [];
+    final currentShift =
+        shifts.where((s) => s.id == employee.shiftId).firstOrNull;
+
+    final accentColor = _avatarColor();
+
+    return GestureDetector(
+      onTap: () => context.push(
+        AppRoutes.analyticsDetail.replaceFirst(':employeeId', employee.id),
       ),
-      child: InkWell(
-        onTap: () {
-          context.push(AppRoutes.analyticsDetail.replaceFirst(':employeeId', employee.id));
-        },
-        borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
-        child: Padding(
-          padding: const EdgeInsets.all(AppDimensions.spacingXxl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Cabecera: Avatar circular + Nombre
-              Row(
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.dividerDark),
+          boxShadow: [
+            BoxShadow(
+              color: accentColor.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => context.push(
+              AppRoutes.analyticsDetail
+                  .replaceFirst(':employeeId', employee.id),
+            ),
+            borderRadius: BorderRadius.circular(18),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: AppDimensions.avatarRadiusMd,
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                    child: Text(
-                      employee.displayName.isNotEmpty
-                          ? employee.displayName[0].toUpperCase()
-                          : '?',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: AppDimensions.fontHeadline, color: AppColors.primary),
-                    ),
+                  // ── Header ──────────────────────────────────────────
+                  Row(
+                    children: [
+                      // Avatar con glow
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              accentColor,
+                              accentColor.withValues(alpha: 0.7),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(13),
+                          boxShadow: [
+                            BoxShadow(
+                              color: accentColor.withValues(alpha: 0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            employee.displayName.isNotEmpty
+                                ? employee.displayName[0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              employee.displayName,
+                              style: const TextStyle(
+                                color: AppColors.textPrimaryDark,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                height: 1.2,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 3),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: accentColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                              child: Text(
+                                'EMP-${employee.id.substring(0, 4).toUpperCase()}',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: accentColor,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Arrow
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 12,
+                        color: AppColors.textDisabledDark,
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: AppDimensions.spacingXxl),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          employee.displayName,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            height: 1.2,
+
+                  const Spacer(),
+
+                  // ── Shift ────────────────────────────────────────────
+                  Row(
+                    children: [
+                      const Icon(Icons.schedule_rounded,
+                          size: 13, color: AppColors.textDisabledDark),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          currentShift != null
+                              ? '${currentShift.name} · ${currentShift.startTime.hour}:${currentShift.startTime.minute.toString().padLeft(2, '0')}'
+                              : 'Sin turno asignado',
+                          style: const TextStyle(
+                            color: AppColors.textSecondaryDark,
+                            fontSize: 11,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        // Badge de ID (simulado) o cargo
-                        const SizedBox(height: AppDimensions.spacingXs),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingSm, vertical: AppDimensions.spacingXxs),
-                          decoration: BoxDecoration(
-                            color: AppColors.cardDark,
-                            borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
-                          ),
-                          child: Text(
-                            'EMP-${employee.id.substring(0, 4).toUpperCase()}',
-                            style: const TextStyle(fontSize: AppDimensions.fontXs, color: AppColors.primary, letterSpacing: 1),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              const Spacer(),
-              
-              // Estado del Turno Asignado
-              Row(
-                children: [
-                  const Icon(Icons.schedule, size: AppDimensions.iconXs, color: AppColors.grey400),
-                  const SizedBox(width: AppDimensions.spacingMd),
-                  Expanded(
-                    child: Text(
-                      currentShift != null 
-                        ? '${currentShift.name} (${currentShift.startTime.hour}:${currentShift.startTime.minute.toString().padLeft(2, '0')})'
-                        : 'Sin turno asignado',
-                      style: theme.textTheme.bodySmall?.copyWith(color: AppColors.grey500),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: AppDimensions.spacingMd),
 
-              // Analíticas en tiempo real
-              analyticsAsync.when(
-                data: (analytics) {
-                  if (analytics != null && analytics.hasData) {
-                    return Row(
-                      children: [
-                        const Icon(Icons.bar_chart, size: AppDimensions.iconXs, color: AppColors.grey400),
-                        const SizedBox(width: AppDimensions.spacingMd),
-                        Expanded(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              StateBadgeWidget(state: analytics.lastState!),
-                              Text(
-                                '${analytics.totalTrackedTime.inMinutes}min activos',
-                                style: const TextStyle(fontSize: AppDimensions.fontCaption, fontWeight: FontWeight.bold, color: AppColors.primary),
-                              )
-                            ],
-                          ),
-                        ),
-                      ],
-                    );
-                  }
-                  return attendanceAsync.when(
-                    data: (logs) {
-                      if (logs.isNotEmpty) {
-                        final latest = logs.first;
-                        final timeFormat = DateFormat('HH:mm');
-                        final attendanceLabel = latest.clockOutTime == null
-                            ? 'En turno desde ${timeFormat.format(latest.clockInTime)}'
-                            : 'Último acceso ${timeFormat.format(latest.clockInTime)} - ${timeFormat.format(latest.clockOutTime!)}';
+                  const SizedBox(height: 8),
+
+                  // ── Analytics / Attendance ────────────────────────────
+                  analyticsAsync.when(
+                    data: (analytics) {
+                      if (analytics != null && analytics.hasData) {
                         return Row(
                           children: [
-                            const Icon(Icons.badge_outlined, size: AppDimensions.iconXs, color: AppColors.grey400),
-                            const SizedBox(width: AppDimensions.spacingMd),
-                            Expanded(
-                              child: Text(
-                                attendanceLabel,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                            const Icon(Icons.show_chart_rounded,
+                                size: 13, color: AppColors.textDisabledDark),
+                            const SizedBox(width: 5),
+                            StateBadgeWidget(state: analytics.lastState!),
+                            const Spacer(),
+                            Text(
+                              '${analytics.totalTrackedTime.inMinutes}m',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
                               ),
                             ),
                           ],
                         );
                       }
-
-                      return Row(
-                        children: [
-                          const Icon(Icons.bar_chart, size: AppDimensions.iconXs, color: AppColors.grey400),
-                          const SizedBox(width: AppDimensions.spacingMd),
-                          Text(
-                            'Sin datos de actividad hoy',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.grey400,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                    loading: () => const Center(
-                      child: AppLoadingIndicator(),
-                    ),
-                    error: (_, __) => Row(
-                      children: [
-                        const Icon(Icons.bar_chart, size: AppDimensions.iconXs, color: AppColors.grey400),
-                        const SizedBox(width: AppDimensions.spacingMd),
-                        Text(
-                          'Sin datos de actividad hoy',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.grey400,
+                      return attendanceAsync.when(
+                        data: (logs) {
+                          if (logs.isNotEmpty) {
+                            final latest = logs.first;
+                            final timeFormat = DateFormat('HH:mm');
+                            final label = latest.clockOutTime == null
+                                ? 'En turno · ${timeFormat.format(latest.clockInTime)}'
+                                : '${timeFormat.format(latest.clockInTime)} — ${timeFormat.format(latest.clockOutTime!)}';
+                            return Row(
+                              children: [
+                                const Icon(Icons.badge_outlined,
+                                    size: 13,
+                                    color: AppColors.textDisabledDark),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                  child: Text(
+                                    label,
+                                    style: const TextStyle(
+                                      color: AppColors.primary,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+                          return const _NoDataRow();
+                        },
+                        loading: () => const SizedBox(
+                          height: 16,
+                          child: LinearProgressIndicator(
+                            color: AppColors.primary,
+                            backgroundColor: AppColors.dividerDark,
                           ),
                         ),
-                      ],
+                        error: (_, __) => const _NoDataRow(),
+                      );
+                    },
+                    loading: () => const SizedBox(
+                      height: 16,
+                      child: LinearProgressIndicator(
+                        color: AppColors.primary,
+                        backgroundColor: AppColors.dividerDark,
+                      ),
                     ),
-                  );
-                },
-                loading: () => const Center(child: AppLoadingIndicator()),
-                error: (e, _) => const Text('Error al cargar', style: TextStyle(color: AppColors.error, fontSize: AppDimensions.fontCaption)),
+                    error: (_, __) => const _NoDataRow(),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
+    ).animate().fadeIn(
+          duration: AppDimensions.animEntrance,
+          curve: Curves.easeOutCubic,
+        );
+  }
+}
+
+class _NoDataRow extends StatelessWidget {
+  const _NoDataRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      children: [
+        Icon(Icons.show_chart_rounded, size: 13, color: AppColors.textDisabledDark),
+        SizedBox(width: 5),
+        Text(
+          'Sin actividad registrada hoy',
+          style: TextStyle(color: AppColors.textDisabledDark, fontSize: 11),
+        ),
+      ],
     );
   }
 }

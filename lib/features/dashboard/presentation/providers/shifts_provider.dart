@@ -19,6 +19,18 @@ final saveShiftUseCaseProvider = Provider<SaveShiftUseCase>((ref) {
   return SaveShiftUseCase(repo);
 });
 
+// ── Delete Shift Use Case ────────────────────────────────────────────────────
+
+class DeleteShiftUseCase {
+  final ShiftRepository _repo;
+  DeleteShiftUseCase(this._repo);
+  Future<void> call(String shiftId) => _repo.deleteShift(shiftId);
+}
+
+final deleteShiftUseCaseProvider = Provider<DeleteShiftUseCase>((ref) {
+  return DeleteShiftUseCase(ref.watch(shiftRepositoryProvider));
+});
+
 final shiftsProvider = FutureProvider<List<Shift>>((ref) async {
   final userState = ref.watch(currentUserProvider);
   final repo = ref.watch(shiftRepositoryProvider);
@@ -80,6 +92,7 @@ class ShiftFormNotifier extends StateNotifier<ShiftFormState> {
     int? breakStartMinute,
     int? breakEndHour,
     int? breakEndMinute,
+    bool isEdit = false,
   }) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
@@ -91,8 +104,8 @@ class ShiftFormNotifier extends StateNotifier<ShiftFormState> {
         throw Exception('Compañía no identificada.');
       }
 
-      final saveShift = _ref.read(saveShiftUseCaseProvider);
-      
+      final repo = _ref.read(shiftRepositoryProvider);
+
       final shift = Shift(
         id: id,
         companyId: companyId,
@@ -108,7 +121,11 @@ class ShiftFormNotifier extends StateNotifier<ShiftFormState> {
         createdAt: DateTime.now(),
       );
 
-      await saveShift(shift);
+      if (isEdit) {
+        await repo.updateShift(shift);
+      } else {
+        await repo.createShift(shift);
+      }
 
       // Invalidate to reload the list
       _ref.invalidate(shiftsProvider);

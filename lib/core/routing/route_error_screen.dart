@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:worksense_app/core/constants/app_dimensions.dart';
-import 'package:worksense_app/core/constants/app_routes.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
+
+import '../constants/app_dimensions.dart';
+import '../constants/app_routes.dart';
+import '../theme/app_colors.dart';
 
 class RouteErrorScreen extends StatelessWidget {
   final String error;
@@ -11,21 +12,48 @@ class RouteErrorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Página no encontrada')),
+      appBar: AppBar(title: const Text('Pagina no encontrada')),
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.map_outlined, size: AppDimensions.iconEmptyState, color: AppColors.grey500),
-            const SizedBox(height: AppDimensions.spacingXxl),
-            Text(error),
-            const SizedBox(height: AppDimensions.spacingXxl),
-            FilledButton(
-              onPressed: () => context.go(AppRoutes.dashboard),
-              child: const Text('Ir al dashboard'),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(AppDimensions.spacing32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppDimensions.spacing24),
+                decoration: BoxDecoration(
+                  color: AppColors.errorSoft,
+                  border: Border.all(
+                    color: AppColors.error.withAlpha(80),
+                  ),
+                  borderRadius:
+                      BorderRadius.circular(AppDimensions.radiusCard),
+                ),
+                child: const Icon(
+                  Icons.map_outlined,
+                  size: AppDimensions.iconEmptyState,
+                  color: AppColors.error,
+                ),
+              ),
+              const SizedBox(height: AppDimensions.spacing24),
+              Text(
+                error,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppDimensions.spacing40),
+              FilledButton.icon(
+                onPressed: () => context.go(AppRoutes.dashboard),
+                icon: const Icon(Icons.home_outlined),
+                label: const Text('Ir al dashboard'),
+              ),
+            ],
+          ),
         ),
       ),
     );

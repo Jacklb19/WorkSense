@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:worksense_app/core/constants/app_strings.dart';
-import 'package:worksense_app/core/constants/app_dimensions.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/shared/providers/connectivity_provider.dart';
-import 'package:worksense_app/shared/providers/sync_state_provider.dart';
+
+import '../../core/constants/app_strings.dart';
+import '../../core/theme/app_colors.dart';
+import '../providers/connectivity_provider.dart';
+import '../providers/sync_state_provider.dart';
 
 class SyncIndicatorWidget extends ConsumerWidget {
   const SyncIndicatorWidget({super.key});
@@ -19,7 +19,7 @@ class SyncIndicatorWidget extends ConsumerWidget {
       return const Tooltip(
         message: AppStrings.offlineMode,
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl),
+          padding: EdgeInsets.symmetric(horizontal: 16.0),
           child: Icon(Icons.cloud_off, color: AppColors.syncOffline),
         ),
       );
@@ -29,29 +29,32 @@ class SyncIndicatorWidget extends ConsumerWidget {
       data: (pendingCount) {
         if (syncState.isLoading) {
           return const Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl),
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
             child: SizedBox(
-              width: AppDimensions.progressIndicatorSize,
-              height: AppDimensions.progressIndicatorSize,
-              child: CircularProgressIndicator(strokeWidth: AppDimensions.progressStrokeWidth, color: AppColors.syncUploading),
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.syncUploading,
+              ),
             ),
           );
         }
 
         if (pendingCount > 0) {
           return Tooltip(
-            message: '$pendingCount ${AppStrings.pendingSync}',
+            message: '$pendingCount pendientes de sincronizacion',
             child: InkWell(
               onTap: () => ref.read(syncNotifierProvider.notifier).sync(),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
                     const Icon(Icons.cloud_upload, color: AppColors.syncUploading),
                     Positioned(
                       right: 0,
-                      top: AppDimensions.spacingMd,
+                      top: 8,
                       child: _Badge(count: pendingCount),
                     ),
                   ],
@@ -64,7 +67,7 @@ class SyncIndicatorWidget extends ConsumerWidget {
         return const Tooltip(
           message: AppStrings.onlineAndSynced,
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl),
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
             child: Icon(Icons.cloud_done, color: AppColors.syncOk),
           ),
         );
@@ -82,15 +85,19 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppDimensions.badgePadding),
+      padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         color: AppColors.badgeRed,
-        borderRadius: BorderRadius.circular(AppDimensions.badgeRadius),
+        borderRadius: BorderRadius.circular(10),
       ),
-      constraints: const BoxConstraints(minWidth: AppDimensions.badgeMinSize, minHeight: AppDimensions.badgeMinSize),
+      constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
       child: Text(
         count > 99 ? '99+' : '$count',
-        style: const TextStyle(color: AppColors.white, fontSize: AppDimensions.fontXxs, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          color: AppColors.white,
+          fontSize: 8,
+          fontWeight: FontWeight.bold,
+        ),
         textAlign: TextAlign.center,
       ),
     );

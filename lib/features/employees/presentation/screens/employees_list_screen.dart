@@ -112,7 +112,9 @@ class EmployeesListScreen extends ConsumerWidget {
               );
             },
           ),
-        ),
+            ),
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {

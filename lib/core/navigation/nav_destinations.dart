@@ -1,57 +1,84 @@
 import 'package:flutter/material.dart';
 import 'package:worksense_app/core/constants/constants.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/navigation/nav_destination.dart';
 
-final List<NavDestination> adminDestinations = [
-  const NavDestination(
-    label: AppStrings.navDashboard,
-    icon: Icon(Icons.dashboard_outlined),
-    selectedIcon: Icon(Icons.dashboard),
-    route: AppRoutes.dashboard, // Used as a reference
+/// Admin nav — 7 items
+List<NavDestination> adminDestinations(AppLocalizations l) => [
+  NavDestination(
+    label: l.navDashboard,
+    icon: const Icon(Icons.dashboard_outlined),
+    selectedIcon: const Icon(Icons.dashboard),
+    route: AppRoutes.dashboard,
   ),
-  const NavDestination(
-    label: AppStrings.navEmployees,
-    icon: Icon(Icons.people_outline),
-    selectedIcon: Icon(Icons.people),
+  NavDestination(
+    label: l.navEmployees,
+    icon: const Icon(Icons.people_outline),
+    selectedIcon: const Icon(Icons.people),
     route: AppRoutes.employees,
   ),
-  const NavDestination(
-    label: AppStrings.navWorkstations,
-    icon: Icon(Icons.computer_outlined),
-    selectedIcon: Icon(Icons.computer),
+  NavDestination(
+    label: l.navWorkstations,
+    icon: const Icon(Icons.computer_outlined),
+    selectedIcon: const Icon(Icons.computer),
     route: AppRoutes.workstations,
   ),
-  const NavDestination(
-    label: 'Horarios',
-    icon: Icon(Icons.schedule_outlined),
-    selectedIcon: Icon(Icons.schedule),
+  NavDestination(
+    label: l.navTasks,
+    icon: const Icon(Icons.task_outlined),
+    selectedIcon: const Icon(Icons.task),
+    route: AppRoutes.tasks,
+  ),
+  NavDestination(
+    label: l.navLeaves,
+    icon: const Icon(Icons.beach_access_outlined),
+    selectedIcon: const Icon(Icons.beach_access),
+    route: AppRoutes.leaves,
+  ),
+  NavDestination(
+    label: l.navShifts,
+    icon: const Icon(Icons.schedule_outlined),
+    selectedIcon: const Icon(Icons.schedule),
     route: AppRoutes.shifts,
   ),
-  const NavDestination(
-    label: AppStrings.navSettings,
-    icon: Icon(Icons.settings_outlined),
-    selectedIcon: Icon(Icons.settings),
+  NavDestination(
+    label: l.navSettings,
+    icon: const Icon(Icons.settings_outlined),
+    selectedIcon: const Icon(Icons.settings),
     route: AppRoutes.settings,
   ),
 ];
 
-final List<NavDestination> employeeDestinations = [
-  const NavDestination(
-    label: AppStrings.navHome,
-    icon: Icon(Icons.home_outlined),
-    selectedIcon: Icon(Icons.home),
+/// Employee nav — 5 items
+List<NavDestination> employeeDestinations(AppLocalizations l) => [
+  NavDestination(
+    label: l.navHome,
+    icon: const Icon(Icons.home_outlined),
+    selectedIcon: const Icon(Icons.home),
     route: AppRoutes.dashboard,
   ),
-  const NavDestination(
-    label: AppStrings.navActivity,
-    icon: Icon(Icons.history_outlined),
-    selectedIcon: Icon(Icons.history),
+  NavDestination(
+    label: l.navTasks,
+    icon: const Icon(Icons.task_outlined),
+    selectedIcon: const Icon(Icons.task),
+    route: AppRoutes.tasks,
+  ),
+  NavDestination(
+    label: l.navLeaves,
+    icon: const Icon(Icons.beach_access_outlined),
+    selectedIcon: const Icon(Icons.beach_access),
+    route: AppRoutes.leaves,
+  ),
+  NavDestination(
+    label: l.navActivity,
+    icon: const Icon(Icons.history_outlined),
+    selectedIcon: const Icon(Icons.history),
     route: AppRoutes.history,
   ),
-  const NavDestination(
-    label: AppStrings.navSettings,
-    icon: Icon(Icons.settings_outlined),
-    selectedIcon: Icon(Icons.settings),
+  NavDestination(
+    label: l.navSettings,
+    icon: const Icon(Icons.settings_outlined),
+    selectedIcon: const Icon(Icons.settings),
     route: AppRoutes.settings,
   ),
 ];

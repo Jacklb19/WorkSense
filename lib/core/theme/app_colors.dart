@@ -8,6 +8,9 @@ abstract final class AppColors {
   static const Color primaryDark = Color(0xFF2563EB);
   static const Color primaryLight = Color(0xFF60A5FA);
 
+  static const Color accent = Color(0xFF8B5CF6);
+  static const Color accentLight = Color(0xFFC4B5FD);
+
   static const Color secondary = Color(0xFF8B5CF6);
   static const Color secondaryDark = Color(0xFF7C3AED);
   static const Color secondaryLight = Color(0xFFA78BFA);
@@ -101,6 +104,14 @@ abstract final class AppColors {
   // ── Gradients ─────────────────────────────────────────────
   static const List<Color> mainGradient = [primary, secondary];
   static const List<Color> surfaceGradient = [card, surface];
+  static const List<Color> primaryGradient = [Color(0xFF4F8EF7), Color(0xFF7C3AED)];
+  static const List<Color> cyanGradient = [Color(0xFF06B6D4), Color(0xFF4F8EF7)];
+  static const List<Color> successGradient = [Color(0xFF10B981), Color(0xFF059669)];
+  static const List<Color> warningGradient = [Color(0xFFF59E0B), Color(0xFFD97706)];
+  static const List<Color> errorGradient = [Color(0xFFEF4444), Color(0xFFDC2626)];
+
+  /// Alias for incoming UI (login buttons, etc.)
+  static const List<Color> gradientButton = primaryGradient;
 
   // ── Activity (AI Pipeline) ────────────────────────────────
   static const Color stateWorking = Color(0xFF22C55E);
@@ -134,6 +145,7 @@ abstract final class AppColors {
   static const Color glassBlack = Color(0x66000000);
   static const Color overlayBadgeBg = Color(0xCC111827);
   static const Color glassBorder = Color(0x33FFFFFF);
+  static const Color glassBorderBright = Color(0x33FFFFFF);
 
   // ── Light theme glassmorphism ─────────────────────────────
   static const Color lightGlassBorder = Color(0x1A000000);
