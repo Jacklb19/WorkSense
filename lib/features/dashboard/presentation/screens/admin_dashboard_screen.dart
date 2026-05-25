@@ -5,8 +5,8 @@ import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/alerts/presentation/providers/alerts_provider.dart';
-import 'package:worksense_app/features/announcements/presentation/providers/announcements_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/admin_analytics_provider.dart';
+import 'package:worksense_app/features/notifications/presentation/widgets/notification_panel.dart';
 import 'package:worksense_app/features/dashboard/presentation/widgets/employee_dashboard_card.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/features/leaves/presentation/providers/leaves_provider.dart';
@@ -53,8 +53,11 @@ class AdminDashboardScreen extends ConsumerWidget {
               child: _KpiPanel(ref: ref),
             ),
 
-            // ── Quick actions ────────────────────────────────────────────
+            // ── Quick actions row 1 ──────────────────────────────────────
             const SliverToBoxAdapter(child: _QuickActionsRow()),
+
+            // ── Quick actions row 2 (Nómina + Evaluaciones) ──────────────
+            const SliverToBoxAdapter(child: _QuickActionsRow2()),
 
             // ── Employee list ────────────────────────────────────────────
             employeesAsync.when(
@@ -219,8 +222,15 @@ class _DashboardHeader extends StatelessWidget {
               ],
             ),
           ),
-          // Announcement bell
-          _AnnouncementBell(ref: ref),
+          // Notification bell (replaces announcement bell — includes all notifications)
+          const NotificationBellButton(isIconButton: false),
+          const SizedBox(width: 6),
+          // Chat button
+          _HeaderIconBtn(
+            icon: Icons.forum_rounded,
+            tooltip: 'Conversaciones',
+            onTap: () => context.push(AppRoutes.chatList),
+          ),
           const SizedBox(width: 4),
           // Analytics button
           _HeaderIconBtn(
@@ -271,6 +281,40 @@ class _QuickActionsRow extends StatelessWidget {
               label: 'REPORTES',
               color: AppColors.accent,
               onTap: () => context.push(AppRoutes.reports),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Quick actions row 2 ───────────────────────────────────────────────────────
+
+class _QuickActionsRow2 extends StatelessWidget {
+  const _QuickActionsRow2();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: _ActionChip(
+              icon: Icons.attach_money_rounded,
+              label: 'NÓMINA',
+              color: const Color(0xFF10B981),
+              onTap: () => context.push(AppRoutes.payroll),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _ActionChip(
+              icon: Icons.star_rounded,
+              label: 'EVALUACIONES',
+              color: const Color(0xFF8B5CF6),
+              onTap: () => context.push(AppRoutes.evaluations),
             ),
           ),
         ],
@@ -577,50 +621,6 @@ class _ErrorView extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-// ── Announcement bell ─────────────────────────────────────────────────────────
-
-class _AnnouncementBell extends StatelessWidget {
-  const _AnnouncementBell({required this.ref});
-  final WidgetRef ref;
-
-  @override
-  Widget build(BuildContext context) {
-    final unread = ref.watch(unreadAnnouncementsCountProvider);
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        _HeaderIconBtn(
-          icon: Icons.campaign_rounded,
-          tooltip: 'Comunicados',
-          onTap: () => context.push(AppRoutes.announcements),
-        ),
-        if (unread > 0)
-          Positioned(
-            top: 2,
-            right: 2,
-            child: Container(
-              width: 16,
-              height: 16,
-              decoration: const BoxDecoration(
-                color: AppColors.error,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                unread > 9 ? '9+' : '$unread',
-                style: const TextStyle(
-                  color: AppColors.white,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-      ],
     );
   }
 }

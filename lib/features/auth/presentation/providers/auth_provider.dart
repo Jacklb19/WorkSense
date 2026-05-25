@@ -4,6 +4,7 @@ import 'package:worksense_app/data/repositories/auth_repository_impl.dart';
 import 'package:worksense_app/domain/repositories/auth_repository.dart';
 import 'package:worksense_app/features/auth/domain/usecases/sign_in_use_case.dart';
 import 'package:worksense_app/features/auth/domain/usecases/sign_out_use_case.dart';
+import 'package:worksense_app/shared/services/push_notification_service.dart';
 
 // â”€â”€ Data Sources â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -87,6 +88,9 @@ class LoginNotifier extends StateNotifier<LoginState> {
   Future<void> signOut() async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
+      // Eliminar FCM token antes de cerrar sesión para no recibir pushes del
+      // usuario anterior en este dispositivo
+      await PushNotificationService.instance.deleteTokenOnLogout();
       await _signOutUseCase();
       state = state.copyWith(isLoading: false);
     } catch (e) {
