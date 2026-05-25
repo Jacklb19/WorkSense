@@ -6,8 +6,8 @@ import 'package:worksense_app/features/workstations/domain/usecases/delete_works
 import 'package:worksense_app/features/workstations/domain/usecases/get_workstations_use_case.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
 import 'package:worksense_app/features/workstations/domain/usecases/save_workstation_use_case.dart';
-
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
+import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
 final workstationRepositoryProvider = Provider<WorkstationRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);
@@ -30,7 +30,12 @@ final deleteWorkstationUseCaseProvider = Provider<DeleteWorkstationUseCase>((ref
   return DeleteWorkstationUseCase(repository);
 });
 
-final workstationsProvider = StreamProvider<List<Workstation>>((ref) {
-  final getWorkstationsUseCase = ref.watch(getWorkstationsUseCaseProvider);
-  return getWorkstationsUseCase();
+final workstationsProvider = StreamProvider.autoDispose<List<Workstation>>((ref) {
+  final repo = ref.watch(workstationRepositoryProvider);
+  final currentUser = ref.watch(currentUserProvider);
+  final companyId = currentUser.valueOrNull?.companyId;
+  if (companyId == null || companyId.isEmpty) {
+    return Stream.value(const []);
+  }
+  return repo.watchWorkstationsByCompany(companyId);
 });

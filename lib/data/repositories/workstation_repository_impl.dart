@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'dart:convert';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/workstation.dart';
 import 'package:worksense_app/domain/repositories/workstation_repository.dart';
@@ -25,13 +26,20 @@ class WorkstationRepositoryImpl implements WorkstationRepository {
         assignedEmployeeId: Value(workstation.assignedEmployeeId),
         status: Value(workstation.status),
       ));
+      if (workstation.roi != null) {
+        await _db.saveWorkstationRoi(
+          workstation.id,
+          jsonEncode(workstation.roi!.toMap()),
+        );
+      }
 
-      // 2. Encolar para sincronizaciÃ³n
+      // 2. Encolar para sincronización (excluye 'roi' — solo existe en BD local)
+      final syncPayload = workstation.toMap()..remove('roi');
       await _syncRepo.enqueue(
         targetTable: 'workstations',
         operation: 'UPSERT',
         recordId: workstation.id,
-        payload: workstation.toMap(),
+        payload: syncPayload,
       );
     });
   }
@@ -44,12 +52,25 @@ class WorkstationRepositoryImpl implements WorkstationRepository {
   }
 
   @override
+  Stream<List<Workstation>> watchWorkstationsByCompany(String companyId) {
+    return _db.watchWorkstationRecordsByCompany(companyId).map(
+          (rows) => rows.map(_mapToEntity).toList(),
+        );
+  }
+
+  @override
+  Future<List<Workstation>> getWorkstationsByCompany(String companyId) async {
+    final rows = await _db.getWorkstationRecordsByCompany(companyId);
+    return rows.map(_mapToEntity).toList();
+  }
+
+  @override
   Future<void> deleteWorkstation(String id) async {
     await _db.transaction(() async {
       // 1. Eliminar localmente
       await (_db.delete(_db.workstationRecords)..where((t) => t.id.equals(id))).go();
 
-      // 2. Encolar eliminaciÃ³n
+      // 2. Encolar eliminación
       await _syncRepo.enqueue(
         targetTable: 'workstations',
         operation: 'DELETE',
@@ -60,6 +81,7 @@ class WorkstationRepositoryImpl implements WorkstationRepository {
   }
 
   Workstation _mapToEntity(WorkstationRecord row) {
+    // ROI is resolved by higher-level flows when needed from auxiliary cache.
     return Workstation(
       id: row.id,
       name: row.name,

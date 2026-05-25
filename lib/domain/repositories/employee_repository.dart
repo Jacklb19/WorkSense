@@ -1,12 +1,17 @@
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/features/camera_monitor/ai/body_signature.dart';
+import 'package:worksense_app/features/camera_monitor/ai/employee_profile.dart';
 
 abstract class EmployeeRepository {
   Future<void> saveEmployee(Employee employee);
 
   Future<List<Employee>> getEmployees();
 
+  Future<List<Employee>> getEmployeesByCompany(String companyId);
+
   Stream<List<Employee>> watchEmployees();
+
+  Stream<List<Employee>> watchEmployeesByCompany(String companyId);
 
   Future<Employee?> getEmployeeById(String id);
 
@@ -22,6 +27,7 @@ abstract class EmployeeRepository {
     required String workstationId,
     required List<List<double>>? faceEmbeddings,
     required BodySignature bodySignature,
+    EmployeeProfile? profile,
   });
 }
 

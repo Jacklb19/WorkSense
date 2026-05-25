@@ -17,7 +17,7 @@ class ActivityRepositoryImpl implements ActivityRepository {
       // 1. Guardar localmente
       await _db.insertActivityEntry(_mapToCompanion(event));
 
-      // 2. Encolar para sincronizaciÃ³n genÃ©rica
+      // 2. Encolar para sincronización genérica
       await _syncRepo.enqueue(
         targetTable: 'activity_events',
         operation: 'UPSERT',
@@ -34,8 +34,28 @@ class ActivityRepositoryImpl implements ActivityRepository {
   }
 
   @override
+  Future<List<ActivityEvent>> getRecentEventsByCompany(
+    String companyId, {
+    int limit = 50,
+  }) async {
+    final rows = await _db.getRecentActivityEntriesByCompany(
+      companyId,
+      limit: limit,
+    );
+    return rows.map(_mapToEntity).toList();
+  }
+
+  @override
   Stream<List<ActivityEvent>> watchEvents() =>
       _db.watchRecentActivityEntries()
+          .map((rows) => rows.map(_mapToEntity).toList());
+
+  @override
+  Stream<List<ActivityEvent>> watchEventsByCompany(
+    String companyId, {
+    int limit = 50,
+  }) =>
+      _db.watchRecentActivityEntriesByCompany(companyId, limit: limit)
           .map((rows) => rows.map(_mapToEntity).toList());
 
   @override
@@ -87,6 +107,22 @@ class ActivityRepositoryImpl implements ActivityRepository {
     int limit = 2000,
   }) async {
     final rows = await _db.getAllActivityEntriesByDateRange(
+      from: from,
+      to: to,
+      limit: limit,
+    );
+    return rows.map(_mapToEntity).toList();
+  }
+
+  @override
+  Future<List<ActivityEvent>> getEventsByCompanyDateRange({
+    required String companyId,
+    required DateTime from,
+    required DateTime to,
+    int limit = 2000,
+  }) async {
+    final rows = await _db.getActivityEntriesByCompanyDateRange(
+      companyId: companyId,
       from: from,
       to: to,
       limit: limit,

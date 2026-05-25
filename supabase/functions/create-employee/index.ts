@@ -6,99 +6,138 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+function requireEnv(name: string): string {
+  const value = Deno.env.get(name)?.trim()
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`)
+  }
+
+  return value
+}
+
+function normalizeRole(rawRole: unknown): string {
+  const normalized = rawRole?.toString().trim().toUpperCase()
+  switch (normalized) {
+    case 'SUPER_ADMIN':
+    case 'ADMIN':
+    case 'EMPLOYEE':
+    case 'CAMERA_MONITOR':
+      return normalized
+    default:
+      throw new Error('Invalid role value')
+  }
+}
+
+function getCanonicalRole(user: { app_metadata?: Record<string, unknown>; user_metadata?: Record<string, unknown> }): string {
+  return normalizeRole(
+    user.app_metadata?.role ?? user.user_metadata?.role ?? 'EMPLOYEE',
+  )
+}
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // 1. Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const supabaseUrl = requireEnv('SUPABASE_URL')
+    const supabaseAnonKey = requireEnv('SUPABASE_ANON_KEY')
+    const supabaseServiceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY')
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: req.headers.get('Authorization')! } },
-    })
-
-    // 2. Verify caller is an admin
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization header' }), { 
-        status: 401, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
-    
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    })
+
     const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
+      authHeader.replace('Bearer ', ''),
     )
 
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid user token' }), { 
-        status: 401, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      return new Response(JSON.stringify({ error: 'Invalid user token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    if (user.user_metadata?.role !== 'admin') {
-      return new Response(JSON.stringify({ error: 'Unauthorized. Admin role required.' }), { 
-        status: 403, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    const callerRole = getCanonicalRole(user)
+    if (callerRole !== 'ADMIN' && callerRole !== 'SUPER_ADMIN') {
+      return new Response(JSON.stringify({ error: 'Unauthorized. Admin role required.' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // 3. Initialize Admin Client to bypass RLS and create users
     const adminSupabase = createClient(supabaseUrl, supabaseServiceKey)
+    const {
+      email,
+      password,
+      name,
+      lastName,
+      role,
+      companyId,
+      shiftId,
+    } = await req.json()
 
-    // 4. Parse request body
-    const { email, password, name, lastName, role, companyId } = await req.json()
-
-    if (!email || !password || !name || !role || !companyId) {
-      return new Response(JSON.stringify({ error: 'Missing required parameters' }), { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    if (!email || !password || !name || !lastName || !role || !companyId) {
+      return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // 5. Create user in auth.users
+    const canonicalRole = normalizeRole(role)
+    const metadata = { role: canonicalRole, company_id: companyId }
+
     const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
-      email: email,
-      password: password,
+      email,
+      password,
       email_confirm: true,
-      user_metadata: { role: role }
+      user_metadata: metadata,
+      app_metadata: metadata,
     })
 
     if (authError || !authData.user) {
-      return new Response(JSON.stringify({ error: authError?.message || 'Error creating auth user' }), { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      return new Response(JSON.stringify({ error: authError?.message || 'Error creating auth user' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
     const newUserId = authData.user.id
 
-    // 6. Insert into public.employees table
-    const { error: dbError } = await adminSupabase.from('employees').insert({
+    const employeePayload = {
       id: newUserId,
-      name: name,
+      name,
       last_name: lastName,
-      role: role,
-      email: email,
+      role: canonicalRole,
+      email,
       company_id: companyId,
-    })
+      shift_id: shiftId ?? null,
+    }
+
+    const { error: dbError } = await adminSupabase.from('employees').insert(employeePayload)
 
     if (dbError) {
-      // Rollback auth user creation if DB insert fails
       await adminSupabase.auth.admin.deleteUser(newUserId)
-      return new Response(JSON.stringify({ error: `DB Error: ${dbError.message}` }), { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      return new Response(JSON.stringify({ error: `DB Error: ${dbError.message}` }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    return new Response(JSON.stringify({ id: newUserId, message: 'Employee created successfully' }), {
+    return new Response(JSON.stringify({
+      id: newUserId,
+      employee: employeePayload,
+      message: 'Employee created successfully',
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })

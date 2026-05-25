@@ -1,3 +1,48 @@
+class WorkstationRoi {
+  final double x;
+  final double y;
+  final double width;
+  final double height;
+
+  const WorkstationRoi({
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'x': x,
+      'y': y,
+      'width': width,
+      'height': height,
+    };
+  }
+
+  factory WorkstationRoi.fromMap(Map<String, dynamic> map) {
+    return WorkstationRoi(
+      x: (map['x'] as num).toDouble(),
+      y: (map['y'] as num).toDouble(),
+      width: (map['width'] as num).toDouble(),
+      height: (map['height'] as num).toDouble(),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WorkstationRoi &&
+          runtimeType == other.runtimeType &&
+          x == other.x &&
+          y == other.y &&
+          width == other.width &&
+          height == other.height;
+
+  @override
+  int get hashCode => Object.hash(x, y, width, height);
+}
+
 class Workstation {
   final String id;
   final String name;
@@ -8,6 +53,7 @@ class Workstation {
   final double? geofenceRadius;
   final String? assignedEmployeeId;
   final String status;
+  final WorkstationRoi? roi;
 
   const Workstation({
     required this.id,
@@ -19,6 +65,7 @@ class Workstation {
     this.geofenceRadius,
     this.assignedEmployeeId,
     this.status = 'IDLE',
+    this.roi,
   });
 
   Workstation copyWith({
@@ -31,6 +78,7 @@ class Workstation {
     double? geofenceRadius,
     String? assignedEmployeeId,
     String? status,
+    WorkstationRoi? roi,
   }) {
     return Workstation(
       id: id ?? this.id,
@@ -42,6 +90,7 @@ class Workstation {
       geofenceRadius: geofenceRadius ?? this.geofenceRadius,
       assignedEmployeeId: assignedEmployeeId ?? this.assignedEmployeeId,
       status: status ?? this.status,
+      roi: roi ?? this.roi,
     );
   }
 
@@ -56,6 +105,7 @@ class Workstation {
       'geofence_radius': geofenceRadius,
       'assigned_employee_id': assignedEmployeeId,
       'status': status,
+      'roi': roi?.toMap(),
     };
   }
 
@@ -72,9 +122,10 @@ class Workstation {
           longitude == other.longitude &&
           geofenceRadius == other.geofenceRadius &&
           assignedEmployeeId == other.assignedEmployeeId &&
-          status == other.status;
+          status == other.status &&
+          roi == other.roi;
 
   @override
   int get hashCode => Object.hash(
-      id, name, companyId, deviceId, latitude, longitude, geofenceRadius, assignedEmployeeId, status);
+      id, name, companyId, deviceId, latitude, longitude, geofenceRadius, assignedEmployeeId, status, roi);
 }

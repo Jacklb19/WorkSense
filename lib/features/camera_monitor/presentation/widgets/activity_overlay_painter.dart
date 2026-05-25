@@ -1,5 +1,3 @@
-import 'dart:ui' show Size;
-
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
@@ -31,7 +29,6 @@ class ActivityOverlayPainter extends CustomPainter {
   static const Color _cyanDot  = AppColors.overlayCyanDot;
   static const Color _cyanLine = AppColors.overlayCyanLine;
   static const Color _redDot   = AppColors.overlayRedDot;
-  static const Color _redLine  = AppColors.overlayRedLine;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -52,7 +49,7 @@ class ActivityOverlayPainter extends CustomPainter {
     if (poses.isEmpty) return;
 
     final linePaint = Paint()
-      ..color = _cyanLine.withOpacity(0.4)
+      ..color = _cyanLine.withValues(alpha: 0.4)
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
 
@@ -91,12 +88,8 @@ class ActivityOverlayPainter extends CustomPainter {
   void _drawFaceMesh(Canvas canvas, Size size) {
     if (faces.isEmpty) return;
 
-    final linePaint = Paint()
-      ..color = _redLine.withOpacity(0.3)
-      ..strokeWidth = 1.0;
-
     final dotPaint = Paint()
-      ..color = _redDot.withOpacity(0.6)
+      ..color = _redDot.withValues(alpha: 0.6)
       ..style = PaintingStyle.fill;
 
     for (final face in faces) {
@@ -134,7 +127,9 @@ class ActivityOverlayPainter extends CustomPainter {
       Path()..moveTo(right - L, bottom)..lineTo(right, bottom)..lineTo(right, bottom - L),
     ];
 
-    for (final p in paths) canvas.drawPath(p, paint);
+    for (final p in paths) {
+      canvas.drawPath(p, paint);
+    }
   }
 
   void _drawOutsideAreaOverlay(Canvas canvas, Size size) {
@@ -205,4 +200,4 @@ class ActivityOverlayPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(ActivityOverlayPainter old) => true;
-}
+}

@@ -95,8 +95,8 @@ abstract final class AiThresholds {
   /// Tiempo minimo de bloqueo (en minutos) tras multiples fallos biometricos.
   static const int faceMatchLockMin = 5;
 
-  /// Numero de fotos requeridas para registrar un empleado.
-  static const int requiredFacePhotos = 5;
+  /// Numero de posiciones requeridas para registrar un empleado.
+  static const int requiredFacePhotos = 8;
 
   /// Dimension del vector de embedding facial (MobileFaceNet).
   static const int embeddingDimension = 192;
@@ -119,16 +119,16 @@ abstract final class AiThresholds {
   static const double maxFaceBrightness = 0.88;
 
   /// Contraste minimo normalizado del crop facial.
-  static const double minFaceContrast = 0.08;
+  static const double minFaceContrast = 0.06;
 
   /// Nitidez minima normalizada del crop facial.
-  static const double minFaceSharpness = 0.08;
+  static const double minFaceSharpness = 0.05;
 
   /// Numero de tomas rapidas por pose durante el enrolamiento.
   static const int scanBurstFrames = 5;
 
   /// Separacion entre tomas del burst biometrico.
-  static const int scanBurstDelayMs = 120;
+  static const int scanBurstDelayMs = 80;
 
   /// Probabilidad minima para considerar que ambos ojos estan abiertos.
   static const double minEyeOpenProbability = 0.55;
@@ -142,11 +142,18 @@ abstract final class AiThresholds {
   /// Calidad global minima para aceptar un crop borderline si la cara es fuerte.
   static const double minSoftFaceQualityScore = 0.55;
 
+  /// Calidad minima del crop facial para aceptar una muestra durante enrolamiento.
+  /// Valor mas permisivo que el gate de kiosk para reducir friccion.
+  static const double enrollMinCropQuality = 0.50;
+
+  /// Confianza facial minima para aplicar soft-accept durante enrolamiento.
+  static const double enrollSoftAcceptFaceConf = 0.50;
+
   /// Frames estables requeridos antes de marcar el scanner como listo.
   static const int liveDetectionStableFrames = 2;
 
   /// Cobertura minima del rostro en el frame para validar presencia.
-  static const double minLiveFaceAreaRatio = 0.14;
+  static const double minLiveFaceAreaRatio = 0.10;
 
   /// Margen minimo para mantener el rostro dentro de la zona central util.
   static const double liveFaceGuideMargin = 0.16;
@@ -156,6 +163,50 @@ abstract final class AiThresholds {
 
   /// Desviacion usada para normalizar los canales de color.
   static const double faceColorStd = 128.0;
+
+  // SCANNER DE ENTRADA (Entrance Kiosk)
+
+  /// Similitud coseno minima para contar un frame como confirmacion.
+  /// MobileFaceNet (L2 norm): misma persona ~0.82-0.96, diferente ~0.50-0.76.
+  /// 0.82 evita la zona de falsos positivos (0.78-0.81).
+  static const double entranceMatchThreshold = 0.82;
+
+  /// Piso absoluto del mejor score individual observado en la ventana.
+  /// Aunque haya suficientes confirmaciones, si ningún frame supero este
+  /// valor, se rechaza. Evita que scores "justos" acumulen confirmaciones.
+  static const double entranceMinBestScore = 0.84;
+
+  /// Margen por debajo del threshold donde el scanner sigue intentando
+  /// en vez de rechazar inmediatamente (zona de "casi match").
+  static const double entranceNearMatchMargin = 0.04;
+
+  /// Observaciones positivas (frames con score >= entranceMatchThreshold para
+  /// el mismo empleado) requeridas dentro de la ventana para confirmar.
+  /// 3/10 = 30% hit-rate minimo — mucho mas dificil para impostores.
+  static const int entranceRequiredConfirmations = 3;
+
+  /// Tamano maximo de la ventana de evidencia (frames evaluados tras blink).
+  /// 10 frames × 300ms = ~3 segundos de evaluacion.
+  static const int entranceEvidenceWindowSize = 10;
+
+  /// Ratio minimo de ancho del rostro vs ancho del frame para considerar
+  /// que el usuario esta suficientemente cerca.
+  static const double entranceMinFaceWidthRatio = 0.22;
+
+  /// Angulo maximo de yaw/pitch permitido para evaluar un frame en entrada.
+  static const double entranceMaxHeadAngle = 15.0;
+
+  /// Intervalo minimo entre analisis de frames en el scanner de entrada (ms).
+  /// 300ms da tiempo al modelo para procesar bien cada frame sin saturar CPU.
+  static const int entranceFrameIntervalMs = 300;
+
+  /// Probabilidad maxima de apertura ocular para considerar un parpadeo valido
+  /// en el kiosk de entrada. Ambos ojos deben estar por debajo de este valor.
+  static const double entranceBlinkClosedThreshold = 0.45;
+
+  /// Cantidad maxima de extensiones de ventana por near-match antes de declarar
+  /// no-match definitivo. Evita loops infinitos de retry.
+  static const int entranceMaxNearMatchRetries = 1;
 
   // OVERLAY DE IA (Kiosk Mode)
 
@@ -168,6 +219,30 @@ abstract final class AiThresholds {
 
   /// Grosor de las lineas del stick figure de pose.
   static const double overlaySkeletonStroke = 2.0;
+
+  // MONITOR DE PUESTO (Workstation Kiosk)
+
+  /// Intervalo de re-identificacion por embeddings durante sesion activa estable
+  /// (una sola cara, tracking lockeado). Reduce costo computacional.
+  static const int monitorStableReidSeconds = 15;
+
+  /// Intervalo de re-identificacion cuando hay ambiguedad (multiples caras,
+  /// tracking perdido, o identidad recien forzada a revalidar).
+  static const int monitorAmbiguousReidSeconds = 4;
+
+  /// Frames consecutivos sin encontrar al empleado antes de soltar el tracking lock.
+  static const int monitorMaxConsecutiveMisses = 12;
+
+  /// Frames consecutivos con rostro ausente o no reconocido antes de forzar
+  /// revalidacion de identidad. Grace period para tolerar micro-ausencias.
+  static const int monitorGracePeriodFrames = 4;
+
+  /// Umbral minimo de similitud coseno en modo tracking. Mas bajo que el de
+  /// identificacion fresca porque el tracking ID ya provee continuidad.
+  static const double monitorTrackingEmbeddingFloor = 0.78;
+
+  /// Retención local para eventos crudos aún no consolidados/sincronizados.
+  static const int rawEventsRetentionDays = 5;
 
   AiThresholds._();
 }

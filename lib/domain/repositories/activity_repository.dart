@@ -5,7 +5,17 @@ abstract class ActivityRepository {
 
   Future<List<ActivityEvent>> getRecentEvents({int limit = 50});
 
+  Future<List<ActivityEvent>> getRecentEventsByCompany(
+    String companyId, {
+    int limit = 50,
+  });
+
   Stream<List<ActivityEvent>> watchEvents();
+
+  Stream<List<ActivityEvent>> watchEventsByCompany(
+    String companyId, {
+    int limit = 50,
+  });
 
   Future<List<ActivityEvent>> getPendingSync();
 
@@ -26,6 +36,13 @@ abstract class ActivityRepository {
   });
 
   Future<List<ActivityEvent>> getEventsByDateRange({
+    required DateTime from,
+    required DateTime to,
+    int limit,
+  });
+
+  Future<List<ActivityEvent>> getEventsByCompanyDateRange({
+    required String companyId,
     required DateTime from,
     required DateTime to,
     int limit,

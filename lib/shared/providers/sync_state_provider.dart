@@ -1,12 +1,17 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:worksense_app/data/datasources/remote/supabase_datasource.dart';
 import 'package:worksense_app/data/repositories/sync_repository_impl.dart';
+import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart'
+    show supabaseDataSourceProvider;
+import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
 import 'package:worksense_app/shared/domain/usecases/process_sync_queue_use_case.dart';
 import 'package:worksense_app/shared/providers/connectivity_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
-import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
 
-// ── Providers ────────────────────────────────────────────────────────────────
+export 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart'
+    show supabaseDataSourceProvider;
+
+// â”€â”€ Providers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 final syncRepositoryProvider = Provider<SyncRepositoryImpl>((ref) {
   final db = ref.watch(appDatabaseProvider);
@@ -20,29 +25,29 @@ final processSyncQueueProvider = Provider<ProcessSyncQueueUseCase>((ref) {
   return ProcessSyncQueueUseCase(syncRepo, remote, db);
 });
 
-final supabaseDataSourceProvider = Provider<SupabaseDataSource>((ref) {
-  return SupabaseDataSource();
-});
-
-// ── Sync State Notifier ──────────────────────────────────────────────────────
+// â”€â”€ Sync State Notifier â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 final syncNotifierProvider =
     StateNotifierProvider<SyncNotifier, AsyncValue<SyncResult?>>((ref) {
   final useCase = ref.watch(processSyncQueueProvider);
   final notifier = SyncNotifier(useCase);
 
-  // Auto-sync al recuperar conexión
+  // Auto-sync al recuperar conexión (solo si está logueado)
   ref.listen<bool>(isOnlineProvider, (previous, isOnline) {
-    if (isOnline && (previous == null || !previous)) {
+    final currentUser = ref.read(currentUserProvider);
+    final isLoggedIn = currentUser.valueOrNull?.user != null;
+    if (isOnline && (previous == null || !previous) && isLoggedIn) {
       notifier.sync();
     }
   });
 
   // Auto-sync al detectar nuevos elementos en la cola (cada 5s según el provider)
   ref.listen<AsyncValue<int>>(pendingSyncCountProvider, (previous, next) {
+    final currentUser = ref.read(currentUserProvider);
+    final isLoggedIn = currentUser.valueOrNull?.user != null;
     final count = next.valueOrNull ?? 0;
     final isOnline = ref.read(isOnlineProvider);
-    if (count > 0 && isOnline) {
+    if (count > 0 && isOnline && isLoggedIn) {
       notifier.sync();
     }
   });
@@ -55,6 +60,19 @@ final syncNotifierProvider =
       notifier.sync();
     }
   });
+
+  // Pull periódico cada 60 s — garantiza que tareas y permisos asignados por
+  // admin aparezcan en el dispositivo del empleado aunque no tenga nada pendiente.
+  // SyncNotifier.sync() ya protege contra ejecuciones concurrentes internamente.
+  final periodicTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+    final isOnline = ref.read(isOnlineProvider);
+    final isLoggedIn =
+        ref.read(currentUserProvider).valueOrNull?.user != null;
+    if (isOnline && isLoggedIn) {
+      notifier.sync();
+    }
+  });
+  ref.onDispose(() => periodicTimer.cancel());
 
   return notifier;
 });
@@ -74,9 +92,8 @@ class SyncNotifier extends StateNotifier<AsyncValue<SyncResult?>> {
 
 final pendingSyncCountProvider = StreamProvider<int>((ref) {
   final syncRepo = ref.watch(syncRepositoryProvider);
-  return Stream<void>.periodic(const Duration(seconds: 5))
-      .asyncMap((_) async {
-        final pending = await syncRepo.getPending();
-        return pending.length;
-      });
+  return Stream<void>.periodic(const Duration(seconds: 5)).asyncMap((_) async {
+    final pending = await syncRepo.getPending();
+    return pending.length;
+  });
 });

@@ -3,25 +3,75 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/constants/app_dimensions.dart';
-import '../../../../core/constants/app_routes.dart';
-import '../../../../core/constants/app_strings.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../shared/providers/sync_state_provider.dart';
-import '../../../../shared/widgets/loading_widget.dart';
-import '../../../../shared/widgets/styled/app_empty_state.dart';
-import '../providers/employees_provider.dart';
-
-class EmployeesListScreen extends ConsumerWidget {
+class EmployeesListScreen extends ConsumerStatefulWidget {
   const EmployeesListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EmployeesListScreen> createState() =>
+      _EmployeesListScreenState();
+}
+
+class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final employeesAsync = ref.watch(adminEmployeesProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStrings.employees),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: TextField(
+              controller: _searchCtrl,
+              onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+              style: const TextStyle(fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Buscar por nombre o email…',
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: _query.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          setState(() => _query = '');
+                        },
+                      )
+                    : null,
+                isDense: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: AppColors.glassBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: AppColors.glassBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide:
+                      const BorderSide(color: AppColors.primary),
+                ),
+                filled: true,
+                fillColor: AppColors.cardDark,
+              ),
+            ),
+          ),
+        ),
       ),
       body: employeesAsync.when(
         loading: () => const AppLoadingWidget(),
@@ -32,6 +82,15 @@ class EmployeesListScreen extends ConsumerWidget {
           ),
         ),
         data: (employees) {
+          // Apply search filter
+          final filtered = _query.isEmpty
+              ? employees
+              : employees
+                  .where((e) =>
+                      e.displayName.toLowerCase().contains(_query) ||
+                      e.email.toLowerCase().contains(_query))
+                  .toList();
+
           if (employees.isEmpty) {
             return const AppEmptyState(
               icon: Icons.people_outline,
@@ -40,20 +99,36 @@ class EmployeesListScreen extends ConsumerWidget {
             );
           }
 
+          if (filtered.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.search_off,
+                      size: 48, color: AppColors.grey300),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Sin resultados para "$_query"',
+                    style: const TextStyle(
+                        color: AppColors.grey500, fontSize: 14),
+                  ),
+                ],
+              ),
+            );
+          }
+
           return ListView.separated(
-            itemCount: employees.length,
-            separatorBuilder: (_, __) => const Divider(
-              height: 1,
-              indent: AppDimensions.dividerIndent,
-            ),
+            itemCount: filtered.length,
+            separatorBuilder: (_, __) =>
+                const Divider(height: 1, indent: 72),
             itemBuilder: (context, index) {
-              final employee = employees[index];
+              final employee = filtered[index];
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: AppColors.primary.withAlpha(30),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                   child: Text(
-                    employee.name.isNotEmpty
-                        ? employee.name[0].toUpperCase()
+                    employee.displayName.isNotEmpty
+                        ? employee.displayName[0].toUpperCase()
                         : '?',
                     style: const TextStyle(
                       color: AppColors.primary,
@@ -61,9 +136,11 @@ class EmployeesListScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                title: Text(employee.name),
+                title: Text(employee.displayName),
                 subtitle: Text(
-                  'Registrado el ${DateFormat('dd/MM/yyyy').format(employee.createdAt)}',
+                  employee.email.isNotEmpty
+                      ? employee.email
+                      : 'Registrado el ${DateFormat('dd/MM/yyyy').format(employee.createdAt)}',
                   style: const TextStyle(
                     fontSize: AppDimensions.fontCaption,
                     color: AppColors.textSecondary,
@@ -78,7 +155,8 @@ class EmployeesListScreen extends ConsumerWidget {
                         _navigateToEdit(context, ref, employee.id);
                       case 'delete':
                         await _confirmAndDelete(
-                            context, ref, employee.id, employee.name);
+                            context, ref, employee.id, employee.displayName);
+                        break;
                     }
                   },
                   itemBuilder: (_) => [
@@ -125,8 +203,7 @@ class EmployeesListScreen extends ConsumerWidget {
     );
   }
 
-  void _navigateToEdit(
-      BuildContext context, WidgetRef ref, String employeeId) {
+  void _navigateToEdit(BuildContext context, WidgetRef ref, String employeeId) {
     final route =
         AppRoutes.employeeEdit.replaceFirst(':employeeId', employeeId);
     context.push(route).then((_) {
@@ -166,6 +243,7 @@ class EmployeesListScreen extends ConsumerWidget {
           .read(employeeFormNotifierProvider.notifier)
           .deleteEmployee(id);
 
+      // Force sync so Supabase reflects the delete before reload
       await ref.read(syncNotifierProvider.notifier).sync();
 
       ref.invalidate(adminEmployeesProvider);

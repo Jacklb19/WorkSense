@@ -1,12 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:worksense_app/core/constants/app_constants.dart';
+import 'package:worksense_app/domain/entities/app_role.dart';
 
-enum AppRole {
-  superAdmin,
-  admin,
-  cameraMonitor,
-  employee,
-}
+export 'package:worksense_app/domain/entities/app_role.dart';
 
 class CurrentUser {
   final User? user;
@@ -20,40 +17,57 @@ class CurrentUser {
   });
 }
 
-final currentUserProvider = StreamProvider<CurrentUser>((ref) {
-  return Supabase.instance.client.auth.onAuthStateChange.map((authState) {
+String? _getMetadataKey(Map<String, dynamic>? metadata, String key) {
+  if (metadata == null) return null;
+  final lowerKey = key.toLowerCase();
+  for (final k in metadata.keys) {
+    final lk = k.toLowerCase();
+    if (lk == lowerKey) {
+      return metadata[k]?.toString();
+    }
+  }
+  return null;
+}
+
+final currentUserProvider = StreamProvider<CurrentUser>((ref) async* {
+  final client = Supabase.instance.client;
+
+  await for (final authState in client.auth.onAuthStateChange) {
     final user = authState.session?.user;
     if (user == null) {
-      return const CurrentUser(user: null, role: AppRole.employee, companyId: null);
+      yield const CurrentUser(user: null, role: AppRole.employee, companyId: null);
+      continue;
     }
 
-    final userMeta = user.userMetadata ?? {};
-    final appMeta = user.appMetadata ?? {};
-    
-    // El rol puede venir del backend (app_meta_data) o del signup (user_meta_data)
-    final rawRole = (appMeta['role']?.toString() ?? userMeta['role']?.toString())?.toUpperCase();
-    var companyId = (appMeta['company_id']?.toString() ?? userMeta['company_id']?.toString());
-    if (companyId == 'default' || companyId == '') {
-      companyId = null;
+    final userMeta = user.userMetadata;
+    final appMeta = user.appMetadata;
+
+    final roleStr =
+        _getMetadataKey(appMeta, 'role') ?? _getMetadataKey(userMeta, 'role');
+    final role = AppRoleX.fromRaw(roleStr);
+
+    // 1) Fuente confiable: tabla public.employees en Supabase
+    String? companyId;
+    try {
+      final row = await client
+          .from('employees')
+          .select('company_id')
+          .eq('id', user.id)
+          .maybeSingle();
+      companyId = row?['company_id']?.toString();
+    } catch (_) {
+      // Red sin conexión — se intentará JWT y luego local
     }
 
-    AppRole role;
-    switch (rawRole) {
-      case 'SUPER_ADMIN':
-        role = AppRole.superAdmin;
-        break;
-      case 'ADMIN':
-        role = AppRole.admin;
-        break;
-      case 'CAMERA_MONITOR':
-        role = AppRole.cameraMonitor;
-        break;
-      case 'EMPLOYEE':
-      default:
-        role = AppRole.employee;
-        break;
+    // 2) JWT metadata como apoyo (si employees no respondió)
+    if (companyId == null || companyId == AppConstants.defaultCompanyId || companyId.isEmpty) {
+      final jwtCompanyId = _getMetadataKey(appMeta, 'company_id') ??
+          _getMetadataKey(userMeta, 'company_id');
+      if (jwtCompanyId != null && jwtCompanyId != AppConstants.defaultCompanyId && jwtCompanyId.isNotEmpty) {
+        companyId = jwtCompanyId;
+      }
     }
 
-    return CurrentUser(user: user, role: role, companyId: companyId);
-  });
+    yield CurrentUser(user: user, role: role, companyId: companyId);
+  }
 });

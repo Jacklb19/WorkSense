@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:camera/camera.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/entrance_kiosk_provider.dart';
 
@@ -21,6 +22,12 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
   late Animation<double> _welcomeScaleAnimation;
   late Animation<double> _welcomeFadeAnimation;
 
+  /// Controla si el overlay blanco de flash está activo.
+  bool _isFlashing = false;
+
+  /// Brillo guardado antes de activar el flash — restaurado al apagarlo.
+  double? _originalBrightness;
+
   @override
   void initState() {
     super.initState();
@@ -29,7 +36,6 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
   }
 
   void _initAnimations() {
-    // Pulsing scanner border animation
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
@@ -38,7 +44,6 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    // Welcome overlay animation
     _welcomeController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
@@ -61,8 +66,37 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
     }
   }
 
+  // ── Flash de pantalla ────────────────────────────────────────────────────────
+
+  /// Maximiza brillo y muestra el overlay blanco para iluminar el rostro
+  /// del usuario durante la verificación biométrica.
+  Future<void> _activateFlash() async {
+    if (_isFlashing || !mounted) return;
+    setState(() => _isFlashing = true);
+    try {
+      _originalBrightness = await ScreenBrightness().current;
+      await ScreenBrightness().setScreenBrightness(1.0);
+    } catch (_) {
+      // screen_brightness no disponible — el overlay blanco igual ayuda.
+    }
+  }
+
+  /// Restaura el brillo original y oculta el overlay blanco.
+  Future<void> _restoreFlash() async {
+    if (!_isFlashing) return;
+    if (mounted) setState(() => _isFlashing = false);
+    try {
+      final saved = _originalBrightness;
+      if (saved != null) {
+        _originalBrightness = null;
+        await ScreenBrightness().setScreenBrightness(saved);
+      }
+    } catch (_) {}
+  }
+
   @override
   void dispose() {
+    _restoreFlash(); // Siempre restaurar brillo al salir de la pantalla.
     _pulseController.dispose();
     _welcomeController.dispose();
     super.dispose();
@@ -73,12 +107,26 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
     final state = ref.watch(entranceKioskProvider);
     final controller = ref.read(entranceKioskProvider.notifier).cameraController;
 
-    // Trigger welcome animation when phase changes
+    // ── Escuchar cambios de fase ─────────────────────────────────────────────
     ref.listen<EntranceKioskState>(entranceKioskProvider, (prev, next) {
-      if (next.phase == KioskPhase.welcome && prev?.phase != KioskPhase.welcome) {
+      // Flash ON → fase verifying (blink superado, analizando identidad)
+      if (next.phase == KioskPhase.verifying &&
+          prev?.phase != KioskPhase.verifying) {
+        _activateFlash();
+      }
+      // Flash OFF → salida de verifying (éxito o rechazo)
+      if (next.phase != KioskPhase.verifying &&
+          prev?.phase == KioskPhase.verifying) {
+        _restoreFlash();
+      }
+
+      // Animación de bienvenida
+      if (next.phase == KioskPhase.welcome &&
+          prev?.phase != KioskPhase.welcome) {
         _welcomeController.forward(from: 0.0);
       }
-      if (next.phase == KioskPhase.scanning && prev?.phase != KioskPhase.scanning) {
+      if (next.phase == KioskPhase.scanning &&
+          prev?.phase != KioskPhase.scanning) {
         _welcomeController.reset();
       }
     });
@@ -90,38 +138,48 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Camera Preview
+          // 1 ── Camera Preview
           if (controller != null && controller.value.isInitialized)
             Transform.scale(
               scale: 1.1,
-              child: Center(
-                child: CameraPreview(controller),
-              ),
+              child: Center(child: CameraPreview(controller)),
             ),
-            
-          // Dark Overlay – heavier during welcome
+
+          // 2 ── Dark overlay (más opaco durante bienvenida)
           AnimatedContainer(
             duration: const Duration(milliseconds: 400),
             color: isWelcome
-                ? Colors.black.withOpacity(0.75)
-                : Colors.black.withOpacity(0.4),
+                ? Colors.black.withValues(alpha: 0.75)
+                : Colors.black.withValues(alpha: 0.4),
           ),
 
-          // Scanner HUD (visible when scanning or cooldown)
-          if (!isWelcome) _buildScannerHUD(state),
+          // 3 ── Flash overlay blanco (activo solo en fase verifying)
+          //      Posicionado ENCIMA del overlay oscuro pero DEBAJO del HUD
+          //      para que el HUD siga siendo visible durante el flash.
+          //      IgnorePointer: el overlay no absorbe toques.
+          IgnorePointer(
+            child: AnimatedOpacity(
+              opacity: _isFlashing ? 0.72 : 0.0,
+              duration: const Duration(milliseconds: 150),
+              child: const ColoredBox(color: Colors.white),
+            ),
+          ),
 
-          // Welcome Overlay (visible when recognized)
+          // 4 ── HUD principal (scanner o bienvenida) — siempre encima
+          if (!isWelcome) _buildScannerHUD(state),
           if (isWelcome) _buildWelcomeOverlay(state),
         ],
       ),
     );
   }
 
+  // ── Scanner HUD ──────────────────────────────────────────────────────────────
+
   Widget _buildScannerHUD(EntranceKioskState state) {
-    final isDetecting = state.statusMessage.startsWith('Detectando');
+    final isVerifying = state.phase == KioskPhase.verifying;
     final borderColor = state.phase == KioskPhase.cooldown
         ? AppColors.warning
-        : isDetecting
+        : isVerifying
             ? AppColors.feedbackCapturing
             : AppColors.primary;
 
@@ -130,8 +188,8 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
         children: [
           _TopBar(),
           const Spacer(),
-          
-          // Scanner target with pulse animation
+
+          // Marco de escaneo con animación de pulso
           AnimatedBuilder(
             animation: _pulseAnimation,
             builder: (context, child) {
@@ -140,13 +198,15 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                 height: 350,
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: borderColor.withOpacity(_pulseAnimation.value),
+                    color: borderColor.withValues(alpha: _pulseAnimation.value),
                     width: 4,
                   ),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: borderColor.withOpacity(0.2 * _pulseAnimation.value),
+                      color: borderColor.withValues(
+                        alpha: 0.2 * _pulseAnimation.value,
+                      ),
                       blurRadius: 20,
                       spreadRadius: 5,
                     ),
@@ -159,17 +219,62 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                           strokeWidth: 3,
                         ),
                       )
-                    : null,
+                    : isVerifying
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.feedbackCapturing,
+                              strokeWidth: 3,
+                            ),
+                          )
+                        : null,
               );
             },
           ),
-          
+
           const Spacer(),
-          
-          // Status Message
+
+          // Indicador de flash activo (pequeño chip sobre el status card)
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _isFlashing
+                ? Padding(
+                    key: const ValueKey('flash-chip'),
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: Colors.white30, width: 1),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.flash_on_rounded,
+                              color: Colors.white70, size: 14),
+                          SizedBox(width: 6),
+                          Text(
+                            'Iluminación activa',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(key: ValueKey('no-flash')),
+          ),
+
+          // Tarjeta de estado
           Container(
             margin: const EdgeInsets.only(bottom: 40, left: 20, right: 20),
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
             decoration: BoxDecoration(
               color: AppColors.cardDark,
               borderRadius: BorderRadius.circular(16),
@@ -179,18 +284,19 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3), 
+                  color: Colors.black.withValues(alpha: 0.3),
                   blurRadius: 15,
                   offset: const Offset(0, 5),
-                )
-              ]
+                ),
+              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (isDetecting)
+                if (isVerifying)
                   const SizedBox(
-                    width: 24, height: 24,
+                    width: 24,
+                    height: 24,
                     child: CircularProgressIndicator(
                       strokeWidth: 3,
                       color: AppColors.feedbackCapturing,
@@ -204,15 +310,14 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                     color: Colors.white70,
                     size: 28,
                   ),
-                   
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(
                     state.statusMessage,
                     style: const TextStyle(
-                      color: Colors.white, 
-                      fontSize: 18, 
-                      fontWeight: FontWeight.bold
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -224,6 +329,8 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
       ),
     );
   }
+
+  // ── Welcome Overlay ──────────────────────────────────────────────────────────
 
   Widget _buildWelcomeOverlay(EntranceKioskState state) {
     return FadeTransition(
@@ -237,7 +344,6 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Success check icon
                   Container(
                     width: 120,
                     height: 120,
@@ -246,14 +352,11 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                       gradient: const LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFF43A047),
-                          Color(0xFF2E7D32),
-                        ],
+                        colors: [Color(0xFF43A047), Color(0xFF2E7D32)],
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.success.withOpacity(0.4),
+                          color: AppColors.success.withValues(alpha: 0.4),
                           blurRadius: 30,
                           spreadRadius: 5,
                         ),
@@ -265,10 +368,9 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                       size: 64,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
-                  // Welcome text
+
                   const Text(
                     '¡ÉXITO!',
                     style: TextStyle(
@@ -278,31 +380,29 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                       letterSpacing: 6,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 12),
-                  
-                  // Message From Kiosk Status
+
                   Text(
                     state.statusMessage,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: 0,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
-                  // Workstation info card
+
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 16),
                     decoration: BoxDecoration(
-                      color: AppColors.cardDark.withOpacity(0.8),
+                      color: AppColors.cardDark.withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: AppColors.success.withOpacity(0.3),
+                        color: AppColors.success.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -312,7 +412,8 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppColors.success.withOpacity(0.15),
+                            color:
+                                AppColors.success.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(
@@ -348,14 +449,14 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 20),
-                  
-                  // Status text
+
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 10),
                     decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.15),
+                      color: AppColors.success.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(30),
                     ),
                     child: const Row(
@@ -403,10 +504,21 @@ class _TopBar extends StatelessWidget {
           const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('WORKSENSE', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 2)),
-              Text('Kiosco de Acceso Frontal', style: TextStyle(color: Colors.white70, fontSize: 14)),
+              Text(
+                'WORKSENSE',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                ),
+              ),
+              Text(
+                'Kiosco de Acceso Frontal',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
             ],
-          )
+          ),
         ],
       ),
     );

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/constants/app_dimensions.dart';
-import '../../../../domain/entities/activity_state.dart';
-import '../../../../shared/widgets/loading_widget.dart';
-import '../../../../shared/widgets/styled/app_empty_state.dart';
-import '../../presentation/providers/dashboard_provider.dart';
-import '../../presentation/widgets/activity_event_tile.dart';
+import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/domain/entities/activity_state.dart';
+import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
+import 'package:worksense_app/features/dashboard/presentation/providers/dashboard_provider.dart';
+import 'package:worksense_app/features/dashboard/presentation/widgets/activity_event_tile.dart';
+import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/widgets/error_widget.dart';
+import 'package:worksense_app/shared/widgets/loading_widget.dart';
 
 class ActivityHistoryScreen extends ConsumerStatefulWidget {
   const ActivityHistoryScreen({super.key});
@@ -23,7 +23,10 @@ class _ActivityHistoryScreenState
 
   @override
   Widget build(BuildContext context) {
-    final eventsAsync = ref.watch(recentEventsStreamProvider);
+    final role = ref.watch(currentUserProvider).valueOrNull?.role;
+    final eventsAsync = role == AppRole.employee
+        ? ref.watch(employeeRecentEventsProvider)
+        : ref.watch(recentEventsStreamProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -42,12 +45,15 @@ class _ActivityHistoryScreenState
         ],
       ),
       body: eventsAsync.when(
-        loading: () => const AppLoadingWidget(),
-        error: (error, _) => Center(
-          child: Text(
-            'Error: $error',
-            style: const TextStyle(color: AppColors.error),
-          ),
+        loading: () => const AppLoadingWidget(message: 'Cargando historial...'),
+        error: (error, _) => AppErrorWidget(
+          message:
+              'No se pudo cargar el historial de actividad.\nVerifica tu conexión e intenta de nuevo.',
+          icon: Icons.history_toggle_off,
+          onRetry: () {
+            ref.invalidate(employeeRecentEventsProvider);
+            ref.invalidate(recentEventsStreamProvider);
+          },
         ),
         data: (events) {
           final filtered = _filterState != null

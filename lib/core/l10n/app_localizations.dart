@@ -1,0 +1,316 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
+// ── Extension de acceso rápido ────────────────────────────────────────────────
+
+extension AppLocalizationsX on BuildContext {
+  AppLocalizations get l10n => AppLocalizations.of(this);
+}
+
+// ── Delegates para MaterialApp ────────────────────────────────────────────────
+
+const localizationsDelegates = [
+  AppLocalizationsDelegate(),
+  GlobalMaterialLocalizations.delegate,
+  GlobalWidgetsLocalizations.delegate,
+  GlobalCupertinoLocalizations.delegate,
+];
+
+// ── Clase principal ───────────────────────────────────────────────────────────
+
+class AppLocalizations {
+  final String _lang;
+  const AppLocalizations(this._lang);
+
+  static AppLocalizations of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations) ??
+        const AppLocalizations('es');
+  }
+
+  bool get _en => _lang == 'en';
+
+  String _t(String es, String en) => _en ? en : es;
+
+  // ── NAVIGATION ─────────────────────────────────────────────────────────────
+  String get navDashboard     => 'Dashboard';
+  String get navEmployees     => _t('Empleados',   'Employees');
+  String get navWorkstations  => _t('Puestos',     'Workstations');
+  String get navSettings      => _t('Ajustes',     'Settings');
+  String get navHome          => _t('Inicio',      'Home');
+  String get navActivity      => _t('Actividad',   'Activity');
+  String get navTasks         => _t('Tareas',      'Tasks');
+  String get navLeaves        => _t('Permisos',    'Leaves');
+  String get navShifts        => _t('Horarios',    'Shifts');
+
+  // ── GENERAL ────────────────────────────────────────────────────────────────
+  String get error            => 'Error';
+  String get cancel           => _t('Cancelar',   'Cancel');
+  String get save             => _t('Guardar',    'Save');
+  String get delete           => _t('Eliminar',   'Delete');
+  String get retry            => _t('Reintentar', 'Retry');
+  String get loading          => _t('Cargando…',  'Loading…');
+  String get somethingWentWrong => _t('Algo salió mal',   'Something went wrong');
+  String get errorLoadingData   => _t('Error al cargar datos', 'Error loading data');
+  String get saveChanges        => _t('Guardar cambios',   'Save changes');
+  String get confirm            => _t('Confirmar',         'Confirm');
+
+  // ── AUTH ───────────────────────────────────────────────────────────────────
+  String get emailLabel       => _t('Correo electrónico',     'Email');
+  String get emailHint        => 'admin@empresa.com';
+  String get passwordLabel    => _t('Contraseña',             'Password');
+  String get loginButton      => _t('Iniciar sesión',         'Sign in');
+  String get copyright        => 'WorkSense © 2026';
+  String get subtitle         => _t('Monitoreo inteligente de actividad',
+                                    'Smart activity monitoring');
+  String get emailRequired    => _t('Ingresa tu correo electrónico.',
+                                    'Enter your email address.');
+  String get emailInvalid     => _t('Correo electrónico inválido.',
+                                    'Invalid email address.');
+  String get passwordRequired => _t('Ingresa tu contraseña.',
+                                    'Enter your password.');
+  String get passwordTooShort => _t('La contraseña debe tener al menos 6 caracteres.',
+                                    'Password must be at least 6 characters.');
+
+  // ── ADMIN DASHBOARD ────────────────────────────────────────────────────────
+  String get controlPanel     => _t('Comando Central',        'Command Center');
+  String get startKiosk       => _t('Iniciar Kiosco',         'Start Kiosk');
+  String get noWorkstations   => _t('Sin puestos registrados','No workstations registered');
+  String get errorLoadingWorkstation =>
+      _t('Error al cargar la información del puesto.',
+         'Error loading workstation information.');
+
+  // ── EMPLOYEE DASHBOARD ─────────────────────────────────────────────────────
+  String get mySpace          => _t('Mi Espacio',             'My Space');
+  String get employee         => _t('Empleado',               'Employee');
+  String get todaySummary     => _t('Resumen de tu actividad de hoy',
+                                    'Today\'s activity summary');
+  String get assignedWorkstation  => _t('PUESTO ASIGNADO',    'ASSIGNED WORKSTATION');
+  String get myProductivityToday  => _t('MI PRODUCTIVIDAD HOY','MY PRODUCTIVITY TODAY');
+  String get recentActivityLive   => _t('ACTIVIDAD RECIENTE (EN VIVO)',
+                                        'RECENT ACTIVITY (LIVE)');
+  String get noAssignedWorkstation      => _t('Sin puesto asignado', 'No assigned workstation');
+  String get noAssignedWorkstationDesc  =>
+      _t('Espera a que un administrador te asigne a un puesto de trabajo.',
+         'Wait for an administrator to assign you to a workstation.');
+  String get monitoringAssigned => _t('Monitoreo asignado',   'Monitoring assigned');
+  String get verifyingWorkstation => _t('Verificando puesto…','Verifying workstation…');
+  String get noActivityToday  =>
+      _t('Aún no hay actividad registrada para ti hoy.',
+         'No activity recorded for you today.');
+  String get noRecentEvents   => _t('No hay eventos recientes.','No recent events.');
+  String get calculatingTime  => _t('Calculando tiempo…',     'Calculating time…');
+  String get working          => _t('Trabajando',             'Working');
+  String get distracted       => _t('Distraído',              'Distracted');
+  String get fatigue          => _t('Fatiga',                 'Fatigue');
+  String get myGlobalHistory  => _t('Mi historial global',    'My global history');
+  String get quickAccess      => _t('ACCESOS RÁPIDOS',        'QUICK ACCESS');
+  String get myTasksLabel     => _t('MIS TAREAS',             'MY TASKS');
+
+  // ── SETTINGS ───────────────────────────────────────────────────────────────
+  String get settings         => _t('Configuración',          'Settings');
+  String get accountSection   => _t('Cuenta',                 'Account');
+  String get user             => _t('Usuario',                'User');
+  String get notAvailable     => _t('No disponible',          'Not available');
+  String get activityAnalysis => _t('Análisis de Actividad',  'Activity Analysis');
+  String get analysisInterval => _t('Intervalo de análisis',  'Analysis interval');
+  String get analysisIntervalDesc =>
+      _t('Frecuencia con la que se analiza la actividad. '
+         'Valores menores son más precisos pero consumen más batería.',
+         'How often activity is analyzed. '
+         'Lower values are more precise but consume more battery.');
+  String get detectionThresholds =>
+      _t('Umbrales de Detección (solo lectura)',
+         'Detection Thresholds (read-only)');
+  String get about            => _t('Acerca de',              'About');
+  String get version          => _t('Versión',                'Version');
+  String get application      => _t('Aplicación',             'Application');
+  String get logout           => _t('Cerrar sesión',          'Sign out');
+  String get logoutConfirmation => _t('¿Deseas cerrar sesión?','Do you want to sign out?');
+
+  // ── Settings — nuevo: Apariencia e idioma ──────────────────────────────────
+  String get appearance       => _t('Apariencia',             'Appearance');
+  String get themeMode        => _t('Tema',                   'Theme');
+  String get themeDark        => _t('Oscuro',                 'Dark');
+  String get themeLight       => _t('Claro',                  'Light');
+  String get themeSystem      => _t('Sistema',                'System');
+  String get language         => _t('Idioma',                 'Language');
+  String get langSpanish      => _t('Español',                'Spanish');
+  String get langEnglish      => _t('Inglés',                 'English');
+
+  // ── EMPLOYEES ──────────────────────────────────────────────────────────────
+  String get employees        => _t('Empleados',              'Employees');
+  String get newEmployee      => _t('Nuevo Empleado',         'New Employee');
+  String get editEmployee     => _t('Editar Empleado',        'Edit Employee');
+  String get addEmployee      => _t('Agregar empleado',       'Add employee');
+  String get deleteEmployee   => _t('Eliminar empleado',      'Delete employee');
+  String get employeeUpdated  => _t('Empleado actualizado correctamente.',
+                                    'Employee updated successfully.');
+  String get employeeAdded    => _t('Empleado agregado correctamente.',
+                                    'Employee added successfully.');
+  String get nameLabel        => _t('Nombre completo',        'Full name');
+  String get lastNameLabel    => _t('Apellidos',              'Last name');
+  String get roleLabel        => _t('Rol',                    'Role');
+  String get roleEmployee     => _t('Empleado (Kiosk)',       'Employee (Kiosk)');
+  String get roleAdmin        => _t('Administrador',          'Administrator');
+  String get noEmployees      => _t('Sin empleados registrados','No employees registered');
+  String get addEmployeeHint  => _t('Agrega empleados con el botón +',
+                                    'Add employees with the + button');
+  String get passwordTempLabel => _t('Contraseña (temporal)', 'Password (temporary)');
+  String get passwordTempHint  => _t('Mínimo 6 caracteres',  'Minimum 6 characters');
+
+  // ── WORKSTATIONS ───────────────────────────────────────────────────────────
+  String get workstations       => _t('Estaciones de Trabajo','Workstations');
+  String get newWorkstation     => _t('Nueva Estación',       'New Workstation');
+  String get workstationSaved   => _t('Estación guardada exitosamente',
+                                      'Workstation saved successfully');
+  String get deleteWorkstation  => _t('Eliminar Estación',   'Delete Workstation');
+  String get noWorkstationsReg  =>
+      _t('No hay estaciones de trabajo registradas.',
+         'No workstations registered.');
+  String get saveWorkstation    => _t('Guardar Estación',     'Save Workstation');
+  String get geolocation        => _t('Geolocalización',      'Geolocation');
+  String get useCurrentLocation => _t('Usar mi ubicación actual',
+                                      'Use my current location');
+  String get locationSuccess    => _t('Ubicación obtenida con éxito.',
+                                      'Location retrieved successfully.');
+  String get assignEmployeeOpt  => _t('Asignar Empleado (Opcional)',
+                                      'Assign Employee (Optional)');
+  String get none               => _t('Ninguno',              'None');
+  String get workstationNameLabel => _t('Nombre del puesto',  'Workstation name');
+  String get deviceIdLabel      => _t('ID del dispositivo',   'Device ID');
+
+  // ── TASKS ──────────────────────────────────────────────────────────────────
+  String get tasks            => _t('Tareas',                 'Tasks');
+  String get newTask          => _t('Nueva tarea',            'New task');
+  String get taskTitle        => _t('Título',                 'Title');
+  String get taskDescription  => _t('Descripción',            'Description');
+  String get taskPriority     => _t('Prioridad',              'Priority');
+  String get taskDueDate      => _t('Fecha límite',           'Due date');
+  String get taskAssignTo     => _t('Asignar a',              'Assign to');
+  String get taskPending      => _t('Pendientes',             'Pending');
+  String get taskInProgress   => _t('En curso',               'In progress');
+  String get taskOverdue      => _t('Vencidas',               'Overdue');
+  String get taskCompleted    => _t('Completadas',            'Completed');
+  String get noTasks          => _t('Sin tareas',             'No tasks');
+
+  // ── LEAVES ─────────────────────────────────────────────────────────────────
+  String get leaves           => _t('Permisos',               'Leave Requests');
+  String get newLeave         => _t('Nueva solicitud',        'New request');
+  String get leaveApproved    => _t('Aprobado',               'Approved');
+  String get leaveRejected    => _t('Rechazado',              'Rejected');
+  String get leavePending     => _t('Pendiente',              'Pending');
+  String get approve          => _t('Aprobar',                'Approve');
+  String get reject           => _t('Rechazar',               'Reject');
+  String get noLeaves         => _t('Sin solicitudes',        'No leave requests');
+  String get leaveRequestLabel => _t('Solicitar permiso',     'Request leave');
+
+  // ── ANNOUNCEMENTS ──────────────────────────────────────────────────────────
+  String get announcements    => _t('Comunicados',            'Announcements');
+  String get newAnnouncement  => _t('Nuevo comunicado',       'New announcement');
+
+  // ── SYNC ───────────────────────────────────────────────────────────────────
+  String get offlineMode      => _t('Modo Offline',           'Offline Mode');
+  String get onlineAndSynced  => _t('Online y Sincronizado',  'Online & Synced');
+  String get syncing          => _t('Sincronizando…',         'Syncing…');
+
+  // ── HISTORY ────────────────────────────────────────────────────────────────
+  String get activityHistory  => _t('Historial de Actividad', 'Activity History');
+  String get filterByState    => _t('Filtrar por estado',     'Filter by state');
+  String get allStates        => _t('Todos los estados',      'All states');
+  String get noResults        => _t('Sin resultados',         'No results');
+  String get noEventsRegistered => _t('Sin eventos registrados','No events registered');
+
+  // ── ANALYTICS ──────────────────────────────────────────────────────────────
+  String get analytics        => _t('Analíticas',             'Analytics');
+  String get today            => _t('Hoy',                    'Today');
+  String get thisWeek         => _t('Esta semana',            'This week');
+  String get productivity     => _t('Productividad',          'Productivity');
+
+  // ── NOTIFICATIONS ──────────────────────────────────────────────────────────
+  String get notifications    => _t('Notificaciones',         'Notifications');
+  String get markAllRead      => _t('Leer todo',              'Mark all read');
+  String get noNotifications  => _t('Sin notificaciones',     'No notifications');
+
+  // ── CHAT ───────────────────────────────────────────────────────────────────
+  String get messages         => _t('Mensajes',               'Messages');
+  String get conversations    => _t('Conversaciones',         'Conversations');
+  String get typeMessage      => _t('Escribe un mensaje…',    'Type a message…');
+  String get noMessages       => _t('Sin mensajes aún',       'No messages yet');
+
+  // ── KIOSK ──────────────────────────────────────────────────────────────────
+  String get exitKioskTitle   => _t('Salir del modo kiosco',  'Exit kiosk mode');
+  String get exitKioskMessage => _t('¿Deseas cerrar sesión y salir del monitoreo?',
+                                    'Do you want to sign out and exit monitoring?');
+  String get exitButton       => _t('Salir',                  'Exit');
+  String get backToDashboard  => _t('Volver al dashboard',    'Back to dashboard');
+  String get scanEmployee     => _t('Escanear empleado',      'Scan employee');
+
+  // ── PROFILE ────────────────────────────────────────────────────────────────
+  String get myProfile        => _t('Mi perfil',              'My profile');
+  String get myProfileSubtitle => _t('Estadísticas, turno y datos personales',
+                                     'Statistics, shift and personal data');
+
+  // ── REPORTS ────────────────────────────────────────────────────────────────
+  String get reports          => _t('Reportes',               'Reports');
+
+  // ── ROUTER / MISC ──────────────────────────────────────────────────────────
+  String get goToDashboard    => _t('Ir al dashboard',        'Go to dashboard');
+  String get pageNotFound     => _t('Página no encontrada',   'Page not found');
+  String get myActivity       => _t('Mi Actividad',           'My Activity');
+  String get myHours          => _t('Mis Horas',              'My Hours');
+
+  // ── PAYROLL (Nómina) ───────────────────────────────────────────────────────
+  String get payroll            => _t('Nómina',               'Payroll');
+  String get payrollPeriod      => _t('Período de nómina',    'Payroll period');
+  String get newPeriod          => _t('Nuevo período',        'New period');
+  String get periodName         => _t('Nombre del período',   'Period name');
+  String get startDate          => _t('Fecha inicio',         'Start date');
+  String get endDate            => _t('Fecha fin',            'End date');
+  String get totalGross         => _t('Nómina bruta',         'Total gross');
+  String get netPay             => _t('Pago neto',            'Net pay');
+  String get deductions         => _t('Deducciones',          'Deductions');
+  String get hoursWorked        => _t('Horas trabajadas',     'Hours worked');
+  String get hourlyRate         => _t('Tarifa por hora',      'Hourly rate');
+  String get payrollDraft       => _t('Borrador',             'Draft');
+  String get payrollApproved    => _t('Aprobado',             'Approved');
+  String get payrollPaid        => _t('Pagado',               'Paid');
+  String get noPayrollPeriods   =>
+      _t('Sin períodos de nómina aún.', 'No payroll periods yet.');
+  String get ratesConfig        => _t('Configurar tarifas',   'Configure rates');
+  String get employeeRate       => _t('Tarifa del empleado',  'Employee rate');
+
+  // ── EVALUATIONS (Evaluaciones) ─────────────────────────────────────────────
+  String get evaluations        => _t('Evaluaciones',         'Evaluations');
+  String get newEvaluation      => _t('Nueva evaluación',     'New evaluation');
+  String get myEvaluations      => _t('Mis evaluaciones',     'My evaluations');
+  String get evaluationPeriod   => _t('Período evaluado',     'Evaluation period');
+  String get criteria           => _t('Criterios',            'Criteria');
+  String get score              => _t('Puntaje',              'Score');
+  String get grade              => _t('Calificación',         'Grade');
+  String get notes              => _t('Notas',                'Notes');
+  String get excellent          => _t('Excelente',            'Excellent');
+  String get good               => _t('Bueno',                'Good');
+  String get acceptable         => _t('Aceptable',            'Acceptable');
+  String get regular            => _t('Regular',              'Regular');
+  String get deficient          => _t('Deficiente',           'Deficient');
+  String get noEvaluations      =>
+      _t('Sin evaluaciones.', 'No evaluations yet.');
+}
+
+// ── Delegate ─────────────────────────────────────────────────────────────────
+
+class AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
+  const AppLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) =>
+      ['es', 'en'].contains(locale.languageCode);
+
+  @override
+  Future<AppLocalizations> load(Locale locale) async =>
+      AppLocalizations(locale.languageCode);
+
+  @override
+  bool shouldReload(AppLocalizationsDelegate old) => false;
+}

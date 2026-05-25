@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../core/constants/app_dimensions.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../domain/entities/activity_event.dart';
-import '../../../camera_monitor/presentation/widgets/state_badge_widget.dart';
+import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/domain/entities/activity_event.dart';
 
 class ActivityEventTile extends StatelessWidget {
   final ActivityEvent event;
@@ -18,23 +15,21 @@ class ActivityEventTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Padding(
       padding: const EdgeInsets.only(bottom: AppDimensions.spacingMd),
       child: Container(
         padding: const EdgeInsets.all(AppDimensions.spacingXxl),
         decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
-          border: Border.all(color: AppColors.glassBorder),
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.02)),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(AppDimensions.spacingMd),
               decoration: BoxDecoration(
-                color: event.state.color.withAlpha(25),
+                color: event.state.color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Text(
@@ -66,18 +61,8 @@ class ActivityEventTile extends StatelessWidget {
                             vertical: AppDimensions.spacingXxs / 2,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.warningSoft,
-                            borderRadius: BorderRadius.circular(
-                              AppDimensions.radiusSm,
-                            ),
-                          ),
-                          child: const Text(
-                            'OFFLINE',
-                            style: TextStyle(
-                              color: AppColors.warning,
-                              fontSize: AppDimensions.fontXxs,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            color: Colors.orange.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                         ),
                     ],

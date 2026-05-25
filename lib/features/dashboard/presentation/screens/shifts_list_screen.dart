@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../core/constants/app_dimensions.dart';
-import '../../../../core/constants/app_routes.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../shared/widgets/loading_widget.dart';
-import '../../../../shared/widgets/styled/app_empty_state.dart';
-import '../../presentation/providers/shifts_provider.dart';
+import 'package:worksense_app/core/constants/app_routes.dart';
+import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/domain/entities/shift.dart';
+import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
+import 'package:worksense_app/shared/widgets/loading_widget.dart';
 
 class ShiftsListScreen extends ConsumerWidget {
   const ShiftsListScreen({super.key});
@@ -28,12 +26,7 @@ class ShiftsListScreen extends ConsumerWidget {
           error: (e, _) => Center(child: Text('Error: $e')),
           data: (shifts) {
             if (shifts.isEmpty) {
-              return const AppEmptyState(
-                icon: Icons.event_busy,
-                title: 'No hay turnos registrados',
-                subtitle:
-                    'Crea tu primer horario laboral para asignarlo a tus empleados.',
-              );
+              return const _EmptyShiftsView();
             }
 
             return ListView.separated(
@@ -43,10 +36,8 @@ class ShiftsListScreen extends ConsumerWidget {
                   const SizedBox(height: AppDimensions.spacingLg),
               itemBuilder: (context, index) {
                 final shift = shifts[index];
-                final String startStr =
-                    '${shift.startTime.hour}:${shift.startTime.minute.toString().padLeft(2, '0')}';
-                final String endStr =
-                    '${shift.endTime.hour}:${shift.endTime.minute.toString().padLeft(2, '0')}';
+                final String startStr = '${shift.startTime.hour}:${shift.startTime.minute.toString().padLeft(2, '0')}';
+                final String endStr = '${shift.endTime.hour}:${shift.endTime.minute.toString().padLeft(2, '0')}';
 
                 return Card(
                   elevation: 0,
@@ -63,14 +54,8 @@ class ShiftsListScreen extends ConsumerWidget {
                     leading: Container(
                       padding: const EdgeInsets.all(AppDimensions.spacingLg),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withAlpha(25),
-                        borderRadius: BorderRadius.circular(
-                          AppDimensions.radiusXxl,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.schedule,
-                        color: AppColors.primary,
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     title: Text(
@@ -90,9 +75,22 @@ class ShiftsListScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    trailing: const Icon(
-                      Icons.chevron_right,
-                      color: AppColors.textDisabled,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
+                          tooltip: 'Editar',
+                          onPressed: () => context.push(
+                            AppRoutes.shiftEdit.replaceFirst(':shiftId', shift.id),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                          tooltip: 'Eliminar',
+                          onPressed: () => _confirmDelete(context, ref, shift),
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -106,6 +104,57 @@ class ShiftsListScreen extends ConsumerWidget {
         icon: const Icon(Icons.add),
         label: const Text('NUEVO TURNO'),
         backgroundColor: AppColors.primary,
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, Shift shift) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Eliminar turno'),
+        content: Text('¿Eliminar "${shift.name}"? Esta acción no se puede deshacer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && context.mounted) {
+      await ref.read(deleteShiftUseCaseProvider).call(shift.id);
+      ref.invalidate(shiftsProvider);
+    }
+  }
+}
+
+class _EmptyShiftsView extends StatelessWidget {
+  const _EmptyShiftsView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.event_busy, size: 64, color: AppColors.grey300),
+          const SizedBox(height: 16),
+          Text(
+            'No hay turnos registrados',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.grey500),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Crea tu primer horario laboral \npara asignarlo a tus empleados.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.grey400),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

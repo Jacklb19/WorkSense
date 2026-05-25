@@ -23,6 +23,7 @@
 import 'package:flutter/foundation.dart';
   import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
   import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
+  import 'package:worksense_app/core/constants/ai_thresholds.dart';
   import 'package:worksense_app/features/camera_monitor/ai/body_signature.dart';
   import 'package:worksense_app/features/camera_monitor/ai/employee_profile.dart';
 
@@ -120,7 +121,9 @@ import 'package:flutter/foundation.dart';
     if (liveEmbedding.isEmpty || storedEmbeddings.isEmpty) return 0.0;
     
     double maxScore = 0.0;
-    const double threshold = 0.85;
+    // Use tracking-mode floor: lower than fresh identification threshold
+    // because tracking ID already provides continuity context.
+    const double threshold = AiThresholds.monitorTrackingEmbeddingFloor;
 
     for (final stored in storedEmbeddings) {
       if (stored.isEmpty || liveEmbedding.length != stored.length) continue;
@@ -137,7 +140,9 @@ import 'package:flutter/foundation.dart';
   _IsolatedFindResult _computeFindInFrameWorker(_FindInFrameParams params) {
     int? currentLockedTrackingId = params.lockedTrackingId;
     final bool multiplePeople = params.faces.length > 1;
-    final double identityThreshold = EmployeeProfile.identityThreshold;
+    final double identityThreshold = multiplePeople
+        ? EmployeeProfile.identityThreshold + 0.05
+        : EmployeeProfile.identityThreshold;
     // Umbral de seguimiento más estricto si hay intrusos (múltiples personas)
     final double trackingBodyThreshold = multiplePeople ? 0.60 : 0.30;
     const double maxFaceToPoseDistance = 200.0;
@@ -173,10 +178,13 @@ import 'package:flutter/foundation.dart';
             ? params.profile.bodySignature.similarityTo(closestPose.signature!)
             : null;
 
-        final score = params.profile.matchScore(
+        var score = params.profile.matchScore(
           faceScore: faceScore,
           bodyScore: bodyScore,
         );
+        if (multiplePeople) {
+          score -= 0.08;
+        }
 
         if (score >= trackingBodyThreshold) {
           return _IsolatedFindResult(
@@ -228,10 +236,22 @@ import 'package:flutter/foundation.dart';
         method = IdentificationMethod.body;
       }
 
-      final combined = params.profile.matchScore(
+      var combined = params.profile.matchScore(
         faceScore: faceScore > 0 ? faceScore : null,
         bodyScore: bodyScore,
       );
+      if (multiplePeople) {
+        combined -= 0.05;
+        for (final intruder in params.faces) {
+          if (intruder.index == face.index) continue;
+          final dx = intruder.centerX - face.centerX;
+          final dy = intruder.centerY - face.centerY;
+          final distSq = dx * dx + dy * dy;
+          if (distSq < 160 * 160) {
+            combined -= 0.03;
+          }
+        }
+      }
 
       if (combined > bestScore) {
         bestScore = combined;
@@ -273,9 +293,7 @@ import 'package:flutter/foundation.dart';
 
     int? _lockedTrackingId;
     int _consecutiveMisses = 0;
-    DateTime? _lastFoundTime;
-
-    static const int _maxConsecutiveMisses = 5;
+    static const int _maxConsecutiveMisses = AiThresholds.monitorMaxConsecutiveMisses;
 
     EmployeeFinder(this._profile);
 
@@ -356,7 +374,6 @@ import 'package:flutter/foundation.dart';
         }
       } else {
         _consecutiveMisses = 0;
-        _lastFoundTime = DateTime.now();
       }
 
       // 4. Mapear al modelo que requiere objetos nativos (Face y Pose)
@@ -377,7 +394,5 @@ import 'package:flutter/foundation.dart';
     void reset() {
       _lockedTrackingId = null;
       _consecutiveMisses = 0;
-      _lastFoundTime = null;
     }
   }
-

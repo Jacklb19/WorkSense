@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:worksense_app/data/datasources/remote/supabase_datasource.dart';
 import 'package:worksense_app/domain/entities/activity_event.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/domain/entities/attendance_log.dart';
@@ -37,7 +36,13 @@ final analyticsDateRangeProvider =
 
 final _localActivityRefreshProvider = StreamProvider<int>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  return db.watchRecentActivityEntries().map((rows) => rows.length);
+  final companyId = ref.watch(currentUserProvider).valueOrNull?.companyId;
+  if (companyId == null || companyId.isEmpty) {
+    return Stream.value(0);
+  }
+  return db
+      .watchRecentActivityEntriesByCompany(companyId)
+      .map((rows) => rows.length);
 });
 
 final _localAttendanceRefreshProvider = StreamProvider<int>((ref) {
@@ -72,10 +77,13 @@ final employeeAnalyticsProvider =
   // A. Local Fetch
   try {
     final localRepo = ref.watch(activityRepositoryProvider);
-    final localEvents = await localRepo.getEventsByDateRange(
-      from: range.from,
-      to: range.to,
-    );
+    final localEvents = companyId == null
+        ? <ActivityEvent>[]
+        : await localRepo.getEventsByCompanyDateRange(
+            companyId: companyId,
+            from: range.from,
+            to: range.to,
+          );
     for (var e in localEvents) {
       mergedEvents[e.id] = e;
     }

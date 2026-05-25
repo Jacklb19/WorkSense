@@ -5,6 +5,7 @@ import 'package:worksense_app/domain/entities/activity_event.dart';
 import 'package:worksense_app/domain/entities/workstation.dart';
 import 'package:worksense_app/features/dashboard/domain/usecases/get_recent_events_use_case.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
+import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 
 // ── Workstations ─────────────────────────────────────────────────────────────
@@ -12,13 +13,21 @@ import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 final workstationsStreamProvider =
     StreamProvider<List<WorkstationRecord>>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  return db.watchAllWorkstationRecords();
+  final companyId = ref.watch(currentUserProvider).valueOrNull?.companyId;
+  if (companyId == null || companyId.isEmpty) {
+    return Stream.value(const []);
+  }
+  return db.watchWorkstationRecordsByCompany(companyId);
 });
 
 final workstationsProvider =
     FutureProvider<List<WorkstationRecord>>((ref) async {
   final db = ref.watch(appDatabaseProvider);
-  return db.getAllWorkstationRecords();
+  final companyId = ref.watch(currentUserProvider).valueOrNull?.companyId;
+  if (companyId == null || companyId.isEmpty) {
+    return const [];
+  }
+  return db.getWorkstationRecordsByCompany(companyId);
 });
 
 // Map WorkstationRecord to domain Workstation
@@ -43,14 +52,22 @@ final getRecentEventsUseCaseProvider =
 
 final recentEventsStreamProvider =
     StreamProvider<List<ActivityEvent>>((ref) {
-  final useCase = ref.watch(getRecentEventsUseCaseProvider);
-  return useCase.watch();
+  final repo = ref.watch(activityRepositoryProvider);
+  final companyId = ref.watch(currentUserProvider).valueOrNull?.companyId;
+  if (companyId == null || companyId.isEmpty) {
+    return Stream.value(const []);
+  }
+  return repo.watchEventsByCompany(companyId);
 });
 
 final recentEventsProvider =
     FutureProvider<List<ActivityEvent>>((ref) async {
-  final useCase = ref.watch(getRecentEventsUseCaseProvider);
-  return useCase(limit: 100);
+  final repo = ref.watch(activityRepositoryProvider);
+  final companyId = ref.watch(currentUserProvider).valueOrNull?.companyId;
+  if (companyId == null || companyId.isEmpty) {
+    return const [];
+  }
+  return repo.getRecentEventsByCompany(companyId, limit: 100);
 });
 
 // ── Last Event Per Workstation ───────────────────────────────────────────────
@@ -72,9 +89,4 @@ final lastEventByWorkstationProvider =
 });
 
 // ── Pending Sync Count ───────────────────────────────────────────────────────
-
-final pendingSyncCountProvider = FutureProvider<int>((ref) async {
-  final syncRepo = ref.watch(syncRepositoryProvider);
-  final pending = await syncRepo.getPending();
-  return pending.length;
-});
+// Definido en sync_state_provider.dart (StreamProvider que hace polling c/5s).

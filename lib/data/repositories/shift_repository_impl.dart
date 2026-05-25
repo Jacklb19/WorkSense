@@ -97,6 +97,19 @@ class ShiftRepositoryImpl implements ShiftRepository {
     );
   }
 
+  @override
+  Future<void> deleteShift(String shiftId) async {
+    await _db.transaction(() async {
+      await _db.deleteShiftRecord(shiftId);
+      await _syncRepo.enqueue(
+        targetTable: 'shifts',
+        operation: 'DELETE',
+        recordId: shiftId,
+        payload: {'id': shiftId},
+      );
+    });
+  }
+
   // ── Private Helpers ─────────────────────────────────────────────────────────
 
   Shift _mapToEntity(local_db.ShiftRecordData row) {

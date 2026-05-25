@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:worksense_app/core/constants/app_constants.dart';
+import 'package:worksense_app/domain/entities/app_role.dart';
 
 class SupabaseDataSource {
   final SupabaseClient _client = Supabase.instance.client;
 
-  /// MÃ©todo genÃ©rico â€” el nÃºcleo del Outbox Pattern
+  /// Método genérico — el núcleo del Outbox Pattern
   Future<void> upsert(String table, Map<String, dynamic> data) async {
     try {
       await _client.from(table).upsert(data);
@@ -49,7 +52,7 @@ class SupabaseDataSource {
     }
   }
 
-  // MÃ©todos especÃficos (usan el genÃ©rico internamente)
+  // Métodos específicos (usan el genérico internamente)
   Future<void> insertEmployee(Map<String, dynamic> data) =>
       upsert('employees', data);
 
@@ -95,7 +98,7 @@ class SupabaseDataSource {
           .select()
           .not('employee_id', 'is', null);
       
-      if (companyId != null && companyId != 'default') {
+      if (companyId != null && companyId != AppConstants.defaultCompanyId) {
         query = query.eq('company_id', companyId);
       }
 
@@ -147,33 +150,110 @@ class SupabaseDataSource {
     }
   }
 
+  Future<Map<String, dynamic>> updateEmployeeWithAuth(Map<String, dynamic> data) async {
+    try {
+      final response = await _client.functions.invoke(
+        'update-employee',
+        body: data,
+      );
+      if (response.status != 200) {
+        throw SyncException('Error en Edge Function: ${response.data}');
+      }
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      throw SyncException('Error actualizando empleado con Auth: $e');
+    }
+  }
+
   Future<Map<String, dynamic>?> fetchCurrentEmployee() async {
     final userId = currentUserId;
-    if (userId == null) return null;
+    final user = _client.auth.currentUser;
+    if (userId == null || user == null) return null;
     try {
       final response = await _client
           .from('employees')
           .select()
           .eq('id', userId)
           .maybeSingle();
+      
+      // Auto-repair: if employee record doesn't exist but user is authenticated,
+      // create a minimal record using JWT metadata
+      if (response == null) {
+        final meta = user.appMetadata;
+        final userMeta = user.userMetadata;
+        final companyId = _getMetadataKey(meta, 'company_id') ?? _getMetadataKey(userMeta, 'company_id');
+        final roleStr = _getMetadataKey(meta, 'role') ?? _getMetadataKey(userMeta, 'role') ?? 'EMPLOYEE';
+        
+        final newRecord = {
+          'id': userId,
+          'name': user.userMetadata?['name']?.toString().split(' ').first ?? 'Usuario',
+          'last_name': user.userMetadata?['name']?.toString().split(' ').skip(1).join(' ') ?? '',
+          'email': user.email ?? '',
+          'role': roleStr.toUpperCase(),
+          'company_id': companyId ?? AppConstants.defaultCompanyId,
+        };
+        
+        try {
+          final insertResult = await _client.from('employees').insert(newRecord).select().maybeSingle();
+          return insertResult;
+        } catch (_) {
+          // If insert fails (e.g., no permission), return null
+          return null;
+        }
+      }
+      
       return response;
     } catch (e) {
       throw SyncException('Error obteniendo empleado actual: $e');
     }
   }
 
-  String? get currentCompanyId {
+String? _getMetadataKey(Map<String, dynamic>? metadata, String key) {
+    if (metadata == null) return null;
+    final lowerKey = key.toLowerCase();
+    for (final k in metadata.keys) {
+      final lk = k.toLowerCase();
+      if (lk == lowerKey) {
+        return metadata[k]?.toString();
+      }
+    }
+    return null;
+  }
+
+String? get currentCompanyId {
     final user = _client.auth.currentUser;
     if (user == null) return null;
-    final meta = user.appMetadata ?? {};
-    final userMeta = user.userMetadata ?? {};
-    return (meta['company_id']?.toString() ?? userMeta['company_id']?.toString());
+    final meta = user.appMetadata;
+    final userMeta = user.userMetadata;
+    debugPrint('[SupabaseDataSource] appMetadata: $meta');
+    debugPrint('[SupabaseDataSource] userMetadata: $userMeta');
+    final companyId =
+        _getMetadataKey(meta, 'company_id') ??
+        _getMetadataKey(userMeta, 'company_id');
+    debugPrint('[SupabaseDataSource] _getMetadataKey result: $companyId');
+    if (companyId == null || companyId.isEmpty || companyId == AppConstants.defaultCompanyId) {
+      return null;
+    }
+    return companyId;
+  }
+
+  AppRole get currentRole {
+    final user = _client.auth.currentUser;
+    if (user == null) return AppRole.employee;
+    final meta = user.appMetadata;
+    final userMeta = user.userMetadata;
+    return AppRoleX.fromRaw(
+      _getMetadataKey(meta, 'role') ??
+      _getMetadataKey(userMeta, 'role'),
+    );
   }
 
   Future<List<Map<String, dynamic>>> fetchAllEmployees(String? companyId) async {
     try {
+      // Con RLS, si companyId es null, la policy filtrará por JWT igualmente
+      // Pero añadimos filtro explícito para claridad y logs
       var query = _client.from('employees').select();
-      if (companyId != null && companyId != 'default') {
+      if (companyId != null && companyId != AppConstants.defaultCompanyId) {
         query = query.eq('company_id', companyId);
       }
       final response = await query;
@@ -186,7 +266,7 @@ class SupabaseDataSource {
   Future<List<Map<String, dynamic>>> fetchAllWorkstations(String? companyId) async {
     try {
       var query = _client.from('workstations').select();
-      if (companyId != null && companyId != 'default') {
+      if (companyId != null && companyId != AppConstants.defaultCompanyId) {
         query = query.eq('company_id', companyId);
       }
       final response = await query;
@@ -199,13 +279,43 @@ class SupabaseDataSource {
   Future<List<Map<String, dynamic>>> fetchAllShifts(String? companyId) async {
     try {
       var query = _client.from('shifts').select();
-      if (companyId != null && companyId != 'default') {
+      if (companyId != null && companyId != AppConstants.defaultCompanyId) {
         query = query.eq('company_id', companyId);
       }
       final response = await query;
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       throw SyncException('Error obteniendo shifts: $e');
+    }
+  }
+
+  /// Generic fetch by company_id for Phase 1+2 tables (tasks, leave_requests,
+  /// alert_logs, announcements).
+  Future<List<Map<String, dynamic>>> fetchByCompany(
+    String table,
+    String companyId, {
+    String orderBy = 'created_at',
+    bool ascending = false,
+    int? limit,
+  }) async {
+    try {
+      var query = _client
+          .from(table)
+          .select()
+          .eq('company_id', companyId)
+          .order(orderBy, ascending: ascending);
+      if (limit != null) {
+        query = query.limit(limit);
+      }
+      final response = await query;
+      return List<Map<String, dynamic>>.from(response);
+    } on PostgrestException catch (e) {
+      // Table may not exist in remote yet — return empty gracefully
+      debugPrint('[SupabaseDataSource] fetchByCompany($table): ${e.message}');
+      return [];
+    } catch (e) {
+      debugPrint('[SupabaseDataSource] fetchByCompany($table) unexpected: $e');
+      return [];
     }
   }
 

@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../core/constants/app_dimensions.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../shared/widgets/styled/app_section_header.dart';
-import '../../../dashboard/presentation/providers/shifts_provider.dart';
-import '../providers/employees_provider.dart';
+import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/domain/entities/app_role.dart';
+import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
+import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 
 class EmployeeFormScreen extends ConsumerStatefulWidget {
   final String? employeeId;
@@ -24,7 +22,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  String _selectedRole = 'employee';
+  AppRole _selectedRole = AppRole.employee;
   String? _selectedShiftId;
   bool _hasListened = false;
   bool _dataLoaded = false;
@@ -51,11 +49,16 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
       if (employee != null && mounted) {
         setState(() {
           _nameController.text = employee.name;
+          _lastNameController.text = employee.lastName;
+          _emailController.text = employee.email;
+          _selectedRole = employee.role;
           _selectedShiftId = employee.shiftId;
           _dataLoaded = true;
         });
       }
-    } catch (_) {}
+    } catch (_) {
+      // Keep the form editable even if the preload fails.
+    }
   }
 
   @override
@@ -82,12 +85,14 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
   }
 
   Future<void> _handleDelete() async {
-    final bool confirm = await showDialog(
+    final confirm = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text('Eliminar colaborador'),
             content: const Text(
-                'Estas seguro de que deseas eliminar permanentemente este colaborador? Esta accion eliminara su acceso y todos sus datos de asistencia.'),
+              '¿Estás seguro de que deseas eliminar permanentemente este colaborador? '
+              'Esta acción eliminará su acceso y todos sus datos de asistencia.',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
@@ -95,8 +100,10 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Eliminar',
-                    style: TextStyle(color: AppColors.error)),
+                child: const Text(
+                  'Eliminar',
+                  style: TextStyle(color: Colors.red),
+                ),
               ),
             ],
           ),
@@ -130,10 +137,12 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
         _hasListened = true;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_isEditing
-                ? 'Colaborador actualizado'
-                : 'Colaborador registrado'),
-            backgroundColor: AppColors.success,
+            content: Text(
+              _isEditing
+                  ? 'Colaborador actualizado'
+                  : 'Colaborador registrado',
+            ),
+            backgroundColor: Colors.green,
           ),
         );
         context.pop();
@@ -148,27 +157,30 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
             title: Text(_isEditing ? 'Editar Perfil' : 'Nuevo Ingreso'),
           ),
           SliverPadding(
-            padding: EdgeInsets.symmetric(
-              horizontal: AppDimensions.formHorizontalPadding,
-              vertical: AppDimensions.formVerticalPadding,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
             sliver: SliverToBoxAdapter(
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const AppSectionHeader(title: 'IDENTIDAD'),
-                    const SizedBox(height: AppDimensions.spacing20),
+                    Text(
+                      'IDENTIDAD',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                    ),
+                    const SizedBox(height: 20),
                     TextFormField(
                       controller: _nameController,
                       decoration: const InputDecoration(
                         labelText: 'Nombre',
                         prefixIcon: Icon(Icons.person_outline),
                       ),
-                      validator: (v) => (v == null || v.isEmpty)
-                          ? 'Campo requerido'
-                          : null,
+                      validator: (v) =>
+                          (v == null || v.isEmpty) ? 'Campo requerido' : null,
                     ),
                     const SizedBox(height: AppDimensions.spacingXxl),
                     TextFormField(
@@ -177,31 +189,38 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                         labelText: 'Apellidos',
                         prefixIcon: Icon(Icons.badge_outlined),
                       ),
-                      validator: (v) => (v == null || v.isEmpty)
-                          ? 'Campo requerido'
-                          : null,
+                      validator: (v) =>
+                          (v == null || v.isEmpty) ? 'Campo requerido' : null,
+                    ),
+                    const SizedBox(height: 40),
+                    Text(
+                      'CREDENCIALES',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        prefixIcon: Icon(Icons.email_outlined),
+                      ),
+                      validator: (v) =>
+                          (v == null || !v.contains('@'))
+                              ? 'Email inválido'
+                              : null,
                     ),
                     if (!_isEditing) ...[
-                      const SizedBox(height: AppDimensions.spacing40),
-                      const AppSectionHeader(title: 'CREDENCIALES'),
-                      const SizedBox(height: AppDimensions.spacing20),
-                      TextFormField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: Icon(Icons.email_outlined),
-                        ),
-                        validator: (v) => (v == null || !v.contains('@'))
-                            ? 'Email invalido'
-                            : null,
-                      ),
-                      const SizedBox(height: AppDimensions.spacingXxl),
+                      const SizedBox(height: 16),
                       TextFormField(
                         controller: _passwordController,
                         obscureText: true,
                         decoration: const InputDecoration(
-                          labelText: 'Contrasenna Temporal',
+                          labelText: 'Contraseña Temporal',
                           prefixIcon: Icon(Icons.lock_outline),
                         ),
                         validator: (v) =>
@@ -210,28 +229,37 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                                 : null,
                       ),
                     ],
-                    const SizedBox(height: AppDimensions.spacingXxl),
-                    DropdownButtonFormField<String>(
-                      value: _selectedRole,
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<AppRole>(
+                      initialValue: _selectedRole,
                       decoration: const InputDecoration(
                         labelText: 'Rol',
                         prefixIcon: Icon(Icons.security_outlined),
                       ),
                       items: const [
                         DropdownMenuItem(
-                            value: 'employee', child: Text('Empleado')),
+                          value: AppRole.employee,
+                          child: Text('Empleado'),
+                        ),
                         DropdownMenuItem(
-                            value: 'admin',
-                            child: Text('Administrador')),
+                          value: AppRole.admin,
+                          child: Text('Administrador'),
+                        ),
+                        DropdownMenuItem(
+                          value: AppRole.cameraMonitor,
+                          child: Text('Monitor de camara'),
+                        ),
                       ],
-                      onChanged: (val) =>
-                          setState(() => _selectedRole = val!),
+                      onChanged: (val) {
+                        if (val == null) return;
+                        setState(() => _selectedRole = val);
+                      },
                     ),
-                    const SizedBox(height: AppDimensions.spacingXxl),
+                    const SizedBox(height: 16),
                     shiftsAsync.when(
                       data: (shifts) {
                         return DropdownButtonFormField<String>(
-                          value: _selectedShiftId,
+                          initialValue: _selectedShiftId,
                           decoration: const InputDecoration(
                             labelText: 'Turno / Horario',
                             prefixIcon: Icon(Icons.schedule),
@@ -245,7 +273,8 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                               (s) => DropdownMenuItem(
                                 value: s.id,
                                 child: Text(
-                                    '${s.name} (${s.startTime.hour}:${s.startTime.minute.toString().padLeft(2, '0')})'),
+                                  '${s.name} (${s.startTime.hour}:${s.startTime.minute.toString().padLeft(2, '0')})',
+                                ),
                               ),
                             ),
                           ],
@@ -253,52 +282,53 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                               setState(() => _selectedShiftId = val),
                         );
                       },
-                      loading: () => const Center(
-                          child: CircularProgressIndicator()),
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
                       error: (e, _) => Text(
                         'Error cargando turnos: $e',
-                        style: const TextStyle(color: AppColors.error),
+                        style: const TextStyle(color: Colors.red),
                       ),
                     ),
-                    const SizedBox(height: AppDimensions.spacing56),
+                    const SizedBox(height: 56),
                     FilledButton(
                       onPressed:
                           formState.isLoading ? null : _handleSubmit,
                       style: FilledButton.styleFrom(
-                        minimumSize: const Size(
-                          double.infinity,
-                          AppDimensions.buttonMinHeightLg,
-                        ),
+                        minimumSize: const Size(double.infinity, 60),
                       ),
                       child: formState.isLoading
                           ? const CircularProgressIndicator(
-                              color: AppColors.white, strokeWidth: 2)
-                          : Text(_isEditing
-                              ? 'GUARDAR CAMBIOS'
-                              : 'REGISTRAR EMPLEADO'),
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            )
+                          : Text(
+                              _isEditing
+                                  ? 'GUARDAR CAMBIOS'
+                                  : 'REGISTRAR EMPLEADO',
+                            ),
                     ),
                     if (formState.errorMessage != null) ...[
-                      const SizedBox(height: AppDimensions.spacingXxl),
+                      const SizedBox(height: 16),
                       Text(
                         formState.errorMessage!,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          color: AppColors.error,
-                          fontSize: AppDimensions.fontBody,
+                          color: Colors.redAccent,
+                          fontSize: 13,
                         ),
                       ),
                     ],
                     if (_isEditing) ...[
                       const SizedBox(height: AppDimensions.spacing32),
                       OutlinedButton.icon(
-                        onPressed: formState.isLoading
-                            ? null
-                            : _handleDelete,
-                        icon: const Icon(Icons.delete_outline,
-                            color: AppColors.error),
+                        onPressed: formState.isLoading ? null : _handleDelete,
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.redAccent,
+                        ),
                         label: const Text(
                           'ELIMINAR EMPLEADO',
-                          style: TextStyle(color: AppColors.error),
+                          style: TextStyle(color: Colors.redAccent),
                         ),
                         style: OutlinedButton.styleFrom(
                           minimumSize:

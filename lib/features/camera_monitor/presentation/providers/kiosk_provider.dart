@@ -28,6 +28,7 @@ import 'package:worksense_app/features/camera_monitor/ai/face_embedding_service.
 import 'package:worksense_app/features/camera_monitor/ai/pose_analyzer.dart';
 import 'package:worksense_app/features/camera_monitor/domain/usecases/save_activity_event_use_case.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
+import 'package:worksense_app/domain/entities/workstation.dart';
 
 // ── Database Provider ──────────────────────────────────────────────────────────
 
@@ -82,6 +83,7 @@ class KioskState {
   final String? identificationMethod;
   final double identityConfidence;
   final String? assignedEmployeeId;
+  final WorkstationRoi? workstationRoi;
   final DateTime? sessionStartTime;
   
   // Sentinel Mode
@@ -108,6 +110,7 @@ class KioskState {
     this.assignedEmployeeId,
     this.sessionStartTime,
     this.workstationStatus = 'IDLE',
+    this.workstationRoi,
   });
 
   KioskState copyWith({
@@ -131,6 +134,7 @@ class KioskState {
     String? assignedEmployeeId,
     DateTime? sessionStartTime,
     String? workstationStatus,
+    WorkstationRoi? workstationRoi,
   }) {
     return KioskState(
       currentState: currentState ?? this.currentState,
@@ -153,6 +157,7 @@ class KioskState {
       sessionStartTime: sessionStartTime ?? this.sessionStartTime,
       workstationStatus: workstationStatus ?? this.workstationStatus,
       companyId: companyId ?? this.companyId,
+      workstationRoi: workstationRoi ?? this.workstationRoi,
     );
   }
 }
@@ -229,9 +234,8 @@ class KioskNotifier extends StateNotifier<KioskState> {
   DateTime _lastMovementTime = DateTime.now();
   DateTime _lastSaveTime = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _lastReidTime = DateTime.fromMillisecondsSinceEpoch(0);
-  DateTime _lastBlinkTime = DateTime.now();
-  static const Duration _maxTimeWithoutBlink = Duration(seconds: 40);
   int _consecutiveAbsentFrames = 0;
+  int _consecutiveFaceMissFrames = 0;
   int _stableEntryFrames = 0;
   bool _requiresFreshIdentityCheck = true;
   
@@ -244,9 +248,17 @@ class KioskNotifier extends StateNotifier<KioskState> {
   static const Duration _saveInterval = Duration(
     seconds: AiThresholds.defaultAnalysisIntervalSeconds,
   );
-  static const Duration _reidInterval = Duration(
-    seconds: AiThresholds.reidIntervalSeconds,
-  );
+
+  /// Dynamic re-ID interval: longer during stable active sessions,
+  /// shorter when there's ambiguity or fresh check needed.
+  Duration get _currentReidInterval {
+    if (state.sessionStatus == SessionStatus.active &&
+        !_requiresFreshIdentityCheck &&
+        _consecutiveFaceMissFrames == 0) {
+      return const Duration(seconds: AiThresholds.monitorStableReidSeconds);
+    }
+    return const Duration(seconds: AiThresholds.monitorAmbiguousReidSeconds);
+  }
 
   static const Map<DeviceOrientation, int> _orientationMap = {
     DeviceOrientation.portraitUp: 0,
@@ -298,29 +310,27 @@ class KioskNotifier extends StateNotifier<KioskState> {
     final record = await _db.getWorkstationById(workstationId);
     final assignedId = record?.assignedEmployeeId;
     final companyId = record?.companyId;
+    WorkstationRoi? roi;
+    final roiJson = record != null ? await _db.getWorkstationRoi(workstationId) : null;
+    if (roiJson != null && roiJson.isNotEmpty) {
+      try {
+        roi = WorkstationRoi.fromMap(
+          (jsonDecode(roiJson) as Map<String, dynamic>),
+        );
+      } catch (_) {}
+    }
 
     if (record != null &&
         record.faceEmbeddings != null &&
         record.bodySignature != null &&
         assignedId != null) {
-      // Reconstruir el perfil desde la BD usando el serializer centralizado
-      final embeddingRaw = BiometricSerializer.deserializeMultipleEmbeddings(record.faceEmbeddings);
-      
-      final bodyJson =
-          (jsonDecode(record.bodySignature!) as Map<String, dynamic>)
-              .map((k, v) => MapEntry(k, (v as num).toDouble()));
+      final profile = await _buildStoredProfile(
+        record,
+        assignedId,
+        workstationId,
+      );
 
-      if (embeddingRaw != null) {
-        final profile = EmployeeProfile(
-          employeeId: assignedId,
-          workstationId: workstationId,
-          faceEmbeddings: embeddingRaw,
-          bodySignature: BodySignature.fromJson(bodyJson),
-          capturedAt: record.profileCapturedAt ?? DateTime.now(),
-          sampleCount: 5,
-          version: record.profileVersion,
-        );
-
+      if (profile != null) {
         _finder = EmployeeFinder(profile);
         debugPrint('[MONITOR] Perfil cargado para ${profile.employeeId}.');
         state = state.copyWith(
@@ -330,6 +340,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
           currentState: ActivityState.ausente,
           sessionStatus: SessionStatus.idle,
           companyId: companyId,
+          workstationRoi: roi,
         );
 
         _listenRemoteStatus(workstationId);
@@ -344,10 +355,45 @@ class KioskNotifier extends StateNotifier<KioskState> {
       assignedEmployeeId: assignedId,
       currentState: ActivityState.noIdentificado,
       companyId: companyId,
+      workstationRoi: roi,
     );
     
     _listenRemoteStatus(workstationId);
     return false;
+  }
+
+  Future<EmployeeProfile?> _buildStoredProfile(
+    WorkstationRecord record,
+    String assignedId,
+    String workstationId,
+  ) async {
+    final snapshot = await _db.getProfileSnapshot(workstationId);
+    if (snapshot != null && snapshot.isNotEmpty) {
+      try {
+        return EmployeeProfile.fromJsonString(snapshot);
+      } catch (e) {
+        debugPrint('[MONITOR] Error parsing snapshot, fallback legacy: $e');
+      }
+    }
+
+    final embeddingRaw =
+        BiometricSerializer.deserializeMultipleEmbeddings(record.faceEmbeddings);
+    if (embeddingRaw == null || record.bodySignature == null) return null;
+
+    final bodyJson =
+        (jsonDecode(record.bodySignature!) as Map<String, dynamic>)
+            .map((k, v) => MapEntry(k, (v as num).toDouble()));
+
+    return EmployeeProfile(
+      employeeId: assignedId,
+      workstationId: workstationId,
+      faceEmbeddings: embeddingRaw,
+      bodySignature: BodySignature.fromJson(bodyJson),
+      capturedAt: record.profileCapturedAt ?? DateTime.now(),
+      sampleCount: embeddingRaw.length,
+      version: record.profileVersion,
+      lastReenrollmentAt: record.profileCapturedAt,
+    );
   }
   
   void _listenRemoteStatus(String workstationId) {
@@ -363,7 +409,11 @@ class KioskNotifier extends StateNotifier<KioskState> {
       
       final bool isRunning = _cameraController != null && state.cameraInitialized;
 
-      if (status == 'ACTIVE' && !isRunning) {
+      // Only start the monitoring camera when an enrolled profile exists.
+      // Starting it without a profile would (a) block touches on the enrollment UI,
+      // (b) draw pose/face landmarks over the enrollment text, and
+      // (c) conflict with the enrollment camera for the physical camera resource.
+      if (status == 'ACTIVE' && !isRunning && state.isEmployeeScanned) {
         debugPrint('[REALTIME] Activating camera for $workstationId');
         final cameras = await availableCameras();
         await initializeCamera(cameras);
@@ -480,22 +530,36 @@ class KioskNotifier extends StateNotifier<KioskState> {
       final bool needsIdentification = state.sessionStatus == SessionStatus.idle || 
                                        state.sessionStatus == SessionStatus.entryPending;
       final bool hasIntruder = allFaces.length > 1;
-      final bool shouldReid = now.difference(_lastReidTime) >= _reidInterval;
+      final bool shouldReid = now.difference(_lastReidTime) >= _currentReidInterval;
       final bool shouldGenerateEmbeddings =
           needsIdentification ||
           shouldReid ||
           hasIntruder ||
           _requiresFreshIdentityCheck;
 
+      // Grace period: only flag fresh identity check after consecutive misses
+      // exceed the threshold, not on every single miss frame.
       if (state.sessionStatus == SessionStatus.active) {
-        if (allFaces.isEmpty || allFaces.length > 1) {
+        if (allFaces.isEmpty) {
+          _consecutiveFaceMissFrames++;
+          if (_consecutiveFaceMissFrames >= AiThresholds.monitorGracePeriodFrames) {
+            _requiresFreshIdentityCheck = true;
+          }
+        } else if (allFaces.length > 1) {
+          // Multiple faces: immediate revalidation concern
           _requiresFreshIdentityCheck = true;
+          _consecutiveFaceMissFrames = 0;
         } else if (!_finder!.isTrackingLockedTo(allFaces.first)) {
-          _requiresFreshIdentityCheck = true;
+          _consecutiveFaceMissFrames++;
+          if (_consecutiveFaceMissFrames >= AiThresholds.monitorGracePeriodFrames) {
+            _requiresFreshIdentityCheck = true;
+          }
+        } else {
+          _consecutiveFaceMissFrames = 0;
         }
       }
       
-      if (allFaces.isNotEmpty && (_finder!.profile.employeeId != null) && shouldGenerateEmbeddings) {
+      if (allFaces.isNotEmpty && shouldGenerateEmbeddings) {
         if (hasIntruder) {
           debugPrint('[MONITOR] Intruder detection! Force validating all ${allFaces.length} faces.');
         }
@@ -587,11 +651,19 @@ class KioskNotifier extends StateNotifier<KioskState> {
       }
 
       // Buscar al empleado en el frame con embeddings reales
-      final findResult = await _finder!.findInFrame(
+      var findResult = await _finder!.findInFrame(
         detectedFaces: allFaces,
         detectedPoses: allPoses,
         faceEmbeddings: embeddingsMap,
       );
+      if (findResult.status == FindStatus.found &&
+          !_isWithinAssignedRegion(
+            findResult.employeeFace,
+            findResult.employeePose,
+            imgSize,
+          )) {
+        findResult = FindResult.outsideArea();
+      }
       if (_disposed) return;
 
       switch (findResult.status) {
@@ -612,10 +684,18 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
   void _handleAbsent(FindResult findResult, Size imgSize) {
     _consecutiveAbsentFrames++;
-    _activityWindowBuffer.reset();
     _stableEntryFrames = 0;
+
+    // Only flag fresh identity check after grace period, not on first miss
     if (state.sessionStatus == SessionStatus.active) {
-      _requiresFreshIdentityCheck = true;
+      _consecutiveFaceMissFrames++;
+      if (_consecutiveFaceMissFrames >= AiThresholds.monitorGracePeriodFrames) {
+        _requiresFreshIdentityCheck = true;
+        _activityWindowBuffer.reset();
+      }
+      // Keep partial identity confidence during grace period
+    } else {
+      _activityWindowBuffer.reset();
     }
     
     // Only cancel entryPending/exitPending after several consecutive absent frames.
@@ -628,11 +708,17 @@ class KioskNotifier extends StateNotifier<KioskState> {
       debugPrint('[MONITOR] Cancelled pending after $_consecutiveAbsentFrames absent frames.');
     }
 
+    // Progressive confidence degradation instead of immediate zero
+    final degradedConfidence = state.sessionStatus == SessionStatus.active &&
+            _consecutiveAbsentFrames < AiThresholds.monitorMaxConsecutiveMisses
+        ? (state.identityConfidence * 0.85).clamp(0.0, 1.0)
+        : 0.0;
+
     state = state.copyWith(
       currentState: findResult.status == FindStatus.absent
           ? ActivityState.ausente
           : ActivityState.fueraDelArea,
-      identityConfidence: 0.0,
+      identityConfidence: degradedConfidence,
       isProcessing: false,
       poses: const [],
       faces: const [],
@@ -643,6 +729,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
   void _handleFound(FindResult findResult, List<Face> allFaces, List<Pose> allPoses, Size imgSize, DateTime now) {
     _requiresFreshIdentityCheck = false;
+    _consecutiveFaceMissFrames = 0;
     final employeeFace = findResult.employeeFace!;
     final employeePose = findResult.employeePose;
 
@@ -733,7 +820,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
     _requiresFreshIdentityCheck = false;
 
     await _saveEvent(
-      AiResult(state: ActivityState.trabajando, confidence: 1.0),
+      const AiResult(state: ActivityState.trabajando, confidence: 1.0),
       now,
       identityConfidence: state.identityConfidence,
       identificationMethod: 'FACE_EMBEDDING',
@@ -755,7 +842,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
     
     // 1. Guardar evento de salida (AUSENTE para indicar fin de jornada)
     await _saveEvent(
-      AiResult(state: ActivityState.ausente, confidence: 1.0),
+      const AiResult(state: ActivityState.ausente, confidence: 1.0),
       now,
       identityConfidence: state.identityConfidence,
       identificationMethod: 'FACE_EMBEDDING',
@@ -818,6 +905,35 @@ class KioskNotifier extends StateNotifier<KioskState> {
         centered &&
         fullyVisible &&
         frontal;
+  }
+
+  bool _isWithinAssignedRegion(Face? face, Pose? pose, Size imgSize) {
+    final roi = state.workstationRoi;
+    if (roi == null) return true;
+
+    bool pointInside(double x, double y) {
+      final minX = imgSize.width * roi.x;
+      final minY = imgSize.height * roi.y;
+      final maxX = minX + (imgSize.width * roi.width);
+      final maxY = minY + (imgSize.height * roi.height);
+      return x >= minX && x <= maxX && y >= minY && y <= maxY;
+    }
+
+    if (face != null) {
+      final center = face.boundingBox.center;
+      if (!pointInside(center.dx, center.dy)) {
+        return false;
+      }
+    }
+
+    if (pose != null) {
+      final nose = pose.landmarks[PoseLandmarkType.nose];
+      if (nose != null && !pointInside(nose.x, nose.y)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   InputImage? _buildInputImage(CameraImage image) {
@@ -926,4 +1042,3 @@ final kioskProvider =
 final availableCamerasProvider = FutureProvider<List<CameraDescription>>((ref) {
   return availableCameras();
 });
-

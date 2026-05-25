@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/workstations/presentation/providers/workstations_provider.dart';
@@ -48,9 +49,22 @@ class WorkstationsListScreen extends ConsumerWidget {
                     'Compañía: ${workstation.companyId}',
                   ),
                   isThreeLine: true,
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline, color: AppColors.error),
-                    onPressed: () => _confirmDelete(context, ref, workstation.id, workstation.name),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
+                        tooltip: 'Editar',
+                        onPressed: () => context.push(
+                          AppRoutes.workstationEdit.replaceFirst(':workstationId', workstation.id),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                        tooltip: 'Eliminar',
+                        onPressed: () => _confirmDelete(context, ref, workstation.id, workstation.name),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -87,9 +101,9 @@ class WorkstationsListScreen extends ConsumerWidget {
     );
 
     if (confirmed == true) {
-      if (!context.mounted) return;
       try {
         await ref.read(deleteWorkstationUseCaseProvider)(id);
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text(AppStrings.workstationDeleted)),
         );

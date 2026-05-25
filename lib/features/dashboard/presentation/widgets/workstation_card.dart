@@ -19,19 +19,17 @@ class WorkstationCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final lastEvent =
-        ref.watch(lastEventByWorkstationProvider(workstation.id));
-    final theme = Theme.of(context);
+    final lastEvent = ref.watch(lastEventByWorkstationProvider(workstation.id));
 
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: AppColors.gradientCard),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
-        border: Border.all(color: AppColors.glassBorder),
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withAlpha(15),
-            blurRadius: 16,
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
@@ -50,14 +48,8 @@ class WorkstationCard extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(AppDimensions.spacingLg),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withAlpha(20),
-                        borderRadius:
-                            BorderRadius.circular(AppDimensions.radiusXxl),
-                      ),
-                      child: const Icon(
-                        Icons.sensors,
-                        color: AppColors.primary,
-                        size: AppDimensions.iconMd,
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     const SizedBox(width: AppDimensions.spacingLg),

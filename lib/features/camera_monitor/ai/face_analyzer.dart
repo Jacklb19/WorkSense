@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
@@ -339,7 +338,7 @@ class FaceAnalyzer {
       };
       return await compute(_convertCameraImageTask, data);
     } catch (e) {
-      print('[FaceAnalyzer] Error preparando CameraImage para isolate: $e');
+      debugPrint('[FaceAnalyzer] Error preparando CameraImage para isolate: $e');
       return null;
     }
   }
@@ -367,7 +366,7 @@ class FaceAnalyzer {
       }
       return null;
     } catch (e) {
-      print('[FaceAnalyzer] Error en _convertCameraImageTask: $e');
+      debugPrint('[FaceAnalyzer] Error en _convertCameraImageTask: $e');
       return null;
     }
   }

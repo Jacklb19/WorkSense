@@ -116,18 +116,23 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
             else
               const _LoadingView(),
 
-            if (kioskState.cameraInitialized)
-              CustomPaint(
-                painter: ActivityOverlayPainter(
-                  state: kioskState.currentState,
-                  confidence: kioskState.confidence,
-                  poses: kioskState.poses,
-                  faces: kioskState.faces,
-                  imageSize: kioskState.imageSize,
-                  identificationMethod: kioskState.identificationMethod,
-                  identityConfidence: kioskState.identityConfidence,
+            // Only draw the activity overlay when an enrolled employee is present.
+            // Without this guard, the SizedBox.expand() child blocks all taps on
+            // the enrollment UI and the landmark painter draws over its text.
+            if (kioskState.cameraInitialized && kioskState.isEmployeeScanned)
+              IgnorePointer(
+                child: CustomPaint(
+                  painter: ActivityOverlayPainter(
+                    state: kioskState.currentState,
+                    confidence: kioskState.confidence,
+                    poses: kioskState.poses,
+                    faces: kioskState.faces,
+                    imageSize: kioskState.imageSize,
+                    identificationMethod: kioskState.identificationMethod,
+                    identityConfidence: kioskState.identityConfidence,
+                  ),
+                  child: const SizedBox.expand(),
                 ),
-                child: const SizedBox.expand(),
               ),
 
             // OVERLAYS
@@ -172,7 +177,7 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
                     onExit: ref.read(kioskProvider.notifier).requestExit,
                   ),
                 ),
-            ] else if (kioskState.workstationStatus == 'ACTIVE') ...[
+            ] else if (kioskState.workstationStatus == 'ACTIVE' && kioskState.isEmployeeScanned) ...[
                Positioned(top: 64, left: 0, right: 0,
                  child: _IdentifyingHUD(isProcessing: kioskState.isProcessing),
                ),
@@ -196,7 +201,9 @@ class _IdentifyingHUD extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.overlayBadgeBg,
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.3),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -225,7 +232,7 @@ class _KioskTopHUD extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [AppColors.background.withAlpha(204), Colors.transparent]),
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent]),
       ),
       child: SafeArea(
         bottom: false,
@@ -238,7 +245,7 @@ class _KioskTopHUD extends StatelessWidget {
             Flexible(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: AppColors.primary.withAlpha(51), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.primary.withOpacity(0.5))),
+                decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.primary.withValues(alpha: 0.5))),
                 child: Text(
                   workstationId.length > 8 ? '${workstationId.substring(0, 8)}…' : workstationId,
                   overflow: TextOverflow.ellipsis,
@@ -265,7 +272,7 @@ class _KioskBottomHUD extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [Colors.black.withOpacity(0.8), Colors.transparent]),
+        gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent]),
       ),
       child: SafeArea(
         top: false,
@@ -310,7 +317,7 @@ class _SessionActionOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black.withOpacity(0.9),
+      color: Colors.black.withValues(alpha: 0.9),
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(40.0),
@@ -319,7 +326,7 @@ class _SessionActionOverlay extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle, border: Border.all(color: color.withOpacity(0.3), width: 2)),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle, border: Border.all(color: color.withValues(alpha: 0.3), width: 2)),
                 child: Icon(icon, size: 64, color: color),
               ),
               const SizedBox(height: 32),
@@ -375,7 +382,19 @@ class _NoProfileView extends StatelessWidget {
               FilledButton.icon(
                 icon: const Icon(Icons.camera_alt),
                 label: const Text('EMPEZAR CAPTURA'),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EmployeeScanScreen(workstationId: workstationId, employeeId: assignedEmployeeId!, onComplete: () { Navigator.pop(context); onScanComplete(); }))),
+                // EmployeeScanScreen pops itself on completion and then calls onComplete.
+                // Do NOT capture context here for Navigator.pop — let the enrollment
+                // screen handle its own lifecycle to avoid camera resource conflicts.
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => EmployeeScanScreen(
+                      workstationId: workstationId,
+                      employeeId: assignedEmployeeId!,
+                      onComplete: onScanComplete,
+                    ),
+                  ),
+                ),
               ),
           ],
         ),

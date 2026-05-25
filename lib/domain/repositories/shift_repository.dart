@@ -18,4 +18,7 @@ abstract class ShiftRepository {
 
   /// Asigna un turno a un empleado
   Future<void> assignShiftToEmployee(String employeeId, String shiftId);
+
+  /// Elimina un turno
+  Future<void> deleteShift(String shiftId);
 }

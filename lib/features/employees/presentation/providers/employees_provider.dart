@@ -21,18 +21,29 @@ final employeeRepositoryProvider = Provider<EmployeeRepository>((ref) {
 
 final employeesStreamProvider = StreamProvider<List<Employee>>((ref) {
   final repo = ref.watch(employeeRepositoryProvider);
-  return repo.watchEmployees();
+  final companyId = ref.watch(currentUserProvider).valueOrNull?.companyId;
+  if (companyId == null || companyId == AppConstants.defaultCompanyId) {
+    return repo.watchEmployees();
+  }
+  return repo.watchEmployeesByCompany(companyId);
 });
 
 final employeesProvider = FutureProvider<List<Employee>>((ref) async {
   final repo = ref.watch(employeeRepositoryProvider);
-  return repo.getEmployees();
+  final companyId = ref.watch(currentUserProvider).valueOrNull?.companyId;
+  if (companyId == null || companyId == AppConstants.defaultCompanyId) {
+    return repo.getEmployees();
+  }
+  return repo.getEmployeesByCompany(companyId);
 });
 
 Employee _mapRemoteEmployee(Map<String, dynamic> json) {
   return Employee(
     id: json['id'] as String,
-    name: '${json['name']} ${json['last_name'] ?? ''}'.trim(),
+    name: (json['name'] as String?) ?? '',
+    lastName: (json['last_name'] as String?) ?? '',
+    email: (json['email'] as String?) ?? '',
+    role: AppRoleX.fromRaw(json['role']),
     companyId: json['company_id'] as String,
     createdAt:
         DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now(),
@@ -44,9 +55,12 @@ Employee _mergeEmployee(Employee? local, Employee remote) {
   if (local == null) return remote;
   return local.copyWith(
     name: remote.name.isNotEmpty ? remote.name : local.name,
+    lastName: remote.lastName.isNotEmpty ? remote.lastName : local.lastName,
+    email: remote.email.isNotEmpty ? remote.email : local.email,
+    role: remote.role,
     companyId: remote.companyId,
     createdAt: remote.createdAt,
-    shiftId: remote.shiftId ?? local.shiftId,
+    shiftId: remote.shiftId,
   );
 }
 
@@ -60,7 +74,9 @@ final adminEmployeesProvider = FutureProvider<List<Employee>>((ref) async {
   final merged = <String, Employee>{};
 
   try {
-    final localEmployees = await repo.getEmployees();
+    final localEmployees = companyId == AppConstants.defaultCompanyId
+        ? await repo.getEmployees()
+        : await repo.getEmployeesByCompany(companyId);
     for (final employee in localEmployees) {
       merged[employee.id] = employee;
     }
@@ -123,7 +139,7 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormState> {
     required String lastName,
     required String email,
     required String password,
-    required String role,
+    required AppRole role,
     String? shiftId,
     String companyId = AppConstants.defaultCompanyId,
     String? existingId,
@@ -143,22 +159,24 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormState> {
           'password': password,
           'name': name,
           'lastName': lastName,
-          'role': role,
+          'role': role.metadataValue,
           'companyId': effectiveCompanyId,
           'shiftId': shiftId,
         });
       } else {
-        // Editing existing: usually handled differently based on exact needs, 
-        // but sticking to local saving for updates to avoid messing up the scope.
-        final employee = Employee(
-          id: existingId,
-          name: name.trim(),
-          companyId: effectiveCompanyId,
-          shiftId: shiftId,
-          createdAt: DateTime.now(),
-        );
-        await _localRepo.saveEmployee(employee);
+        await _supabase.updateEmployeeWithAuth({
+          'id': existingId,
+          'email': email,
+          'name': name,
+          'lastName': lastName,
+          'role': role.metadataValue,
+          'companyId': effectiveCompanyId,
+          'shiftId': shiftId,
+        });
       }
+
+      await _ref.read(syncNotifierProvider.notifier).sync();
+      _ref.invalidate(adminEmployeesProvider);
 
       state = state.copyWith(isLoading: false, saved: true);
     } catch (e) {

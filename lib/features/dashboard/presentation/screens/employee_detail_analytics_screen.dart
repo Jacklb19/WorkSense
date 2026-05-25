@@ -30,7 +30,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: detailAsync.whenOrNull(
           data: (EmployeeAnalytics? a) =>
-              Text(a?.employee.name ?? 'Empleado'),
+              Text(a?.employee.displayName ?? 'Empleado'),
         ) ?? const Text('Detalle'),
       ),
       body: detailAsync.when(
@@ -47,7 +47,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
           }
 
           if (!analytics.hasData) {
-            return _EmptyDetailView(name: analytics.employee.name);
+            return _EmptyDetailView(name: analytics.employee.displayName);
           }
 
           return CustomScrollView(
@@ -286,11 +286,19 @@ class _SummaryHeader extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  AppAvatar(
-                    radius: AppDimensions.avatarMd / 2,
-                    letter: analytics.employee.name.isNotEmpty
-                        ? analytics.employee.name[0]
-                        : '?',
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                    child: Text(
+                      analytics.employee.displayName.isNotEmpty
+                          ? analytics.employee.displayName[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: AppDimensions.spacingXl),
                   Expanded(
@@ -298,7 +306,7 @@ class _SummaryHeader extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          analytics.employee.name,
+                          analytics.employee.displayName,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),

@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+// Legacy function: keep out of the app flow. Clock in/out remains handled by the current app implementation.
 serve(async (req) => {
   // Configurar CORS
   const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }

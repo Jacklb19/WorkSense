@@ -71,10 +71,8 @@ class BodySignature {
     if (leftWrist == null || rightWrist == null) return null;
 
     // Puntos medios
-    final shoulderMidX = (leftShoulder!.x + rightShoulder!.x) / 2;
-    final shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
-    final hipMidX = (leftHip!.x + rightHip!.x) / 2;
-    final hipMidY = (leftHip.y + rightHip.y) / 2;
+    final shoulderMidY = (leftShoulder!.y + rightShoulder!.y) / 2;
+    final hipMidY = (leftHip!.y + rightHip!.y) / 2;
     final ankleMidY = (leftAnkle.y + rightAnkle.y) / 2;
 
     // shoulderToHipRatio: ancho de hombros / ancho de caderas

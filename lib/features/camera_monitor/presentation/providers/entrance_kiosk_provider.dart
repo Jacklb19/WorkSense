@@ -1,33 +1,39 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ui' show Size;
-import 'package:drift/drift.dart' as drift;
 import 'package:camera/camera.dart';
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show DeviceOrientation;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:worksense_app/core/constants/ai_thresholds.dart';
-
+import 'package:worksense_app/core/constants/app_constants.dart';
+import 'package:worksense_app/core/utils/biometric_utils.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
+import 'package:worksense_app/data/repositories/attendance_repository_impl.dart';
+import 'package:worksense_app/domain/repositories/attendance_repository.dart';
 import 'package:worksense_app/features/camera_monitor/ai/employee_profile.dart';
 import 'package:worksense_app/features/camera_monitor/ai/face_analyzer.dart';
 import 'package:worksense_app/features/camera_monitor/ai/face_embedding_service.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
-import 'package:worksense_app/data/repositories/attendance_repository_impl.dart';
-import 'package:worksense_app/data/repositories/sync_repository_impl.dart';
-import 'package:worksense_app/domain/repositories/attendance_repository.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 
 /// Describes the current phase of the entrance kiosk flow.
 enum KioskPhase {
   /// Initial boot / loading registry
   initializing,
+
   /// Camera active, scanning faces
   scanning,
-  /// Face recognized – showing welcome overlay
+
+  /// Blink passed, actively evaluating identity across multiple frames
+  verifying,
+
+  /// Face recognized â€“ showing welcome overlay
   welcome,
+
   /// Cooldown after welcome before re-enabling scanning
   cooldown,
 }
@@ -68,7 +74,8 @@ class EntranceKioskState {
       error: error ?? this.error,
       isProcessing: isProcessing ?? this.isProcessing,
       statusMessage: statusMessage ?? this.statusMessage,
-      lastMatchedEmployeeId: lastMatchedEmployeeId, // deliberately allow null reset
+      lastMatchedEmployeeId:
+          lastMatchedEmployeeId, // deliberately allow null reset
       matchedEmployeeName: matchedEmployeeName,
       matchedWorkstationName: matchedWorkstationName,
       phase: phase ?? this.phase,
@@ -89,8 +96,20 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   bool _disposed = false;
   bool _hasBlinked = false;
   DateTime _lastAnalysisTime = DateTime.fromMillisecondsSinceEpoch(0);
-  static const Duration _analysisInterval = Duration(milliseconds: 300);
-  
+
+  // ── Evidence window for multi-frame identity confirmation ──
+  /// Best score seen per employee across the current evidence window.
+  final Map<String, double> _evidenceBestScores = {};
+
+  /// Count of frames where each employee exceeded the match threshold.
+  final Map<String, int> _evidenceConfirmations = {};
+
+  /// Total frames evaluated in the current evidence window.
+  int _evidenceFrameCount = 0;
+
+  /// Number of near-match retries used in the current attempt.
+  int _nearMatchRetries = 0;
+
   static const Map<DeviceOrientation, int> _orientationMap = {
     DeviceOrientation.portraitUp: 0,
     DeviceOrientation.landscapeLeft: 90,
@@ -98,19 +117,26 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
     DeviceOrientation.landscapeRight: 270,
   };
 
-  // Cached registry: employeeId -> embedding
-  final Map<String, List<double>> _employeeRegistry = {};
+  // Cached registry: employeeId -> embeddings
+  final Map<String, List<List<double>>> _employeeRegistry = {};
+
   // Cached names: employeeId -> employee name
   final Map<String, String> _employeeNames = {};
+
   // Cached workstation names: employeeId -> workstation name
   final Map<String, String> _workstationNames = {};
+
   // Cached workstation IDs: employeeId -> workstation UUID
   final Map<String, String> _workstationIds = {};
-  
+
   // Timers for phase transitions
   Timer? _phaseTimer;
 
-  EntranceKioskNotifier(this._db, this._embeddingService, this._attendanceRepo) : super(const EntranceKioskState()) {
+  EntranceKioskNotifier(
+    this._db,
+    this._embeddingService,
+    this._attendanceRepo,
+  ) : super(const EntranceKioskState()) {
     _faceDetector = FaceDetector(
       options: FaceDetectorOptions(
         performanceMode: FaceDetectorMode.fast,
@@ -124,19 +150,45 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
   CameraController? get cameraController => _cameraController;
 
+  String? _getMetadataKey(Map<String, dynamic>? metadata, String key) {
+    if (metadata == null) return null;
+    final lowerKey = key.toLowerCase();
+    for (final k in metadata.keys) {
+      final lk = k.toLowerCase();
+      if (lk == lowerKey) {
+        return metadata[k]?.toString();
+      }
+    }
+    return null;
+  }
+
+  String? get _currentCompanyId {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return null;
+    final companyId = _getMetadataKey(user.appMetadata, 'company_id') ??
+        _getMetadataKey(user.userMetadata, 'company_id');
+    if (companyId == null || companyId.isEmpty || companyId == AppConstants.defaultCompanyId) {
+      return null;
+    }
+    return companyId;
+  }
+
   Future<void> initialize(List<CameraDescription> cameras) async {
     state = const EntranceKioskState(
       statusMessage: 'Cargando base de datos biométrica...',
       phase: KioskPhase.initializing,
     );
-    
+
     // 1. Load Embeddings
     await _embeddingService.initialize();
     await _loadRegistry();
 
     // 2. Start Camera
     if (cameras.isEmpty) {
-      state = state.copyWith(error: 'No cameras found.', statusMessage: 'Error');
+      state = state.copyWith(
+        error: 'No cameras found.',
+        statusMessage: 'Error',
+      );
       return;
     }
     final camera = cameras.firstWhere(
@@ -170,110 +222,168 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
     _employeeNames.clear();
     _workstationNames.clear();
     _workstationIds.clear();
+    final companyId = _currentCompanyId;
     int count = 0;
 
     // 1. Load employee names from local DB
-    await _loadEmployeeNames();
+    await _loadEmployeeNames(companyId: companyId);
 
     // 2. Intentar cargar desde la BD local
-    count = await _loadFromLocalDb();
+    count = await _loadFromLocalDb(companyId: companyId);
 
     // 3. Si no hay nada local, descargar directo de Supabase (fallback para CAMERA_MONITOR)
     if (count == 0) {
-      debugPrint('[ENTRANCE] BD local vacía. Descargando workstations de Supabase...');
-      state = state.copyWith(statusMessage: 'Descargando perfiles de la nube...');
-      try {
-        final client = Supabase.instance.client;
-        final response = await client.from('workstations').select();
-        final remoteWorkstations = List<Map<String, dynamic>>.from(response);
-        
-        debugPrint('[ENTRANCE] Recibidos ${remoteWorkstations.length} workstations de Supabase.');
-        
-        for (var w in remoteWorkstations) {
-          // Guardar en BD local para futuras consultas
-          await _db.insertWorkstationRecord(WorkstationRecordsCompanion(
-            id: drift.Value(w['id']),
-            name: drift.Value(w['name'] ?? 'Sin nombre'),
-            companyId: drift.Value(w['company_id']),
-            deviceId: drift.Value(w['device_id']),
-            assignedEmployeeId: drift.Value(w['assigned_employee_id']),
-            faceEmbeddings: drift.Value(w['face_embedding']?.toString()),
-            bodySignature: drift.Value(w['body_signature']?.toString()),
-            status: drift.Value(w['status'] ?? 'IDLE'),
-          ));
-          
-          // Cargar embedding directamente en memoria
-          if (w['assigned_employee_id'] != null && w['face_embedding'] != null) {
+      if (companyId == null || companyId.isEmpty) {
+        debugPrint(
+          '[ENTRANCE] Sin company_id valido. Se omite descarga remota.',
+        );
+        state = state.copyWith(
+          statusMessage: 'Sin compania configurada para cargar perfiles.',
+        );
+      } else {
+        debugPrint(
+          '[ENTRANCE] BD local vacía. Descargando workstations de Supabase...',
+        );
+        state = state.copyWith(
+          statusMessage: 'Descargando perfiles de la nube...',
+        );
+        try {
+          final client = Supabase.instance.client;
+          final response = await client
+              .from('workstations')
+              .select()
+              .eq('company_id', companyId);
+          final remoteWorkstations = List<Map<String, dynamic>>.from(response);
+
+          debugPrint(
+            '[ENTRANCE] Recibidos ${remoteWorkstations.length} workstations de Supabase.',
+          );
+
+          for (final w in remoteWorkstations) {
+            // Guardar en BD local para futuras consultas
+            await _db.insertWorkstationRecord(
+              WorkstationRecordsCompanion(
+                id: drift.Value(w['id']),
+                name: drift.Value(w['name'] ?? 'Sin nombre'),
+                companyId: drift.Value(w['company_id']),
+                deviceId: drift.Value(w['device_id']),
+                assignedEmployeeId: drift.Value(w['assigned_employee_id']),
+                faceEmbeddings:
+                    drift.Value(w['face_embedding']?.toString()),
+                bodySignature:
+                    drift.Value(w['body_signature']?.toString()),
+                status: drift.Value(w['status'] ?? 'IDLE'),
+              ),
+            );
+            if (w['roi'] != null) {
+              await _db.saveWorkstationRoi(
+                w['id'],
+                jsonEncode(w['roi']),
+              );
+            }
+
+            // Cargar embedding directamente en memoria
+            if (w['assigned_employee_id'] != null &&
+                w['face_embedding'] != null) {
+              try {
+                final embStr = w['face_embedding'].toString();
+                final embeddings =
+                    BiometricSerializer.deserializeMultipleEmbeddings(
+                  embStr,
+                );
+                if (embeddings != null && embeddings.isNotEmpty) {
+                  _employeeRegistry[w['assigned_employee_id']] =
+                      embeddings;
+                  _workstationNames[w['assigned_employee_id']] =
+                      w['name'] ?? 'Estación';
+                  _workstationIds[w['assigned_employee_id']] = w['id'];
+                  count++;
+                }
+              } catch (e) {
+                debugPrint('[ENTRANCE] Error decoding remote embedding: $e');
+              }
+            }
+          }
+
+          // Also try to load employee names from Supabase if not in local DB
+          if (_employeeNames.isEmpty) {
             try {
-              final embStr = w['face_embedding'].toString();
-              List<dynamic> jsonList = jsonDecode(embStr);
-              List<double> embedding = jsonList.map((e) => (e as num).toDouble()).toList();
-              if (embedding.isNotEmpty) {
-                _employeeRegistry[w['assigned_employee_id']] = embedding;
-                _workstationNames[w['assigned_employee_id']] = w['name'] ?? 'Estación';
-                _workstationIds[w['assigned_employee_id']] = w['id'];
-                count++;
+              final empResponse = await client
+                  .from('employees')
+                  .select('id, name, last_name')
+                  .eq('company_id', companyId);
+              final remoteEmployees =
+                  List<Map<String, dynamic>>.from(empResponse);
+              for (final emp in remoteEmployees) {
+                final fullName = [
+                  emp['name']?.toString() ?? '',
+                  emp['last_name']?.toString() ?? '',
+                ].where((part) => part.isNotEmpty).join(' ');
+                _employeeNames[emp['id']] =
+                    fullName.isNotEmpty ? fullName : 'Empleado';
               }
             } catch (e) {
-              debugPrint('[ENTRANCE] Error decoding remote embedding: $e');
+              debugPrint('[ENTRANCE] Error downloading employee names: $e');
             }
           }
+        } catch (e) {
+          debugPrint('[ENTRANCE] Error descargando de Supabase: $e');
         }
-
-        // Also try to load employee names from Supabase if not in local DB
-        if (_employeeNames.isEmpty) {
-          try {
-            final empResponse = await client.from('employees').select('id, name');
-            final remoteEmployees = List<Map<String, dynamic>>.from(empResponse);
-            for (var emp in remoteEmployees) {
-              _employeeNames[emp['id']] = emp['name'] ?? 'Empleado';
-            }
-          } catch (e) {
-            debugPrint('[ENTRANCE] Error downloading employee names: $e');
-          }
-        }
-      } catch (e) {
-        debugPrint('[ENTRANCE] Error descargando de Supabase: $e');
       }
     }
 
     // Actualizar UI
     if (count == 0) {
-      state = state.copyWith(statusMessage: 'Advertencia: 0 perfiles con biométricos.');
+      state = state.copyWith(
+        statusMessage: 'Advertencia: 0 perfiles con biométricos.',
+      );
     } else {
-      state = state.copyWith(statusMessage: 'Recepción activa ($count perfiles cargados).');
+      state = state.copyWith(
+        statusMessage: 'Recepción activa ($count perfiles cargados).',
+      );
     }
     debugPrint('[ENTRANCE] Cargados $count perfiles faciales en memoria.');
   }
 
-  Future<void> _loadEmployeeNames() async {
+  Future<void> _loadEmployeeNames({String? companyId}) async {
     try {
-      final employees = await _db.getAllEmployeeRecords();
-      for (var emp in employees) {
-        _employeeNames[emp.id] = emp.name;
+      final employees = companyId == null || companyId.isEmpty
+          ? await _db.getAllEmployeeRecords()
+          : await _db.getEmployeeRecordsByCompany(companyId);
+      for (final emp in employees) {
+        final fullName = [emp.name, emp.lastName]
+            .where((part) => part.isNotEmpty)
+            .join(' ');
+        _employeeNames[emp.id] = fullName.isNotEmpty ? fullName : emp.name;
       }
     } catch (e) {
       debugPrint('[ENTRANCE] Error loading employee names: $e');
     }
   }
 
-  Future<int> _loadFromLocalDb() async {
-    final workstations = await _db.getAllWorkstationRecords();
+  Future<int> _loadFromLocalDb({String? companyId}) async {
+    final workstations = companyId == null || companyId.isEmpty
+        ? await _db.getAllWorkstationRecords()
+        : await _db.getWorkstationRecordsByCompany(companyId);
     int count = 0;
-    
-    for (var w in workstations) {
+
+    for (final w in workstations) {
       if (w.assignedEmployeeId != null && w.faceEmbeddings != null) {
         try {
-          List<dynamic> jsonList = jsonDecode(w.faceEmbeddings!);
-          List<double> embedding = jsonList.map((e) => (e as num).toDouble()).toList();
-          if (embedding.isNotEmpty) {
-             _employeeRegistry[w.assignedEmployeeId!] = embedding;
-             _workstationNames[w.assignedEmployeeId!] = w.name;
-             _workstationIds[w.assignedEmployeeId!] = w.id;
-             count++;
+          final embeddings =
+              BiometricSerializer.deserializeMultipleEmbeddings(
+            w.faceEmbeddings!,
+          );
+          if (embeddings != null && embeddings.isNotEmpty) {
+            _employeeRegistry[w.assignedEmployeeId!] = embeddings;
+            _workstationNames[w.assignedEmployeeId!] = w.name;
+            _workstationIds[w.assignedEmployeeId!] = w.id;
+            count++;
           }
         } catch (e) {
-          debugPrint('[ENTRANCE] Error decoding embedding for ${w.assignedEmployeeId}: $e');
+          debugPrint(
+            '[ENTRANCE] Error decoding embedding for ${w.assignedEmployeeId}: $e',
+          );
         }
       }
     }
@@ -283,15 +393,21 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   void _startImageStream() {
     _cameraController?.startImageStream((image) {
       if (_disposed || _isAnalyzing) return;
-      // Only process frames during scanning phase
-      if (state.phase != KioskPhase.scanning) return;
-      
+      // Only process frames during scanning or verifying phase
+      if (state.phase != KioskPhase.scanning &&
+          state.phase != KioskPhase.verifying) {
+        return;
+      }
+
       final now = DateTime.now();
-      if (now.difference(_lastAnalysisTime) < _analysisInterval) return;
+      if (now.difference(_lastAnalysisTime).inMilliseconds <
+          AiThresholds.entranceFrameIntervalMs) {
+        return;
+      }
 
       _isAnalyzing = true;
       _lastAnalysisTime = now;
-      
+
       _processFrame(image).then((_) {
         _isAnalyzing = false;
       }).catchError((e) {
@@ -302,96 +418,240 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   }
 
   Future<void> _processFrame(CameraImage image) async {
-    if (state.phase != KioskPhase.scanning) return;
-    
+    if (state.phase != KioskPhase.scanning &&
+        state.phase != KioskPhase.verifying) {
+      return;
+    }
+
     try {
       final inputImage = _buildInputImage(image);
       if (inputImage == null) return;
 
       final faces = await _faceDetector.processImage(inputImage);
       if (faces.isEmpty || _disposed) {
+        // No face: if we were verifying, don't hard-reset — tolerate brief dropouts
+        if (state.phase == KioskPhase.verifying) {
+          _evidenceFrameCount++;
+          if (_evidenceFrameCount >=
+              AiThresholds.entranceEvidenceWindowSize) {
+            _resetEvidence();
+            state = state.copyWith(
+              statusMessage: 'Rostro no reconocido',
+              phase: KioskPhase.scanning,
+            );
+          }
+          return;
+        }
         if (state.statusMessage != 'Recepción Activa') {
-           state = state.copyWith(statusMessage: 'Recepción Activa');
-           _hasBlinked = false; // Reset blink
+          state = state.copyWith(statusMessage: 'Recepción Activa');
+          _hasBlinked = false;
         }
         return;
       }
 
-      final largestFace = faces.reduce((a, b) => 
-        (a.boundingBox.width * a.boundingBox.height) > (b.boundingBox.width * b.boundingBox.height) ? a : b);
+      final largestFace = faces.reduce(
+        (a, b) =>
+            (a.boundingBox.width * a.boundingBox.height) >
+                    (b.boundingBox.width * b.boundingBox.height)
+                ? a
+                : b,
+      );
+      final hasIntruder = faces.length > 1;
 
-      // --- CENTERING & LIVENESS RULES ---
-      // Check distance (size ratio)
+      // --- PRESENCE VALIDATION (decoupled from identity) ---
       final widthRatio = largestFace.boundingBox.width / image.width;
-      if (widthRatio < 0.25) {
+      if (widthRatio < AiThresholds.entranceMinFaceWidthRatio) {
         state = state.copyWith(statusMessage: 'Acércate a la cámara');
-        _hasBlinked = false;
-        return;
-      }
-      
-      // Check angles
-      if ((largestFace.headEulerAngleY?.abs() ?? 0) > 12 || (largestFace.headEulerAngleX?.abs() ?? 0) > 12) {
-        state = state.copyWith(statusMessage: 'Mira directamente de frente');
-        _hasBlinked = false;
+        // Don't reset blink or evidence for momentary distance issues
         return;
       }
 
-      // Blink Challenge
+      if ((largestFace.headEulerAngleY?.abs() ?? 0) >
+              AiThresholds.entranceMaxHeadAngle ||
+          (largestFace.headEulerAngleX?.abs() ?? 0) >
+              AiThresholds.entranceMaxHeadAngle) {
+        state = state.copyWith(statusMessage: 'Mira directamente de frente');
+        return;
+      }
+
+      // --- BLINK CHALLENGE (one-time gate, not reset on bad frames) ---
       if (!_hasBlinked) {
         final leftEyeOpen = largestFace.leftEyeOpenProbability ?? 1.0;
         final rightEyeOpen = largestFace.rightEyeOpenProbability ?? 1.0;
-        
-        debugPrint('[ENTRANCE] Eyes: L=${leftEyeOpen.toStringAsFixed(2)} R=${rightEyeOpen.toStringAsFixed(2)}');
-        
-        if (leftEyeOpen < 0.45 && rightEyeOpen < 0.45) {
+
+        if (leftEyeOpen < AiThresholds.entranceBlinkClosedThreshold &&
+            rightEyeOpen < AiThresholds.entranceBlinkClosedThreshold) {
           _hasBlinked = true;
-          state = state.copyWith(statusMessage: 'Verificado ✓ Identificando...');
+          _resetEvidence();
+          state = state.copyWith(
+            statusMessage: 'Verificado âœ“ Identificando...',
+            phase: KioskPhase.verifying,
+          );
         } else {
           state = state.copyWith(statusMessage: 'Parpadea para verificar');
-          return; // Wait for blink
+          return;
         }
       }
 
-      final cropped = await _faceAnalyzer.cropFaceFromCameraImageAsync(image, largestFace);
+      // --- IDENTITY EVALUATION (evidence window) ---
+      final cropped = await _faceAnalyzer.cropFaceFromCameraImageAsync(
+        image,
+        largestFace,
+      );
       if (cropped == null) return;
 
-      final incomingEmb = await _embeddingService.generateEmbedding(cropped);
-      
-      if (_employeeRegistry.isEmpty) {
-        state = state.copyWith(statusMessage: 'No hay empleados en BD. Sincroniza app o crea empleados.');
+      final cropQuality = await _faceAnalyzer.assessCropQuality(cropped);
+      if (cropQuality.overallScore < AiThresholds.enrollMinCropQuality) {
+        state = state.copyWith(statusMessage: 'Ajusta luz o posicion');
         return;
       }
 
-      String? bestMatchId;
-      double maxSim = 0.0;
+      final incomingEmb = await _embeddingService.generateEmbedding(cropped);
 
-      for (var entry in _employeeRegistry.entries) {
-        final sim = EmployeeProfile.cosineSimilarity(entry.value, incomingEmb);
-        if (sim > maxSim) {
-          maxSim = sim;
-          bestMatchId = entry.key;
+      if (_employeeRegistry.isEmpty) {
+        state = state.copyWith(statusMessage: 'No hay empleados registrados.');
+        return;
+      }
+
+      // Compare against all employees and all their stored embeddings
+      String? frameBestId;
+      double frameBestSim = 0.0;
+
+      for (final entry in _employeeRegistry.entries) {
+        double maxEmpSim = 0.0;
+        for (final storedEmb in entry.value) {
+          if (storedEmb.isEmpty || storedEmb.length != incomingEmb.length) {
+            continue;
+          }
+          final sim = EmployeeProfile.cosineSimilarity(
+            storedEmb,
+            incomingEmb,
+          );
+          if (sim > maxEmpSim) maxEmpSim = sim;
+        }
+
+        if (hasIntruder) {
+          maxEmpSim -= 0.03;
+        }
+
+        // Track best score ever seen for this employee in the window
+        final prevBest = _evidenceBestScores[entry.key] ?? 0.0;
+        if (maxEmpSim > prevBest) {
+          _evidenceBestScores[entry.key] = maxEmpSim;
+        }
+
+        // Count confirmations (frames above threshold)
+        if (maxEmpSim >= AiThresholds.entranceMatchThreshold) {
+          _evidenceConfirmations[entry.key] =
+              (_evidenceConfirmations[entry.key] ?? 0) + 1;
+        }
+
+        if (maxEmpSim > frameBestSim) {
+          frameBestSim = maxEmpSim;
+          frameBestId = entry.key;
         }
       }
 
-      // Strict Threshold for Entrance (0.80 recommended for fluent experience)
-      final threshold = 0.80; 
+      _evidenceFrameCount++;
+      debugPrint(
+        '[ENTRANCE] Frame $_evidenceFrameCount/${AiThresholds.entranceEvidenceWindowSize} — '
+        'best: ${frameBestSim.toStringAsFixed(3)} (${frameBestId ?? "?"}) | '
+        'confirmations: $_evidenceConfirmations',
+      );
 
-      if (maxSim >= threshold && bestMatchId != null) {
-         await _triggerEntrance(bestMatchId);
+      // Check if any employee reached required confirmations AND best-score floor.
+      // Both conditions must be met to prevent low-but-repeated scores from
+      // granting access (e.g. an impostor scoring 0.82 on 3 frames but never
+      // reaching a truly distinctive peak).
+      for (final entry in _evidenceConfirmations.entries) {
+        if (entry.value >= AiThresholds.entranceRequiredConfirmations) {
+          final bestScore = _evidenceBestScores[entry.key] ?? 0.0;
+          if (bestScore >= AiThresholds.entranceMinBestScore) {
+            debugPrint(
+              '[ENTRANCE] ✅ Match confirmed for ${entry.key} '
+              'with ${entry.value} confirmations, best=${bestScore.toStringAsFixed(3)}',
+            );
+            _resetEvidence();
+            await _triggerEntrance(entry.key);
+            return;
+          } else {
+            // Enough frames but peak not high enough — keep sampling.
+            debugPrint(
+              '[ENTRANCE] ⚠️ ${entry.key} reached ${entry.value} confirmations '
+              'but best score ${bestScore.toStringAsFixed(3)} < '
+              '${AiThresholds.entranceMinBestScore} — continuing...',
+            );
+          }
+        }
+      }
+
+      // Update status during verification
+      if (frameBestSim >= AiThresholds.entranceMatchThreshold) {
+        state = state.copyWith(statusMessage: 'Confirmando acceso...');
+      } else if (frameBestSim >=
+          AiThresholds.entranceMatchThreshold -
+              AiThresholds.entranceNearMatchMargin) {
+        state = state.copyWith(statusMessage: 'Verificando identidad...');
       } else {
-         state = state.copyWith(statusMessage: 'Rostro desconocido (Sim: %)');
-         _hasBlinked = false; // Require new blink on fail
+        state = state.copyWith(statusMessage: 'Identificando...');
+      }
+
+      // Check if evidence window exhausted
+      if (_evidenceFrameCount >= AiThresholds.entranceEvidenceWindowSize) {
+        // Check if there's a near-match that deserves one more try
+        final topEmployee = _evidenceBestScores.entries
+            .fold<MapEntry<String, double>?>(
+          null,
+          (best, e) => best == null || e.value > best.value ? e : best,
+        );
+
+        if (topEmployee != null &&
+            topEmployee.value >=
+                AiThresholds.entranceMatchThreshold -
+                    AiThresholds.entranceNearMatchMargin &&
+            (_evidenceConfirmations[topEmployee.key] ?? 0) >= 1 &&
+            _nearMatchRetries < AiThresholds.entranceMaxNearMatchRetries) {
+          // Near match with at least 1 confirmation — extend window once
+          _nearMatchRetries++;
+          _evidenceFrameCount =
+              0; // Reset frame counter for a clean extra window
+          debugPrint(
+            '[ENTRANCE] Near-match retry #$_nearMatchRetries for ${topEmployee.key} '
+            '(best=${topEmployee.value.toStringAsFixed(3)})',
+          );
+          return;
+        }
+
+        // No match found
+        debugPrint(
+          '[ENTRANCE] âŒ No match after ${AiThresholds.entranceEvidenceWindowSize} frames. '
+          'Best: ${topEmployee?.value.toStringAsFixed(3)} for ${topEmployee?.key}',
+        );
+        _resetEvidence();
+        _hasBlinked = false;
+        state = state.copyWith(
+          statusMessage: 'Rostro no reconocido',
+          phase: KioskPhase.scanning,
+        );
       }
     } catch (e) {
-      debugPrint('[ENTRANCE] Error: ');
+      debugPrint('[ENTRANCE] Error: $e');
     }
+  }
+
+  void _resetEvidence() {
+    _evidenceBestScores.clear();
+    _evidenceConfirmations.clear();
+    _evidenceFrameCount = 0;
+    _nearMatchRetries = 0;
   }
 
   Future<void> _triggerEntrance(String employeeId) async {
     // Immediately transition to welcome phase to stop all further processing
     final employeeName = _employeeNames[employeeId] ?? 'Empleado';
-    final workstationName = _workstationNames[employeeId] ?? 'Estación de Trabajo';
-    
+    final workstationName =
+        _workstationNames[employeeId] ?? 'Estación de Trabajo';
+
     state = EntranceKioskState(
       isReady: true,
       phase: KioskPhase.welcome,
@@ -410,16 +670,20 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
       // 1. Lógica de Asistencia (Clock IN / OUT)
       final openSession = await _attendanceRepo.getOpenSession(employeeId);
       final todaySessions = await _attendanceRepo.getTodaySessions(employeeId);
-      
+
       // Corregido: Buscar por el ID de la estación almacenado en cache, no por el nombre.
       final wsId = _workstationIds[employeeId];
-      final workstation = wsId != null ? await _db.getWorkstationById(wsId) : null;
+      final workstation =
+          wsId != null ? await _db.getWorkstationById(wsId) : null;
       final employee = await _db.getEmployeeRecordById(employeeId);
 
       if (openSession != null) {
         // Tiene sesión abierta -> CLOCK OUT
-        await _attendanceRepo.clockOut(employeeId: employeeId, workstationId: workstation?.id);
-        
+        await _attendanceRepo.clockOut(
+          employeeId: employeeId,
+          workstationId: workstation?.id,
+        );
+
         // Apagar estación
         await Supabase.instance.client
             .from('workstations')
@@ -428,14 +692,19 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
 
         final hour = DateTime.now().hour;
         final min = DateTime.now().minute.toString().padLeft(2, '0');
-        state = state.copyWith(statusMessage: '¡Hasta luego $employeeName! Sesión cerrada a las $hour:$min.');
-        debugPrint('[ENTRANCE] ✅ Clock-OUT y estación apagada para $employeeName');
+        state = state.copyWith(
+          statusMessage:
+              '¡Hasta luego $employeeName! Sesión cerrada a las $hour:$min.',
+        );
+        debugPrint(
+          '[ENTRANCE] ✅ Clock-OUT y estación apagada para $employeeName',
+        );
       } else {
         // No tiene sesión -> CLOCK IN
         await _attendanceRepo.clockIn(
-          employeeId: employeeId, 
-          companyId: employee?.companyId ?? '', 
-          workstationId: workstation?.id
+          employeeId: employeeId,
+          companyId: employee?.companyId ?? '',
+          workstationId: workstation?.id,
         );
 
         // Prender estación
@@ -444,30 +713,38 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
             .update({'status': 'ACTIVE', 'last_employee_id': employeeId})
             .eq('assigned_employee_id', employeeId);
 
-        // Mensaje personalizado 
-        final count = todaySessions.length + 1; // +1 porque el clock_in de arriba aun no lo refrescamos de la query previa a insertarlo
-        final timeStr = '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}';
-        
+        // Mensaje personalizado
+        final count = todaySessions.length +
+            1; // +1 porque el clock_in de arriba aun no lo refrescamos de la query previa a insertarlo
+        final timeStr =
+            '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}';
+
         String welcomeMsg;
         if (count == 1) {
-          welcomeMsg = '¡Bienvenido $employeeName!\nPrimera entrada a las $timeStr.';
+          welcomeMsg =
+              '¡Bienvenido $employeeName!\nPrimera entrada a las $timeStr.';
         } else {
-          welcomeMsg = '¡Hola de nuevo $employeeName!\nEntrada #$count del día a las $timeStr.';
+          welcomeMsg =
+              '¡Hola de nuevo $employeeName!\nEntrada #$count del día a las $timeStr.';
         }
 
         state = state.copyWith(statusMessage: welcomeMsg);
-        debugPrint('[ENTRANCE] ✅ Clock-IN y estación activada para $employeeName');
+        debugPrint(
+          '[ENTRANCE] ✅ Clock-IN y estación activada para $employeeName',
+        );
       }
     } catch (e) {
       debugPrint('[ENTRANCE] Supabase trigger / Asistencia error: $e');
-      state = state.copyWith(statusMessage: 'Reconocido, pero hubo un error de red.');
+      state = state.copyWith(
+        statusMessage: 'Reconocido, pero hubo un error de red.',
+      );
     }
 
     // After 5 seconds: transition to cooldown, then back to scanning
     _phaseTimer?.cancel();
     _phaseTimer = Timer(const Duration(seconds: 5), () {
       if (_disposed) return;
-      
+
       // Cooldown phase: brief transition before re-enabling scanner
       state = const EntranceKioskState(
         isReady: true,
@@ -499,10 +776,13 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
     if (defaultTargetPlatform == TargetPlatform.android) {
       final deviceOrientation = _cameraController!.value.deviceOrientation;
       int rotationCompensation = _orientationMap[deviceOrientation] ?? 0;
-      rotationCompensation = (sensorOrientation - rotationCompensation + 360) % 360;
-      rotation = InputImageRotationValue.fromRawValue(rotationCompensation) ?? InputImageRotation.rotation0deg;
+      rotationCompensation =
+          (sensorOrientation - rotationCompensation + 360) % 360;
+      rotation = InputImageRotationValue.fromRawValue(rotationCompensation) ??
+          InputImageRotation.rotation0deg;
     } else {
-      rotation = InputImageRotationValue.fromRawValue(sensorOrientation) ?? InputImageRotation.rotation0deg;
+      rotation = InputImageRotationValue.fromRawValue(sensorOrientation) ??
+          InputImageRotation.rotation0deg;
     }
 
     final rawFormat = image.format.raw;
@@ -545,7 +825,9 @@ final attendanceRepositoryProvider = Provider<AttendanceRepository>((ref) {
   return AttendanceRepositoryImpl(db, syncRepo);
 });
 
-final entranceKioskProvider = StateNotifierProvider.autoDispose<EntranceKioskNotifier, EntranceKioskState>((ref) {
+final entranceKioskProvider = StateNotifierProvider.autoDispose<
+    EntranceKioskNotifier,
+    EntranceKioskState>((ref) {
   return EntranceKioskNotifier(
     ref.watch(appDatabaseProvider),
     ref.watch(faceEmbeddingServiceProvider),
