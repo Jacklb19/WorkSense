@@ -16,9 +16,9 @@ class ActivityEventTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: AppDimensions.spacingMd),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppDimensions.spacingXxl),
         decoration: BoxDecoration(
           color: AppColors.cardDark,
           borderRadius: BorderRadius.circular(16),
@@ -27,14 +27,17 @@ class ActivityEventTile extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(AppDimensions.spacingMd),
               decoration: BoxDecoration(
                 color: event.state.color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Text(event.state.emoji, style: const TextStyle(fontSize: 16)),
+              child: Text(
+                event.state.emoji,
+                style: const TextStyle(fontSize: AppDimensions.fontTitle),
+              ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppDimensions.spacingXxl),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,27 +48,32 @@ class ActivityEventTile extends StatelessWidget {
                         event.state.label.toUpperCase(),
                         style: TextStyle(
                           color: event.state.color,
-                          fontSize: 11,
+                          fontSize: AppDimensions.fontSm,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.5,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppDimensions.spacingMd),
                       if (!event.synced)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppDimensions.spacingXs,
+                            vertical: AppDimensions.spacingXxs / 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.orange.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text('OFFLINE', style: TextStyle(color: Colors.orange, fontSize: 8, fontWeight: FontWeight.bold)),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppDimensions.spacingXs),
                   Text(
                     'CONFIANZA: ${(event.confidence * 100).round()}%',
-                    style: const TextStyle(color: Colors.white24, fontSize: 9, fontWeight: FontWeight.bold),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppColors.textDisabled,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -75,12 +83,18 @@ class ActivityEventTile extends StatelessWidget {
               children: [
                 Text(
                   _formatTimestamp(event.timestamp),
-                  style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.textDisabled,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 if (showWorkstationId)
-                   Text(
+                  Text(
                     'PUESTO ${event.workstationId.split('-').last.toUpperCase()}',
-                    style: const TextStyle(color: Colors.white10, fontSize: 8, fontWeight: FontWeight.bold),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppColors.textDisabled.withAlpha(40),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
               ],
             ),

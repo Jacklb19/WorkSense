@@ -75,7 +75,7 @@ class WorkstationsListScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/workstations/new'),
         backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: AppColors.white),
+        child: const Icon(Icons.add),
       ),
     );
   }

@@ -97,7 +97,7 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.background,
         body: Stack(
           fit: StackFit.expand,
           children: [

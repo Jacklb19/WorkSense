@@ -120,7 +120,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Colaborador eliminado'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success,
         ),
       );
       context.pop();
@@ -182,7 +182,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                       validator: (v) =>
                           (v == null || v.isEmpty) ? 'Campo requerido' : null,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppDimensions.spacingXxl),
                     TextFormField(
                       controller: _lastNameController,
                       decoration: const InputDecoration(
@@ -225,7 +225,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                         ),
                         validator: (v) =>
                             (v == null || v.length < 6)
-                                ? 'Mínimo 6 caracteres'
+                                ? 'Minimo 6 caracteres'
                                 : null,
                       ),
                     ],
@@ -291,7 +291,8 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                     ),
                     const SizedBox(height: 56),
                     FilledButton(
-                      onPressed: formState.isLoading ? null : _handleSubmit,
+                      onPressed:
+                          formState.isLoading ? null : _handleSubmit,
                       style: FilledButton.styleFrom(
                         minimumSize: const Size(double.infinity, 60),
                       ),
@@ -318,7 +319,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                       ),
                     ],
                     if (_isEditing) ...[
-                      const SizedBox(height: 32),
+                      const SizedBox(height: AppDimensions.spacing32),
                       OutlinedButton.icon(
                         onPressed: formState.isLoading ? null : _handleDelete,
                         icon: const Icon(
@@ -330,8 +331,10 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                           style: TextStyle(color: Colors.redAccent),
                         ),
                         style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 50),
-                          side: const BorderSide(color: Colors.redAccent),
+                          minimumSize:
+                              const Size(double.infinity, 50),
+                          side: const BorderSide(
+                              color: AppColors.error),
                         ),
                       ),
                     ],

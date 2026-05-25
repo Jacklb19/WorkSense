@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
@@ -227,8 +228,8 @@ class _BrandSection extends StatelessWidget {
       children: [
         // Logo con glow
         Container(
-          width: 80,
-          height: 80,
+          width: AppDimensions.loginLogoSize,
+          height: AppDimensions.loginLogoSize,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
             gradient: const LinearGradient(
@@ -281,6 +282,123 @@ class _BrandSection extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Widget _buildLoginForm(ThemeData theme, LoginState loginState) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextFormField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              labelText: 'CORREO DE ACCESO',
+              prefixIcon: Icon(Icons.alternate_email, size: 20),
+            ),
+            validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
+          ).animate().fadeIn(
+                delay: AppDimensions.animSlow,
+                duration: AppDimensions.animEntrance,
+              ),
+          const SizedBox(height: AppDimensions.spacing20),
+          TextFormField(
+            controller: _passwordController,
+            obscureText: _obscurePassword,
+            decoration: InputDecoration(
+              labelText: 'CONTRASENNA',
+              prefixIcon: const Icon(Icons.lock_outline, size: 20),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility
+                      : Icons.visibility_off,
+                  size: 18,
+                ),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
+              ),
+            ),
+            validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
+          ).animate().fadeIn(
+                delay: AppDimensions.animEntrance,
+                duration: AppDimensions.animEntrance,
+              ),
+          if (loginState.errorMessage != null) ...[
+            const SizedBox(height: AppDimensions.spacingXxl),
+            Text(
+              loginState.errorMessage!,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.error,
+              ),
+            ),
+          ],
+          const SizedBox(height: AppDimensions.spacing40),
+          _buildLoginButton(loginState),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoginButton(LoginState loginState) {
+    return Container(
+      width: double.infinity,
+      height: AppDimensions.buttonMinHeightLg,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: AppColors.gradientButton),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withAlpha(60),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
+        child: InkWell(
+          onTap: loginState.isLoading ? null : _handleLogin,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
+          child: Center(
+            child: AnimatedSwitcher(
+              duration: AppDimensions.animNormal,
+              child: loginState.isLoading
+                  ? const SizedBox(
+                      key: ValueKey('loading'),
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.white,
+                      ),
+                    )
+                  : const Text(
+                      key: ValueKey('text'),
+                      'INICIAR SESION',
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                        fontSize: 16,
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      ),
+    ).animate().fadeIn(
+          delay: AppDimensions.animEntrance + AppDimensions.animNormal,
+          duration: AppDimensions.animEntrance,
+        ).moveY(
+          begin: 10,
+          delay: AppDimensions.animEntrance + AppDimensions.animNormal,
+          duration: AppDimensions.animEntrance,
+          curve: Curves.easeOutCubic,
+        );
   }
 }
 

@@ -29,7 +29,14 @@ class MyActivityScreen extends ConsumerWidget {
           onRetry: () => ref.invalidate(employeeRecentEventsProvider),
         ),
         data: (events) {
-          if (events.isEmpty) return const _EmptyActivityView();
+          if (events.isEmpty) {
+            return const AppEmptyState(
+              icon: Icons.history_toggle_off,
+              title: 'SIN REGISTROS',
+              subtitle: 'La actividad reciente aparecera en este log.',
+              iconColor: AppColors.textDisabled,
+            );
+          }
 
           return ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

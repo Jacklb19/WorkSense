@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/domain/entities/activity_state.dart';
-import 'package:worksense_app/features/dashboard/domain/entities/employee_analytics.dart';
-import 'package:worksense_app/features/dashboard/presentation/providers/admin_analytics_provider.dart';
-import 'package:worksense_app/shared/widgets/loading_widget.dart';
+
+import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../domain/entities/activity_state.dart';
+import '../../../../shared/widgets/loading_widget.dart';
+import '../../../../shared/widgets/styled/app_empty_state.dart';
+import '../../domain/entities/employee_analytics.dart';
+import '../providers/admin_analytics_provider.dart';
 
 class AdminAnalyticsScreen extends ConsumerWidget {
   const AdminAnalyticsScreen({super.key});
@@ -17,10 +21,9 @@ class AdminAnalyticsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Analíticas'),
+        title: const Text('Analiticas'),
         centerTitle: false,
         actions: [
-          // Refresh
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Actualizar',
@@ -30,9 +33,13 @@ class AdminAnalyticsScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          // ── Date Range Toggle ──────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            padding: const EdgeInsets.fromLTRB(
+              AppDimensions.spacingXxl,
+              AppDimensions.spacingLg,
+              AppDimensions.spacingXxl,
+              AppDimensions.spacingXs,
+            ),
             child: Row(
               children: [
                 _DateChip(
@@ -42,7 +49,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                       .read(analyticsDateRangeProvider.notifier)
                       .state = AnalyticsDateRange.today,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppDimensions.spacingMd),
                 _DateChip(
                   label: 'Esta semana',
                   selected: dateRange == AnalyticsDateRange.thisWeek,
@@ -51,7 +58,6 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                       .state = AnalyticsDateRange.thisWeek,
                 ),
                 const Spacer(),
-                // Legend popover
                 IconButton(
                   icon: const Icon(Icons.info_outline, size: 20),
                   tooltip: 'Leyenda de estados',
@@ -60,49 +66,71 @@ class AdminAnalyticsScreen extends ConsumerWidget {
               ],
             ),
           ),
-
-          // ── Content ────────────────────────────────────────────
           Expanded(
             child: analyticsAsync.when(
               loading: () => const AppLoadingWidget(),
               error: (e, _) => Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(AppDimensions.spacing24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: AppColors.error,
-                        size: 48,
-                      ),
-                      const SizedBox(height: 16),
-                      Text('Error: $e',
-                          style: const TextStyle(color: AppColors.grey500),
-                          textAlign: TextAlign.center,
+                      Container(
+                        padding: const EdgeInsets.all(AppDimensions.spacingXl),
+                        decoration: BoxDecoration(
+                          color: AppColors.errorSoft,
+                          borderRadius: BorderRadius.circular(
+                            AppDimensions.radiusCard,
+                          ),
                         ),
+                        child: const Icon(
+                          Icons.error_outline,
+                          color: AppColors.error,
+                          size: AppDimensions.iconEmptyState,
+                        ),
+                      ),
+                      const SizedBox(height: AppDimensions.spacingXxl),
+                      Text(
+                        'Error: $e',
+                        style: const TextStyle(color: AppColors.textSecondary),
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 ),
               ),
               data: (analyticsList) {
                 if (analyticsList.isEmpty) {
-                  return const _EmptyView();
+                  return const AppEmptyState(
+                    icon: Icons.analytics_outlined,
+                    title: 'Sin datos de analiticas',
+                    subtitle:
+                        'Los datos apareceran cuando el sistema registre actividad de empleados.',
+                  );
                 }
                 return RefreshIndicator(
                   onRefresh: () async =>
                       ref.invalidate(employeeAnalyticsProvider),
                   child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppDimensions.spacingXxl,
+                      AppDimensions.spacingMd,
+                      AppDimensions.spacingXxl,
+                      AppDimensions.spacing80,
+                    ),
                     itemCount: analyticsList.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: AppDimensions.spacingXl),
                     itemBuilder: (context, index) =>
                         _EmployeeAnalyticsCard(
-                      analytics: analyticsList[index],
-                      onTap: () => context.push(
-                        '/analytics/${analyticsList[index].employee.id}',
-                      ),
-                    ),
+                          analytics: analyticsList[index],
+                          onTap: () => context.push(
+                            '/analytics/${analyticsList[index].employee.id}',
+                          ),
+                        ).animate().fadeIn(
+                              delay: (index * 60).ms,
+                              duration: AppDimensions.animEntrance,
+                            ),
                   ),
                 );
               },
@@ -114,36 +142,42 @@ class AdminAnalyticsScreen extends ConsumerWidget {
   }
 
   void _showLegend(BuildContext context) {
+    final theme = Theme.of(context);
     showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppDimensions.radiusModal)),
       ),
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppDimensions.spacing24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Leyenda de estados',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: theme.textTheme.titleMedium,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppDimensions.spacingXxl),
             ...ActivityState.values.map(
               (s) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppDimensions.spacingXs,
+                ),
                 child: Row(
                   children: [
                     Container(
-                      width: 16,
-                      height: 16,
+                      width: AppDimensions.spacingXxl,
+                      height: AppDimensions.spacingXxl,
                       decoration: BoxDecoration(
                         color: s.color,
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(
+                          AppDimensions.radiusSm,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppDimensions.spacingLg),
                     Text(s.label),
                   ],
                 ),
@@ -155,8 +189,6 @@ class AdminAnalyticsScreen extends ConsumerWidget {
     );
   }
 }
-
-// ── Date Range Chip ──────────────────────────────────────────────────────────
 
 class _DateChip extends StatelessWidget {
   final String label;
@@ -175,19 +207,17 @@ class _DateChip extends StatelessWidget {
       label: Text(label),
       selected: selected,
       onSelected: (_) => onTap(),
-      selectedColor: AppColors.primary.withValues(alpha: 0.15),
+      selectedColor: AppColors.primary.withAlpha(38),
       labelStyle: TextStyle(
-        color: selected ? AppColors.primary : AppColors.grey600,
+        color: selected ? AppColors.primary : AppColors.textSecondary,
         fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
       ),
       side: BorderSide(
-        color: selected ? AppColors.primary : AppColors.grey300,
+        color: selected ? AppColors.primary : AppColors.glassBorder,
       ),
     );
   }
 }
-
-// ── Employee Analytics Card ──────────────────────────────────────────────────
 
 class _EmployeeAnalyticsCard extends StatelessWidget {
   final EmployeeAnalytics analytics;
@@ -204,22 +234,24 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
     final emp = analytics.employee;
 
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
+        side: BorderSide(color: AppColors.glassBorder),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppDimensions.spacingXxl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 20,
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                    radius: AppDimensions.avatarSm / 2,
+                    backgroundColor: AppColors.primary.withAlpha(25),
                     child: Text(
                       emp.name.isNotEmpty
                           ? emp.name[0].toUpperCase()
@@ -227,11 +259,11 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
                       style: const TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                        fontSize: AppDimensions.fontTitleLg,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppDimensions.spacingLg),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,185 +276,82 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: AppDimensions.spacingXxs),
                         Text(
                           analytics.hasData
-                              ? '${analytics.totalEvents} eventos · ${_formatDuration(analytics.totalTrackedTime)}'
+                              ? '${analytics.totalEvents} eventos - ${_formatDuration(analytics.totalTrackedTime)}'
                               : 'Sin datos registrados',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.grey500,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  if (analytics.lastState != null) _StateDot(analytics.lastState!),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right, color: AppColors.grey400),
+                  const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.textDisabled,
+                  ),
                 ],
               ),
-
-              // Distribution bar
-              if (analytics.hasData) ...[
-                const SizedBox(height: 14),
-                _DistributionBar(analytics: analytics),
-                const SizedBox(height: 8),
-                _TopStatesRow(analytics: analytics),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Distribution Bar (horizontal stacked) ────────────────────────────────────
-
-class _DistributionBar extends StatelessWidget {
-  final EmployeeAnalytics analytics;
-
-  const _DistributionBar({required this.analytics});
-
-  @override
-  Widget build(BuildContext context) {
-    final totalSec = analytics.totalTrackedTime.inSeconds;
-    if (totalSec == 0) return const SizedBox.shrink();
-
-    // Build segments sorted by duration desc
-    final segments = analytics.stateDurations.entries.toList()
-      ..sort((a, b) => b.value.inSeconds.compareTo(a.value.inSeconds));
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: SizedBox(
-        height: 10,
-        child: Row(
-          children: segments.map((entry) {
-            final fraction = entry.value.inSeconds / totalSec;
-            if (fraction < 0.01) return const SizedBox.shrink();
-            return Expanded(
-              flex: (fraction * 1000).round(),
-              child: Container(color: entry.key.color),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Top States Row (labels below bar) ────────────────────────────────────────
-
-class _TopStatesRow extends StatelessWidget {
-  final EmployeeAnalytics analytics;
-
-  const _TopStatesRow({required this.analytics});
-
-  @override
-  Widget build(BuildContext context) {
-    final sorted = analytics.stateDurations.entries.toList()
-      ..sort((a, b) => b.value.inSeconds.compareTo(a.value.inSeconds));
-
-    final top = sorted.take(3);
-
-    return Row(
-      children: top.map((entry) {
-        final pct = (analytics.percentageFor(entry.key) * 100).round();
-        return Padding(
-          padding: const EdgeInsets.only(right: 12),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: entry.key.color,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '${entry.key.label} $pct%',
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: AppColors.grey600,
-                ),
+              const SizedBox(height: AppDimensions.spacingXxl),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _MiniStat(
+                    label: 'Tiempo total',
+                    value: _formatDuration(analytics.totalTrackedTime),
+                  ),
+                  _MiniStat(
+                    label: 'Eventos',
+                    value: '${analytics.totalEvents}',
+                  ),
+                  _MiniStat(
+                    label: 'Productividad',
+                    value: '${(analytics.percentageFor(ActivityState.trabajando) * 100).round()}%',
+                  ),
+                ],
               ),
             ],
           ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-// ── State Dot ────────────────────────────────────────────────────────────────
-
-class _StateDot extends StatelessWidget {
-  final ActivityState state;
-  const _StateDot(this.state);
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: state.label,
-      child: Container(
-        width: 12,
-        height: 12,
-        decoration: BoxDecoration(
-          color: state.color,
-          shape: BoxShape.circle,
         ),
       ),
     );
   }
+
+  String _formatDuration(Duration d) {
+    if (d.inHours > 0) {
+      return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
+    }
+    return '${d.inMinutes}m';
+  }
 }
 
-// ── Empty View ───────────────────────────────────────────────────────────────
+class _MiniStat extends StatelessWidget {
+  final String label;
+  final String value;
 
-class _EmptyView extends StatelessWidget {
-  const _EmptyView();
+  const _MiniStat({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.bar_chart_outlined,
-            size: 64,
-            color: AppColors.grey300,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Sin datos de analíticas',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.grey500,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Los datos aparecerán cuando el sistema\nregistre actividad de empleados.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.grey400,
-                ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+    return Column(
+      children: [
+        Text(
+          value,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+        ),
+        const SizedBox(height: AppDimensions.spacingXxs),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+        ),
+      ],
     );
   }
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-String _formatDuration(Duration d) {
-  if (d.inHours > 0) {
-    final mins = d.inMinutes.remainder(60);
-    return '${d.inHours}h ${mins}m';
-  }
-  return '${d.inMinutes}m';
 }

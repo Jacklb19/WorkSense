@@ -23,46 +23,56 @@ class ShiftsListScreen extends ConsumerWidget {
         onRefresh: () async => ref.invalidate(shiftsProvider),
         child: shiftsAsync.when(
           loading: () => const AppLoadingWidget(),
-          error: (e, trace) => Center(child: Text('Error: $e')),
+          error: (e, _) => Center(child: Text('Error: $e')),
           data: (shifts) {
             if (shifts.isEmpty) {
               return const _EmptyShiftsView();
             }
 
             return ListView.separated(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppDimensions.spacingXxl),
               itemCount: shifts.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, __) =>
+                  const SizedBox(height: AppDimensions.spacingLg),
               itemBuilder: (context, index) {
                 final shift = shifts[index];
                 final String startStr = '${shift.startTime.hour}:${shift.startTime.minute.toString().padLeft(2, '0')}';
                 final String endStr = '${shift.endTime.hour}:${shift.endTime.minute.toString().padLeft(2, '0')}';
 
                 return Card(
-                  elevation: 2,
+                  elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: AppColors.glassBorder),
+                    borderRadius:
+                        BorderRadius.circular(AppDimensions.radiusRound),
+                    side: BorderSide(color: AppColors.glassBorder),
                   ),
                   child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppDimensions.spacing24,
+                      vertical: AppDimensions.spacingLg,
+                    ),
                     leading: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(AppDimensions.spacingLg),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.schedule, color: AppColors.primary),
                     ),
                     title: Text(
                       shift.name,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
+                      padding: const EdgeInsets.only(
+                        top: AppDimensions.spacingXs,
+                      ),
                       child: Text(
                         '$startStr - $endStr',
-                        style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.grey500),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
                     trailing: Row(

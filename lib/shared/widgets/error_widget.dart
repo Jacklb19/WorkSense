@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
+
+import '../../core/constants/app_dimensions.dart';
+import '../../core/theme/app_colors.dart';
 
 class AppErrorWidget extends StatelessWidget {
   final String message;
@@ -42,7 +44,7 @@ class AppErrorWidget extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppDimensions.spacingXxl),
             Text(
               message,
               style: const TextStyle(

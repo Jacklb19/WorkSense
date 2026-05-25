@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+
+import '../../core/constants/app_dimensions.dart';
+import '../../core/theme/app_colors.dart';
 
 class AppLoadingWidget extends StatefulWidget {
   final String? message;
@@ -95,7 +98,7 @@ class InlineLoadingWidget extends StatelessWidget {
 
   const InlineLoadingWidget({
     super.key,
-    this.size = 20,
+    this.size = 20.0,
     this.color,
   });
 
@@ -105,7 +108,7 @@ class InlineLoadingWidget extends StatelessWidget {
       width: size,
       height: size,
       child: CircularProgressIndicator(
-        strokeWidth: 2,
+        strokeWidth: AppDimensions.progressStrokeWidth,
         color: color ?? AppColors.primary,
       ),
     );

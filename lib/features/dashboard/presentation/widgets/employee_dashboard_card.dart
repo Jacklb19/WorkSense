@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/core/constants/app_routes.dart';
-import 'package:worksense_app/domain/entities/employee.dart';
-import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
-import 'package:worksense_app/features/dashboard/presentation/providers/admin_analytics_provider.dart';
-import 'package:worksense_app/features/camera_monitor/presentation/widgets/state_badge_widget.dart';
+
+import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/constants/app_routes.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../domain/entities/employee.dart';
+import '../../../camera_monitor/presentation/widgets/state_badge_widget.dart';
+import '../../presentation/providers/admin_analytics_provider.dart';
+import '../../presentation/providers/shifts_provider.dart';
 
 class EmployeeDashboardCard extends ConsumerWidget {
   final Employee employee;
@@ -263,7 +266,10 @@ class EmployeeDashboardCard extends ConsumerWidget {
           ),
         ),
       ),
-    );
+    ).animate().fadeIn(
+          duration: AppDimensions.animEntrance,
+          curve: Curves.easeOutCubic,
+        );
   }
 }
 

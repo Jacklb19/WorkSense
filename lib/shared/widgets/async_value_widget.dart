@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:worksense_app/shared/widgets/error_widget.dart';
-import 'package:worksense_app/shared/widgets/loading_widget.dart';
 
-/// Generic widget that handles AsyncValue states
+import 'error_widget.dart';
+import 'loading_widget.dart';
+
 class AsyncValueWidget<T> extends StatelessWidget {
   final AsyncValue<T> value;
   final Widget Function(T data) builder;
-  final Widget? loadingWidget;
   final Widget Function(Object error, StackTrace? stack)? errorBuilder;
+  final Widget? loadingWidget;
 
   const AsyncValueWidget({
     super.key,
     required this.value,
     required this.builder,
-    this.loadingWidget,
     this.errorBuilder,
+    this.loadingWidget,
   });
 
   @override
@@ -33,7 +33,6 @@ class AsyncValueWidget<T> extends StatelessWidget {
   }
 }
 
-/// AsyncValue widget that shows data immediately while refreshing
 class AsyncValueSliver<T> extends StatelessWidget {
   final AsyncValue<T> value;
   final Widget Function(T data) builder;

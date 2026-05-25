@@ -235,7 +235,7 @@ class _EmptyHoursView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(40),
+        padding: const EdgeInsets.all(AppDimensions.spacing40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

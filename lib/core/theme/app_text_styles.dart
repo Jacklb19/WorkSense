@@ -1,143 +1,187 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
-/// Estilos de texto centralizados de WorkSense.
-/// Basados en Material 3 TextTheme para compatibilidad con ThemeData.
 abstract final class AppTextStyles {
-  // ── Display ───────────────────────────────────────────────
+  // ── Display ──────────────────────────────────────────────────
   static const TextStyle displayLarge = TextStyle(
-    fontSize: 57,
-    fontWeight: FontWeight.w400,
-    letterSpacing: -0.25,
-    color: AppColors.textPrimaryLight,
+    fontSize: 48,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -1.0,
+    fontFamily: 'SpaceGrotesk',
   );
-
   static const TextStyle displayMedium = TextStyle(
-    fontSize: 45,
-    fontWeight: FontWeight.w400,
-    color: AppColors.textPrimaryLight,
+    fontSize: 40,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.5,
+    fontFamily: 'SpaceGrotesk',
   );
-
   static const TextStyle displaySmall = TextStyle(
-    fontSize: 36,
-    fontWeight: FontWeight.w400,
-    color: AppColors.textPrimaryLight,
-  );
-
-  // ── Headline ──────────────────────────────────────────────
-  static const TextStyle headlineLarge = TextStyle(
     fontSize: 32,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimaryLight,
+    fontWeight: FontWeight.w700,
+    fontFamily: 'SpaceGrotesk',
   );
 
-  static const TextStyle headlineMedium = TextStyle(
+  // ── Headline ─────────────────────────────────────────────────
+  static const TextStyle headlineLarge = TextStyle(
     fontSize: 28,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimaryLight,
+    fontWeight: FontWeight.w700,
+    fontFamily: 'Inter',
   );
-
-  static const TextStyle headlineSmall = TextStyle(
+  static const TextStyle headlineMedium = TextStyle(
     fontSize: 24,
+    fontWeight: FontWeight.w700,
+    fontFamily: 'Inter',
+  );
+  static const TextStyle headlineSmall = TextStyle(
+    fontSize: 20,
     fontWeight: FontWeight.w600,
-    color: AppColors.textPrimaryLight,
+    fontFamily: 'Inter',
   );
 
-  // ── Title ─────────────────────────────────────────────────
+  // ── Title ────────────────────────────────────────────────────
   static const TextStyle titleLarge = TextStyle(
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: FontWeight.w600,
-    color: AppColors.textPrimaryLight,
+    fontFamily: 'Inter',
   );
-
   static const TextStyle titleMedium = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w600,
-    letterSpacing: 0.15,
-    color: AppColors.textPrimaryLight,
+    fontFamily: 'Inter',
   );
-
   static const TextStyle titleSmall = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.w600,
-    letterSpacing: 0.1,
-    color: AppColors.textPrimaryLight,
+    fontFamily: 'Inter',
   );
 
-  // ── Body ──────────────────────────────────────────────────
+  // ── Body ─────────────────────────────────────────────────────
   static const TextStyle bodyLarge = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w400,
-    letterSpacing: 0.5,
-    color: AppColors.textPrimaryLight,
+    fontFamily: 'Inter',
   );
-
   static const TextStyle bodyMedium = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.w400,
-    letterSpacing: 0.25,
-    color: AppColors.textPrimaryLight,
+    fontFamily: 'Inter',
   );
-
   static const TextStyle bodySmall = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w400,
-    letterSpacing: 0.4,
-    color: AppColors.textSecondaryLight,
+    fontFamily: 'Inter',
   );
 
-  // ── Label ─────────────────────────────────────────────────
+  // ── Label ────────────────────────────────────────────────────
   static const TextStyle labelLarge = TextStyle(
     fontSize: 14,
-    fontWeight: FontWeight.w500,
-    letterSpacing: 0.1,
-    color: AppColors.textPrimaryLight,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.5,
+    fontFamily: 'Inter',
   );
-
   static const TextStyle labelMedium = TextStyle(
     fontSize: 12,
-    fontWeight: FontWeight.w500,
-    letterSpacing: 0.5,
-    color: AppColors.textPrimaryLight,
-  );
-
-  static const TextStyle labelSmall = TextStyle(
-    fontSize: 11,
-    fontWeight: FontWeight.w500,
-    letterSpacing: 0.5,
-    color: AppColors.textSecondaryLight,
-  );
-
-  // ── Específicos de WorkSense ───────────────────────────────
-
-  /// Badge de estado del AI (TRABAJANDO, AUSENTE, etc.)
-  static const TextStyle stateBadge = TextStyle(
-    fontSize: 13,
-    fontWeight: FontWeight.w700,
-    letterSpacing: 1.2,
-    color: AppColors.white,
-  );
-
-  /// Porcentaje grande en tarjetas de productividad
-  static const TextStyle productivityScore = TextStyle(
-    fontSize: 48,
-    fontWeight: FontWeight.w700,
-    color: AppColors.primary,
-  );
-
-  /// Etiqueta de rol de usuario (chip)
-  static const TextStyle roleChip = TextStyle(
-    fontSize: 11,
     fontWeight: FontWeight.w600,
-    letterSpacing: 0.8,
-    color: AppColors.white,
+    letterSpacing: 0.5,
+    fontFamily: 'Inter',
+  );
+  static const TextStyle labelSmall = TextStyle(
+    fontSize: 10,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.5,
+    fontFamily: 'Inter',
   );
 
-  /// Contador de sync pendientes
-  static const TextStyle syncCounter = TextStyle(
+  // ── Seccion ──────────────────────────────────────────────────
+  static const TextStyle sectionLabel = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 1.5,
+    color: AppColors.primary,
+    fontFamily: 'Inter',
+  );
+
+  // ── Card ─────────────────────────────────────────────────────
+  static const TextStyle cardTitle = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    fontFamily: 'Inter',
+  );
+  static const TextStyle cardSubtitle = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w500,
-    color: AppColors.textSecondaryLight,
+    color: AppColors.textSecondary,
+    fontFamily: 'Inter',
+  );
+
+  // ── Nav ──────────────────────────────────────────────────────
+  static const TextStyle navBarLabel = TextStyle(
+    fontSize: 10,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.3,
+    fontFamily: 'Inter',
+  );
+
+  // ── Stats ────────────────────────────────────────────────────
+  static const TextStyle statValue = TextStyle(
+    fontSize: 28,
+    fontWeight: FontWeight.w800,
+    color: AppColors.primary,
+    fontFamily: 'SpaceGrotesk',
+  );
+  static const TextStyle statLabel = TextStyle(
+    fontSize: 10,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textSecondary,
+    letterSpacing: 0.8,
+    fontFamily: 'Inter',
+  );
+
+  // ── Badges ───────────────────────────────────────────────────
+  static const TextStyle badgeText = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0.8,
+    color: AppColors.white,
+    fontFamily: 'Inter',
+  );
+
+  // ── Kiosk ────────────────────────────────────────────────────
+  static const TextStyle kioskTitle = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w900,
+    letterSpacing: 2.0,
+    color: AppColors.white,
+    fontFamily: 'SpaceGrotesk',
+  );
+  static const TextStyle kioskSubtitle = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textSecondary,
+    fontFamily: 'Inter',
+  );
+
+  // ── Botones ──────────────────────────────────────────────────
+  static const TextStyle buttonText = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 1.0,
+    color: AppColors.white,
+    fontFamily: 'Inter',
+  );
+
+  // ── Empty State ──────────────────────────────────────────────
+  static const TextStyle emptyTitle = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textSecondary,
+    fontFamily: 'Inter',
+  );
+  static const TextStyle emptySubtitle = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w400,
+    color: AppColors.textDisabled,
+    fontFamily: 'Inter',
   );
 
   AppTextStyles._();

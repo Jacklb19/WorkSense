@@ -1,8 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/core/navigation/nav_destination.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+
+import '../../core/theme/app_animations.dart';
+import '../../core/theme/app_colors.dart';
+import 'nav_destination.dart';
 
 class AppBottomNavBar extends StatefulWidget {
   final List<NavDestination> destinations;

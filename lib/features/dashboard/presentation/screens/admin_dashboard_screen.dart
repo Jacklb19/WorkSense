@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
@@ -146,7 +147,9 @@ class AdminDashboardScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: AppDimensions.spacing100),
+                    ),
                   ],
                 );
               },
@@ -582,9 +585,10 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppDimensions.spacing24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

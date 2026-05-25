@@ -66,6 +66,11 @@ dependencies:
   # ── Variables de entorno ─────────────────────────────────────
   flutter_dotenv: ^5.2.1
 
+  # ── Animaciones y diseno ─────────────────────────────────────
+  flutter_animate: ^4.5.0
+  rive: ^0.14.0
+  google_fonts: ^6.2.1
+
   # ── Utilidades generales ─────────────────────────────────────
   intl: ^0.20.2
   uuid: ^4.4.2

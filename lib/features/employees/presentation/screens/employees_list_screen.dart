@@ -1,12 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:worksense_app/core/constants/app_routes.dart';
-import 'package:worksense_app/core/constants/app_strings.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
-import 'package:worksense_app/shared/providers/sync_state_provider.dart';
-import 'package:worksense_app/shared/widgets/loading_widget.dart';
 import 'package:intl/intl.dart';
 
 class EmployeesListScreen extends ConsumerStatefulWidget {
@@ -98,7 +92,11 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
                   .toList();
 
           if (employees.isEmpty) {
-            return const _EmptyEmployeesView();
+            return const AppEmptyState(
+              icon: Icons.people_outline,
+              title: AppStrings.noEmployees,
+              subtitle: AppStrings.addEmployeeHint,
+            );
           }
 
           if (filtered.isEmpty) {
@@ -144,8 +142,8 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
                       ? employee.email
                       : 'Registrado el ${DateFormat('dd/MM/yyyy').format(employee.createdAt)}',
                   style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.grey500,
+                    fontSize: AppDimensions.fontCaption,
+                    color: AppColors.textSecondary,
                   ),
                 ),
                 onTap: () => _navigateToEdit(context, ref, employee.id),
@@ -155,7 +153,6 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
                     switch (value) {
                       case 'edit':
                         _navigateToEdit(context, ref, employee.id);
-                        break;
                       case 'delete':
                         await _confirmAndDelete(
                             context, ref, employee.id, employee.displayName);
@@ -169,7 +166,7 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
                         children: [
                           Icon(Icons.edit_outlined,
                               color: AppColors.primary, size: 18),
-                          SizedBox(width: 8),
+                          SizedBox(width: AppDimensions.spacingMd),
                           Text('Editar'),
                         ],
                       ),
@@ -180,7 +177,7 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
                         children: [
                           Icon(Icons.delete_outline,
                               color: AppColors.error, size: 18),
-                          SizedBox(width: 8),
+                          SizedBox(width: AppDimensions.spacingMd),
                           Text(
                             AppStrings.delete,
                             style: TextStyle(color: AppColors.error),
@@ -220,8 +217,8 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text(AppStrings.deleteEmployee),
-            content:
-                Text('¿Eliminar a "$name"? Esta acción no se puede deshacer.'),
+            content: Text(
+                'Eliminar a "$name"? Esta accion no se puede deshacer.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
@@ -229,8 +226,8 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                style:
-                    FilledButton.styleFrom(backgroundColor: AppColors.error),
+                style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.error),
                 child: const Text(AppStrings.delete),
               ),
             ],
@@ -268,37 +265,5 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
         );
       }
     }
-  }
-}
-
-class _EmptyEmployeesView extends StatelessWidget {
-  const _EmptyEmployeesView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.people_outline,
-            size: 64,
-            color: AppColors.grey300,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            AppStrings.noEmployees,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.grey500,
-                ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            AppStrings.addEmployeeHint,
-            style: TextStyle(color: AppColors.grey400, fontSize: 13),
-          ),
-        ],
-      ),
-    );
   }
 }
