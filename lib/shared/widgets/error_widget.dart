@@ -10,46 +10,59 @@ class AppErrorWidget extends StatelessWidget {
     super.key,
     required this.message,
     this.onRetry,
-    this.icon = Icons.error_outline,
+    this.icon = Icons.error_outline_rounded,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: AppColors.error,
-              size: 48,
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppColors.error.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Icon(icon, color: AppColors.error, size: 32),
             ),
-            const SizedBox(height: 16),
-            Text(
+            const SizedBox(height: 20),
+            const Text(
               'Algo salió mal',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+              style: TextStyle(
+                color: AppColors.textPrimaryDark,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               message,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.grey500,
+              style: const TextStyle(
+                color: AppColors.textSecondaryDark,
+                fontSize: 13,
               ),
               textAlign: TextAlign.center,
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
             ),
             if (onRetry != null) ...[
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               FilledButton.icon(
                 onPressed: onRetry,
-                icon: const Icon(Icons.refresh),
+                icon: const Icon(Icons.refresh_rounded, size: 16),
                 label: const Text('Reintentar'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  minimumSize: const Size(160, 46),
+                ),
               ),
             ],
           ],
@@ -59,7 +72,7 @@ class AppErrorWidget extends StatelessWidget {
   }
 }
 
-/// Inline error banner (not full-screen)
+/// Error banner inline (no full-screen)
 class ErrorBannerWidget extends StatelessWidget {
   final String message;
   final VoidCallback? onDismiss;
@@ -73,33 +86,33 @@ class ErrorBannerWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.errorBg,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+        color: AppColors.error.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, color: AppColors.error, size: 18),
-          const SizedBox(width: 8),
+          const Icon(Icons.error_outline_rounded,
+              color: AppColors.error, size: 17),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
               style: const TextStyle(
                 color: AppColors.error,
-                fontSize: 13,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
           if (onDismiss != null)
-            IconButton(
-              icon: const Icon(Icons.close, size: 16),
-              color: AppColors.error,
-              onPressed: onDismiss,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+            GestureDetector(
+              onTap: onDismiss,
+              child: const Icon(Icons.close_rounded,
+                  size: 16, color: AppColors.error),
             ),
         ],
       ),

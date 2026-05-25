@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
 
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/presentation/splash_screen.dart';
 import 'shared/services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicializar datos de locale para intl (DateFormat, etc.)
+  await initializeDateFormatting('es', null);
 
   // Cargar variables de entorno
   await dotenv.load(fileName: '.env', mergeWith: Platform.environment);
@@ -42,11 +47,18 @@ Future<void> main() async {
   );
 }
 
-class WorkSenseApp extends ConsumerWidget {
+class WorkSenseApp extends ConsumerStatefulWidget {
   const WorkSenseApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WorkSenseApp> createState() => _WorkSenseAppState();
+}
+
+class _WorkSenseAppState extends ConsumerState<WorkSenseApp> {
+  bool _showSplash = true;
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
@@ -55,6 +67,19 @@ class WorkSenseApp extends ConsumerWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       routerConfig: router,
+      builder: (context, child) {
+        return Stack(
+          children: [
+            child ?? const SizedBox.shrink(),
+            if (_showSplash)
+              SplashOverlay(
+                onDone: () {
+                  if (mounted) setState(() => _showSplash = false);
+                },
+              ),
+          ],
+        );
+      },
     );
   }
 }

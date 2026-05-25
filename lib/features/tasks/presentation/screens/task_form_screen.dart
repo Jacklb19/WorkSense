@@ -6,6 +6,8 @@ import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/domain/entities/task_item.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
+// adminEmployeesProvider hace merge local + remoto Supabase, por lo que
+// incluye empleados recién creados aunque aún no hayan sincronizado a Drift.
 import 'package:worksense_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
@@ -65,7 +67,10 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final employeesAsync = ref.watch(employeesProvider);
+    // adminEmployeesProvider = merge local Drift + Supabase remoto.
+    // Garantiza que los empleados recién creados aparezcan aunque aún
+    // no hayan sincronizado a la DB local.
+    final employeesAsync = ref.watch(adminEmployeesProvider);
     final isEdit = widget.taskId != null;
 
     return Scaffold(
@@ -95,8 +100,41 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
       ),
       body: employeesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) =>
-            Center(child: Text('$e', style: const TextStyle(color: AppColors.error))),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.group_off_outlined,
+                    color: AppColors.error, size: 40),
+                const SizedBox(height: 12),
+                const Text(
+                  'No se pudo cargar la lista de empleados.',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Verifica tu conexión e intenta de nuevo.',
+                  style: TextStyle(color: Colors.white54, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  onPressed: () => ref.invalidate(adminEmployeesProvider),
+                  icon: const Icon(Icons.refresh, size: 16),
+                  label: const Text('Reintentar'),
+                  style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary),
+                ),
+              ],
+            ),
+          ),
+        ),
         data: (employees) => _buildForm(context, employees),
       ),
     );

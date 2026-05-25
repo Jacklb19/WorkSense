@@ -20,7 +20,6 @@ class EmployeeDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final userState = ref.watch(currentUserProvider);
     final userEmail = userState.valueOrNull?.user?.email ?? AppStrings.employee;
 
@@ -35,124 +34,169 @@ class EmployeeDashboardScreen extends ConsumerWidget {
         ],
       ),
       body: RefreshIndicator(
+        color: AppColors.primary,
+        backgroundColor: AppColors.surfaceDark,
         onRefresh: () async {
           ref.invalidate(employeeAssignedWorkstationProvider);
           ref.invalidate(employeeTodayAnalyticsProvider);
-          // employeeRecentEventsProvider is a stream so it updates automatically
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header
-              Text(
-                'Hola, $userEmail',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+              // ── Header con gradiente ──────────────────────────────────
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.primary.withValues(alpha: 0.10),
+                      AppColors.backgroundDark,
+                    ],
+                  ),
+                  border: const Border(
+                    bottom: BorderSide(color: AppColors.glassBorder, width: 0.6),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _greeting(),
+                      style: const TextStyle(
+                        color: AppColors.textSecondaryDark,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      userEmail,
+                      style: const TextStyle(
+                        color: AppColors.textPrimaryDark,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      AppStrings.todaySummary,
+                      style: const TextStyle(
+                        color: AppColors.textSecondaryDark,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                AppStrings.todaySummary,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.grey500,
-                ),
-              ),
-              const SizedBox(height: 24),
 
-              // Section 1: Assigned Workstation
-              const Text(
-                AppStrings.assignedWorkstation,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  color: AppColors.grey600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const _AssignedWorkstationSection(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const _SectionHeader(label: AppStrings.assignedWorkstation,
+                        icon: Icons.desktop_windows_rounded),
+                    const SizedBox(height: 10),
+                    const _AssignedWorkstationSection(),
+                    const SizedBox(height: 24),
 
-              // Section 2: Personal Productivity
-              const Text(
-                AppStrings.myProductivityToday,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  color: AppColors.grey600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const _PersonalProductivitySection(),
-              const SizedBox(height: 24),
+                    const _SectionHeader(label: AppStrings.myProductivityToday,
+                        icon: Icons.bar_chart_rounded),
+                    const SizedBox(height: 10),
+                    const _PersonalProductivitySection(),
+                    const SizedBox(height: 24),
 
-              // Section 3: Recent Activity Feed
-              const Text(
-                AppStrings.recentActivityLive,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  color: AppColors.grey600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const _RecentActivitySection(),
-              const SizedBox(height: 24),
+                    const _SectionHeader(label: AppStrings.recentActivityLive,
+                        icon: Icons.history_rounded),
+                    const SizedBox(height: 10),
+                    const _RecentActivitySection(),
+                    const SizedBox(height: 24),
 
-              // Section 4: Task Mini Widget
-              const Text(
-                'MIS TAREAS',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  color: AppColors.grey600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const _TaskMiniWidget(),
-              const SizedBox(height: 24),
+                    const _SectionHeader(label: 'MIS TAREAS',
+                        icon: Icons.task_alt_rounded),
+                    const SizedBox(height: 10),
+                    const _TaskMiniWidget(),
+                    const SizedBox(height: 24),
 
-              const Text(
-                'ACCESOS RAPIDOS',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  color: AppColors.grey600,
+                    const _SectionHeader(label: 'ACCESOS RÁPIDOS',
+                        icon: Icons.grid_view_rounded),
+                    const SizedBox(height: 10),
+                    const _QuickAccessCard(
+                      icon: Icons.history_rounded,
+                      title: 'Mi actividad',
+                      subtitle: 'Ver historial personal detallado',
+                      route: AppRoutes.myActivity,
+                    ),
+                    const SizedBox(height: 10),
+                    const _QuickAccessCard(
+                      icon: Icons.schedule_rounded,
+                      title: 'Mis horas',
+                      subtitle: 'Consultar horas, sesiones y resumen diario',
+                      route: AppRoutes.myHours,
+                    ),
+                    const SizedBox(height: 10),
+                    const _QuickAccessCard(
+                      icon: Icons.person_rounded,
+                      title: 'Mi perfil',
+                      subtitle: 'Ver estadísticas personales y datos de cuenta',
+                      route: AppRoutes.profile,
+                    ),
+                    const SizedBox(height: 48),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-              const _QuickAccessCard(
-                icon: Icons.history,
-                title: 'Mi actividad',
-                subtitle: 'Ver historial personal detallado',
-                route: AppRoutes.myActivity,
-              ),
-              const SizedBox(height: 12),
-              const _QuickAccessCard(
-                icon: Icons.schedule,
-                title: 'Mis horas',
-                subtitle: 'Consultar horas, sesiones y resumen diario',
-                route: AppRoutes.myHours,
-              ),
-              const SizedBox(height: 12),
-              const _QuickAccessCard(
-                icon: Icons.person_outline,
-                title: 'Mi perfil',
-                subtitle: 'Ver estadísticas personales y datos de cuenta',
-                route: AppRoutes.profile,
-              ),
-              const SizedBox(height: 40),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+String _greeting() {
+  final h = DateTime.now().hour;
+  if (h < 12) return 'Buenos días 👋';
+  if (h < 18) return 'Buenas tardes 👋';
+  return 'Buenas noches 👋';
+}
+
+// ── Section header ────────────────────────────────────────────────────────────
+class _SectionHeader extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  const _SectionHeader({required this.label, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 14, color: AppColors.primary),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.textSecondaryDark,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -185,36 +229,51 @@ class _NoWorkstationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: AppColors.grey300),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.dividerDark),
       ),
-      child: const Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Icon(Icons.desktop_access_disabled, color: AppColors.grey500, size: 32),
-            SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppStrings.noAssignedWorkstation,
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    AppStrings.noAssignedWorkstationDescription,
-                    style: TextStyle(color: AppColors.grey600, fontSize: 13),
-                  ),
-                ],
-              ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.grey600.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
-        ),
+            child: const Icon(Icons.desktop_access_disabled_rounded,
+                color: AppColors.textDisabledDark, size: 22),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppStrings.noAssignedWorkstation,
+                  style: TextStyle(
+                    color: AppColors.textPrimaryDark,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  AppStrings.noAssignedWorkstationDescription,
+                  style: TextStyle(
+                    color: AppColors.textSecondaryDark,
+                    fontSize: 12,
+                  ),
+                  maxLines: 2,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -226,54 +285,85 @@ class _WorkstationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shadowColor: Colors.black12,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.computer, color: AppColors.primary),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    workstation.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: AppColors.success,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        AppStrings.monitoringAssigned,
-                        style: TextStyle(color: AppColors.grey600, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.25),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: AppColors.primaryGradient,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(Icons.computer_rounded,
+                color: Colors.white, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  workstation.name,
+                  style: const TextStyle(
+                    color: AppColors.textPrimaryDark,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
+                        color: AppColors.success,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Text(
+                      AppStrings.monitoringAssigned,
+                      style: TextStyle(
+                          color: AppColors.success,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.check_circle_rounded,
+              color: AppColors.success, size: 18),
+        ],
       ),
     );
   }
@@ -512,7 +602,7 @@ class _AnnouncementBell extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         IconButton(
-          icon: const Icon(Icons.campaign_outlined),
+          icon: const Icon(Icons.campaign_rounded),
           tooltip: 'Comunicados',
           onPressed: () => context.push(AppRoutes.announcements),
         ),
@@ -563,26 +653,26 @@ class _TaskMiniWidget extends ConsumerWidget {
         final inProgress = tasks.where((t) => t.status == TaskStatus.inProgress).length;
         final overdue = tasks.where((t) => t.isOverdue).length;
 
-        return InkWell(
+        return GestureDetector(
           onTap: () => context.go(AppRoutes.tasks),
-          borderRadius: BorderRadius.circular(12),
-          child: Card(
-            elevation: 2,
-            shadowColor: Colors.black12,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  _TaskCountBadge(count: pending, label: 'Pendientes', color: AppColors.grey400),
-                  const _TaskDivider(),
-                  _TaskCountBadge(count: inProgress, label: 'En progreso', color: AppColors.primary),
-                  const _TaskDivider(),
-                  _TaskCountBadge(count: overdue, label: 'Vencidas', color: AppColors.error),
-                  const Spacer(),
-                  const Icon(Icons.chevron_right, color: AppColors.grey500),
-                ],
-              ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.cardDark,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.dividerDark),
+            ),
+            child: Row(
+              children: [
+                _TaskCountBadge(count: pending, label: 'Pendientes', color: AppColors.textSecondaryDark),
+                const _TaskDivider(),
+                _TaskCountBadge(count: inProgress, label: 'En curso', color: AppColors.primary),
+                const _TaskDivider(),
+                _TaskCountBadge(count: overdue, label: 'Vencidas', color: AppColors.error),
+                const Spacer(),
+                const Icon(Icons.arrow_forward_ios_rounded,
+                    size: 14, color: AppColors.textDisabledDark),
+              ],
             ),
           ),
         );
@@ -653,54 +743,61 @@ class _QuickAccessCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shadowColor: Colors.black12,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: () => context.go(route),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: AppColors.primary),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: AppColors.grey600,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
+    return GestureDetector(
+      onTap: () => context.push(route),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.dividerDark),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.2),
                 ),
               ),
-              const Icon(
-                Icons.chevron_right,
-                color: AppColors.grey500,
+              child: Icon(icon, color: AppColors.primary, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: AppColors.textPrimaryDark,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: AppColors.textSecondaryDark,
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: AppColors.textDisabledDark,
+            ),
+          ],
         ),
       ),
     );

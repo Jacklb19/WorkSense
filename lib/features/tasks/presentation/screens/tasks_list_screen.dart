@@ -8,6 +8,7 @@ import 'package:worksense_app/features/employees/presentation/providers/employee
 import 'package:worksense_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:worksense_app/features/tasks/presentation/widgets/task_card.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 
 class TasksListScreen extends ConsumerStatefulWidget {
   const TasksListScreen({super.key});
@@ -125,24 +126,36 @@ class _AdminTasksList extends ConsumerWidget {
         final employeeMap = {for (final e in employees) e.id: e};
 
         if (filtered.isEmpty) {
-          return _EmptyState(filterStatus: filterStatus, isAdmin: true);
+          return RefreshIndicator(
+            onRefresh: () => ref.read(syncNotifierProvider.notifier).sync(),
+            color: AppColors.primary,
+            backgroundColor: AppColors.surfaceDark,
+            child: ListView(
+              children: [_EmptyState(filterStatus: filterStatus, isAdmin: true)],
+            ),
+          );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: filtered.length,
-          itemBuilder: (context, i) {
-            final task = filtered[i];
-            final emp = employeeMap[task.assignedToId];
-            return TaskCard(
-              task: task,
-              employeeName: emp?.displayName,
-              isAdmin: true,
-              onTap: () => context.push(
-                AppRoutes.taskEdit.replaceFirst(':taskId', task.id),
-              ),
-            );
-          },
+        return RefreshIndicator(
+          onRefresh: () => ref.read(syncNotifierProvider.notifier).sync(),
+          color: AppColors.primary,
+          backgroundColor: AppColors.surfaceDark,
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: filtered.length,
+            itemBuilder: (context, i) {
+              final task = filtered[i];
+              final emp = employeeMap[task.assignedToId];
+              return TaskCard(
+                task: task,
+                employeeName: emp?.displayName,
+                isAdmin: true,
+                onTap: () => context.push(
+                  AppRoutes.taskEdit.replaceFirst(':taskId', task.id),
+                ),
+              );
+            },
+          ),
         );
       },
     );
@@ -155,6 +168,9 @@ class _EmployeeTasksList extends ConsumerWidget {
   final TaskStatus? filterStatus;
 
   const _EmployeeTasksList({this.filterStatus});
+
+  Future<void> _doRefresh(WidgetRef ref) =>
+      ref.read(syncNotifierProvider.notifier).sync();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -171,20 +187,33 @@ class _EmployeeTasksList extends ConsumerWidget {
             : tasks;
 
         if (filtered.isEmpty) {
-          return _EmptyState(filterStatus: filterStatus, isAdmin: false);
+          return RefreshIndicator(
+            onRefresh: () => _doRefresh(ref),
+            color: AppColors.primary,
+            backgroundColor: AppColors.surfaceDark,
+            child: ListView(
+              children: [_EmptyState(filterStatus: filterStatus, isAdmin: false)],
+            ),
+          );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: filtered.length,
-          itemBuilder: (context, i) {
-            final task = filtered[i];
-            return TaskCard(
-              task: task,
-              isAdmin: false,
-              onStatusChanged: (newStatus) => _changeStatus(context, ref, task, newStatus),
-            );
-          },
+        return RefreshIndicator(
+          onRefresh: () => _doRefresh(ref),
+          color: AppColors.primary,
+          backgroundColor: AppColors.surfaceDark,
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: filtered.length,
+            itemBuilder: (context, i) {
+              final task = filtered[i];
+              return TaskCard(
+                task: task,
+                isAdmin: false,
+                onStatusChanged: (newStatus) =>
+                    _changeStatus(context, ref, task, newStatus),
+              );
+            },
+          ),
         );
       },
     );

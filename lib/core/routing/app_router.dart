@@ -33,6 +33,48 @@ import 'package:worksense_app/core/constants/constants.dart';
 import 'package:worksense_app/core/navigation/scaffold_with_bottom_nav.dart';
 import 'package:worksense_app/core/routing/route_error_screen.dart';
 
+// ── Transiciones de página ────────────────────────────────────────────────────
+
+/// Slide ligero desde la derecha + fade — para rutas de detalle/push.
+CustomTransitionPage<void> _slidePage(GoRouterState state, Widget child) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 220),
+    reverseTransitionDuration: const Duration(milliseconds: 180),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final slide = Tween<Offset>(
+        begin: const Offset(0.05, 0),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+      return FadeTransition(
+        opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+        child: SlideTransition(position: slide, child: child),
+      );
+    },
+  );
+}
+
+/// Slide desde abajo + fade — para formularios y modales.
+CustomTransitionPage<void> _modalPage(GoRouterState state, Widget child) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 300),
+    reverseTransitionDuration: const Duration(milliseconds: 220),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final slide = Tween<Offset>(
+        begin: const Offset(0, 0.06),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutQuint));
+      return FadeTransition(
+        opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+        child: SlideTransition(position: slide, child: child),
+      );
+    },
+  );
+}
+
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final GlobalKey<NavigatorState> _shellNavigatorDashboardKey = GlobalKey<NavigatorState>(debugLabel: 'shellDashboard');
 final GlobalKey<NavigatorState> _shellNavigatorEmployeesKey = GlobalKey<NavigatorState>(debugLabel: 'shellEmployees');
@@ -129,9 +171,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) {
           final workstationId = state.pathParameters['workstationId'];
-          return MaterialPage(
-            child: KioskScreen(workstationId: workstationId),
-          );
+          return _slidePage(state, KioskScreen(workstationId: workstationId));
         },
       ),
 
@@ -140,19 +180,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.entrance,
         name: 'entrance',
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => const MaterialPage(
-          child: EntranceKioskScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            _slidePage(state, const EntranceKioskScreen()),
       ),
 
-      // Employee form (new) - Pushed on root nav to cover everything
+      // Employee form (new)
       GoRoute(
         path: AppRoutes.employeeNew,
         name: 'employee-new',
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => const MaterialPage(
-          child: EmployeeFormScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            _modalPage(state, const EmployeeFormScreen()),
       ),
 
       // Employee form (edit)
@@ -162,9 +200,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) {
           final employeeId = state.pathParameters['employeeId']!;
-          return MaterialPage(
-            child: EmployeeFormScreen(employeeId: employeeId),
-          );
+          return _modalPage(state, EmployeeFormScreen(employeeId: employeeId));
         },
       ),
 
@@ -173,18 +209,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.workstationNew,
         name: 'workstation-new',
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => const MaterialPage(
-          child: WorkstationFormScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            _modalPage(state, const WorkstationFormScreen()),
       ),
+
       // Shift form (new)
       GoRoute(
         path: AppRoutes.shiftNew,
         name: 'shift-new',
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => const MaterialPage(
-          child: ShiftFormScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            _modalPage(state, const ShiftFormScreen()),
       ),
 
       // Shift form (edit)
@@ -194,18 +229,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) {
           final shiftId = state.pathParameters['shiftId']!;
-          return MaterialPage(child: ShiftFormScreen(shiftId: shiftId));
+          return _modalPage(state, ShiftFormScreen(shiftId: shiftId));
         },
       ),
 
-      // ── Fase 1: Task routes ──────────────────────────────────────────────
+      // ── Task routes ──────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.taskNew,
         name: 'task-new',
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => const MaterialPage(
-          child: TaskFormScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            _modalPage(state, const TaskFormScreen()),
       ),
       GoRoute(
         path: AppRoutes.taskEdit,
@@ -213,78 +247,70 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) {
           final taskId = state.pathParameters['taskId']!;
-          return MaterialPage(child: TaskFormScreen(taskId: taskId));
+          return _modalPage(state, TaskFormScreen(taskId: taskId));
         },
       ),
 
-      // ── Fase 1: Leave routes ─────────────────────────────────────────────
+      // ── Leave routes ─────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.leaveNew,
         name: 'leave-new',
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => const MaterialPage(
-          child: LeaveRequestFormScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            _modalPage(state, const LeaveRequestFormScreen()),
       ),
 
-      // ── Fase 1: Alert log ────────────────────────────────────────────────
+      // ── Alert log ────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.alertLog,
         name: 'alert-log',
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => const MaterialPage(
-          child: AlertLogScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            _slidePage(state, const AlertLogScreen()),
       ),
 
-      // ── Fase 2: Announcements ─────────────────────────────────────────────
+      // ── Announcements ─────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.announcements,
         name: 'announcements',
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => const MaterialPage(
-          child: AnnouncementsScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            _slidePage(state, const AnnouncementsScreen()),
       ),
       GoRoute(
         path: AppRoutes.announcementNew,
         name: 'announcement-new',
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => const MaterialPage(
-          child: AnnouncementFormScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            _modalPage(state, const AnnouncementFormScreen()),
       ),
 
-      // ── Fase 2: Reports ───────────────────────────────────────────────────
+      // ── Reports ───────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.reports,
         name: 'reports',
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => const MaterialPage(
-          child: ReportsScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            _slidePage(state, const ReportsScreen()),
       ),
 
-      // ── Fase 3: Profile ───────────────────────────────────────────────────
+      // ── Profile ───────────────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.profile,
         name: 'profile',
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => const MaterialPage(
-          child: ProfileScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            _slidePage(state, const ProfileScreen()),
       ),
 
-      // ── Fase 3: Workstation Edit ──────────────────────────────────────────
+      // ── Workstation Edit ──────────────────────────────────────────────────
       GoRoute(
         path: AppRoutes.workstationEdit,
         name: 'workstation-edit',
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) {
           final workstationId = state.pathParameters['workstationId']!;
-          return MaterialPage(
-            child: WorkstationFormScreen(workstationId: workstationId),
-          );
+          return _modalPage(state, WorkstationFormScreen(workstationId: workstationId));
         },
       ),
 
@@ -295,9 +321,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) {
           final employeeId = state.pathParameters['employeeId']!;
-          return MaterialPage(
-            child: EmployeeDetailAnalyticsScreen(employeeId: employeeId),
-          );
+          return _slidePage(state, EmployeeDetailAnalyticsScreen(employeeId: employeeId));
         },
       ),
 
@@ -426,9 +450,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.analytics,
         name: 'analytics',
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => const MaterialPage(
-          child: AdminAnalyticsScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            _slidePage(state, const AdminAnalyticsScreen()),
       ),
 
       GoRoute(
@@ -449,16 +472,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.myActivity,
         name: 'my-activity',
-        pageBuilder: (context, state) => const NoTransitionPage(
-          child: MyActivityScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            _slidePage(state, const MyActivityScreen()),
       ),
       GoRoute(
         path: AppRoutes.myHours,
         name: 'my-hours',
-        pageBuilder: (context, state) => const NoTransitionPage(
-          child: MyHoursScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            _slidePage(state, const MyHoursScreen()),
       ),
 
     ],

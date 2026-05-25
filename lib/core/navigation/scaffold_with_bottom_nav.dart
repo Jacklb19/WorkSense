@@ -28,12 +28,14 @@ class ScaffoldWithBottomNav extends ConsumerWidget {
     final List<NavDestination> destinations;
     if (isAdmin) {
       final pendingTasks = ref.watch(companyPendingTasksCountProvider);
+      final pendingLeaves = ref.watch(pendingLeavesCountProvider);
       final base = adminDestinations;
-      // Admin UI: 0=Dashboard, 1=Employees, 2=Workstations, 3=Tasks, 4=Shifts, 5=Settings
+      // Admin UI: 0=Dashboard, 1=Employees, 2=Workstations, 3=Tasks, 4=Permisos, 5=Shifts, 6=Settings
       destinations = [
         base[0], base[1], base[2],
         base[3].withBadge(pendingTasks),
-        base[4], base[5],
+        base[4].withBadge(pendingLeaves),
+        base[5], base[6],
       ];
     } else {
       final pendingTasks = ref.watch(myPendingTasksCountProvider);
@@ -56,11 +58,11 @@ class ScaffoldWithBottomNav extends ConsumerWidget {
     //   3: History          (employee)
     //   4: Settings         (all roles)
     //   5: Shifts           (admin)
-    //   6: Tasks            (all roles)  ← NEW
-    //   7: Leaves           (all roles)  ← NEW
+    //   6: Tasks            (all roles)
+    //   7: Leaves           (all roles)
     //
-    // Admin UI: 0→0, 1→1, 2→2, 3→6, 4→5, 5→4
-    // Employee UI: 0→0, 1→6, 2→7, 3→3, 4→4
+    // Admin UI:    0→0, 1→1, 2→2, 3→6(Tasks), 4→7(Leaves), 5→5(Shifts), 6→4(Settings)
+    // Employee UI: 0→0, 1→6(Tasks), 2→7(Leaves), 3→3(History), 4→4(Settings)
 
     int getUIIndex(bool admin, int branchIndex) {
       if (admin) {
@@ -68,18 +70,19 @@ class ScaffoldWithBottomNav extends ConsumerWidget {
           case 0: return 0;
           case 1: return 1;
           case 2: return 2;
-          case 6: return 3;
-          case 5: return 4;
-          case 4: return 5;
+          case 6: return 3; // Tasks
+          case 7: return 4; // Leaves
+          case 5: return 5; // Shifts
+          case 4: return 6; // Settings
           default: return 0;
         }
       } else {
         switch (branchIndex) {
           case 0: return 0;
-          case 6: return 1;
-          case 7: return 2;
-          case 3: return 3;
-          case 4: return 4;
+          case 6: return 1; // Tasks
+          case 7: return 2; // Leaves
+          case 3: return 3; // History
+          case 4: return 4; // Settings
           default: return 0;
         }
       }
@@ -91,18 +94,19 @@ class ScaffoldWithBottomNav extends ConsumerWidget {
           case 0: return 0;
           case 1: return 1;
           case 2: return 2;
-          case 3: return 6;
-          case 4: return 5;
-          case 5: return 4;
+          case 3: return 6; // Tasks
+          case 4: return 7; // Leaves
+          case 5: return 5; // Shifts
+          case 6: return 4; // Settings
           default: return 0;
         }
       } else {
         switch (uiIndex) {
           case 0: return 0;
-          case 1: return 6;
-          case 2: return 7;
-          case 3: return 3;
-          case 4: return 4;
+          case 1: return 6; // Tasks
+          case 2: return 7; // Leaves
+          case 3: return 3; // History
+          case 4: return 4; // Settings
           default: return 0;
         }
       }

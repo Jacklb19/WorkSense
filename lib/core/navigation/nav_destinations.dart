@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:worksense_app/core/constants/constants.dart';
 import 'package:worksense_app/core/navigation/nav_destination.dart';
 
-/// Admin nav — 6 items
-/// Branch mapping: UI 0→0, UI 1→1, UI 2→2, UI 3→6(Tasks), UI 4→5(Shifts), UI 5→4(Settings)
+/// Admin nav — 7 items
+/// Branch mapping: UI 0→0, UI 1→1, UI 2→2, UI 3→6(Tasks), UI 4→7(Leaves), UI 5→5(Shifts), UI 6→4(Settings)
 final List<NavDestination> adminDestinations = [
   const NavDestination(
     label: AppStrings.navDashboard,
@@ -28,6 +28,12 @@ final List<NavDestination> adminDestinations = [
     icon: Icon(Icons.task_outlined),
     selectedIcon: Icon(Icons.task),
     route: AppRoutes.tasks,
+  ),
+  const NavDestination(
+    label: 'Permisos',
+    icon: Icon(Icons.beach_access_outlined),
+    selectedIcon: Icon(Icons.beach_access),
+    route: AppRoutes.leaves,
   ),
   const NavDestination(
     label: 'Horarios',
