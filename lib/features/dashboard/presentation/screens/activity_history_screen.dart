@@ -6,6 +6,7 @@ import 'package:worksense_app/features/dashboard/presentation/providers/employee
 import 'package:worksense_app/features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/widgets/activity_event_tile.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/widgets/error_widget.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
 
 class ActivityHistoryScreen extends ConsumerStatefulWidget {
@@ -44,12 +45,15 @@ class _ActivityHistoryScreenState
         ],
       ),
       body: eventsAsync.when(
-        loading: () => const AppLoadingWidget(),
-        error: (error, _) => Center(
-          child: Text(
-            'Error: $error',
-            style: const TextStyle(color: AppColors.error),
-          ),
+        loading: () => const AppLoadingWidget(message: 'Cargando historial...'),
+        error: (error, _) => AppErrorWidget(
+          message:
+              'No se pudo cargar el historial de actividad.\nVerifica tu conexión e intenta de nuevo.',
+          icon: Icons.history_toggle_off,
+          onRetry: () {
+            ref.invalidate(employeeRecentEventsProvider);
+            ref.invalidate(recentEventsStreamProvider);
+          },
         ),
         data: (events) {
           final filtered = _filterState != null

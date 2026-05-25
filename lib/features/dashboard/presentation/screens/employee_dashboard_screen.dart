@@ -11,6 +11,7 @@ import 'package:worksense_app/features/announcements/presentation/providers/anno
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
 import 'package:worksense_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/widgets/error_widget.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
 import 'package:worksense_app/shared/widgets/sync_indicator_widget.dart';
 
@@ -166,12 +167,8 @@ class _AssignedWorkstationSection extends ConsumerWidget {
 
     return workstationAsync.when(
       loading: () => const AppLoadingWidget(message: AppStrings.verifyingWorkstation),
-      error: (e, _) => Card(
-        color: AppColors.error.withValues(alpha: 0.1),
-        child: const Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text(AppStrings.errorLoadingWorkstation),
-        ),
+      error: (e, _) => const ErrorBannerWidget(
+        message: 'No se pudo cargar la información del puesto de trabajo. Desliza hacia abajo para reintentar.',
       ),
       data: (workstation) {
         if (workstation == null) {
@@ -292,7 +289,9 @@ class _PersonalProductivitySection extends ConsumerWidget {
 
     return analyticsAsync.when(
       loading: () => const AppLoadingWidget(message: AppStrings.calculatingTime),
-      error: (e, _) => const Text(AppStrings.couldNotLoadMetrics),
+      error: (e, _) => const ErrorBannerWidget(
+        message: 'No se pudieron cargar tus métricas de productividad. Desliza hacia abajo para reintentar.',
+      ),
       data: (analytics) {
         if (analytics == null || !analytics.hasData) {
           return const Card(
@@ -435,7 +434,9 @@ class _RecentActivitySection extends ConsumerWidget {
 
     return eventsAsync.when(
       loading: () => const AppLoadingWidget(),
-      error: (e, _) => const Text(AppStrings.errorLoadingHistory),
+      error: (e, _) => const ErrorBannerWidget(
+        message: 'No se pudo cargar la actividad reciente. Desliza hacia abajo para reintentar.',
+      ),
       data: (events) {
         if (events.isEmpty) {
           return const Padding(

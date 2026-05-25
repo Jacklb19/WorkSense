@@ -166,20 +166,28 @@ abstract final class AiThresholds {
 
   // SCANNER DE ENTRADA (Entrance Kiosk)
 
-  /// Similitud coseno minima para aceptar un match en el kiosk de entrada.
-  static const double entranceMatchThreshold = 0.78;
+  /// Similitud coseno minima para contar un frame como confirmacion.
+  /// MobileFaceNet (L2 norm): misma persona ~0.82-0.96, diferente ~0.50-0.76.
+  /// 0.82 evita la zona de falsos positivos (0.78-0.81).
+  static const double entranceMatchThreshold = 0.82;
+
+  /// Piso absoluto del mejor score individual observado en la ventana.
+  /// Aunque haya suficientes confirmaciones, si ningún frame supero este
+  /// valor, se rechaza. Evita que scores "justos" acumulen confirmaciones.
+  static const double entranceMinBestScore = 0.84;
 
   /// Margen por debajo del threshold donde el scanner sigue intentando
   /// en vez de rechazar inmediatamente (zona de "casi match").
-  static const double entranceNearMatchMargin = 0.06;
+  static const double entranceNearMatchMargin = 0.04;
 
-  /// Observaciones positivas (frames con score >= threshold para el mismo
-  /// empleado) requeridas dentro de la ventana para confirmar identidad.
-  static const int entranceRequiredConfirmations = 2;
+  /// Observaciones positivas (frames con score >= entranceMatchThreshold para
+  /// el mismo empleado) requeridas dentro de la ventana para confirmar.
+  /// 3/10 = 30% hit-rate minimo — mucho mas dificil para impostores.
+  static const int entranceRequiredConfirmations = 3;
 
   /// Tamano maximo de la ventana de evidencia (frames evaluados tras blink).
-  /// Si se agotan sin confirmacion, se declara no-match.
-  static const int entranceEvidenceWindowSize = 6;
+  /// 10 frames × 300ms = ~3 segundos de evaluacion.
+  static const int entranceEvidenceWindowSize = 10;
 
   /// Ratio minimo de ancho del rostro vs ancho del frame para considerar
   /// que el usuario esta suficientemente cerca.
@@ -189,7 +197,8 @@ abstract final class AiThresholds {
   static const double entranceMaxHeadAngle = 15.0;
 
   /// Intervalo minimo entre analisis de frames en el scanner de entrada (ms).
-  static const int entranceFrameIntervalMs = 250;
+  /// 300ms da tiempo al modelo para procesar bien cada frame sin saturar CPU.
+  static const int entranceFrameIntervalMs = 300;
 
   /// Probabilidad maxima de apertura ocular para considerar un parpadeo valido
   /// en el kiosk de entrada. Ambos ojos deben estar por debajo de este valor.

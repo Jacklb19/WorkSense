@@ -6,6 +6,7 @@ import 'package:worksense_app/features/dashboard/domain/entities/daily_work_summ
 import 'package:worksense_app/features/dashboard/domain/entities/employee_analytics.dart';
 import 'package:worksense_app/features/dashboard/presentation/helpers/hours_formatters.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
+import 'package:worksense_app/shared/widgets/error_widget.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
 
 class MyHoursScreen extends ConsumerWidget {
@@ -22,116 +23,136 @@ class MyHoursScreen extends ConsumerWidget {
     final summariesAsync = ref.watch(employeeDailySummariesProvider);
 
     return Scaffold(
-      body: summariesAsync.when(
-        loading: () => const AppLoadingWidget(),
-        error: (error, _) => Center(child: Text('Error: $error')),
-        data: (summaries) {
-          return summaryAsync.when(
-            loading: () => const AppLoadingWidget(),
-            error: (error, _) => Center(child: Text('Error: $error')),
-            data: (summary) {
-              return analyticsAsync.when(
-                loading: () => const AppLoadingWidget(),
-                error: (error, _) => Center(child: Text('Error: $error')),
-                data: (analytics) {
-                  if ((summary == null) && (analytics == null || !analytics.hasData)) {
-                    return const _EmptyHoursView();
-                  }
-
-                  return CustomScrollView(
-                    slivers: [
-                      const SliverAppBar(
-                        pinned: true,
-                        title: Text(
-                          _screenTitle,
-                          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.6),
-                        ),
-                        centerTitle: false,
-                      ),
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                        sliver: SliverToBoxAdapter(
-                          child: _SummaryHeroCard(summary: summary),
-                        ),
-                      ),
-                      if (summary != null)
-                        SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                          sliver: SliverToBoxAdapter(
-                            child: _MetricsGrid(summary: summary),
-                          ),
-                        ),
-                      if (summary != null && summary.hasAnomalies)
-                        SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                          sliver: SliverToBoxAdapter(
-                            child: _AnomaliesCard(summary: summary),
-                          ),
-                        ),
-                      if (analytics != null && analytics.hasData) ...[
-                        const SliverPadding(
-                          padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
-                          sliver: SliverToBoxAdapter(
-                            child: Text(
-                              _activitySectionTitle,
-                              style: TextStyle(
-                                color: Colors.white54,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                          sliver: SliverToBoxAdapter(
-                            child: _ActivityOverviewCard(analytics: analytics),
-                          ),
-                        ),
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                          sliver: SliverList(
-                            delegate: SliverChildListDelegate(
-                              _buildStateBreakdown(analytics),
-                            ),
-                          ),
-                        ),
-                      ],
-                      if (summaries.isNotEmpty) ...[
-                        const SliverPadding(
-                          padding: EdgeInsets.fromLTRB(20, 10, 20, 8),
-                          sliver: SliverToBoxAdapter(
-                            child: Text(
-                              _historySectionTitle,
-                              style: TextStyle(
-                                color: Colors.white54,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-                          sliver: SliverList.separated(
-                            itemCount: summaries.take(5).length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 12),
-                            itemBuilder: (context, index) => _HistoryCard(
-                              summary: summaries[index],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  );
-                },
-              );
-            },
-          );
-        },
+      appBar: AppBar(
+        title: const Text(
+          _screenTitle,
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.6),
+        ),
+        centerTitle: false,
       ),
+      body: _buildBody(context, ref, analyticsAsync, summaryAsync, summariesAsync),
+    );
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue analyticsAsync,
+    AsyncValue summaryAsync,
+    AsyncValue summariesAsync,
+  ) {
+    // ── Cargando ──────────────────────────────────────────────
+    if (analyticsAsync.isLoading || summaryAsync.isLoading || summariesAsync.isLoading) {
+      return const AppLoadingWidget(message: 'Calculando tus horas...');
+    }
+
+    // ── Error ─────────────────────────────────────────────────
+    if (analyticsAsync.hasError || summaryAsync.hasError || summariesAsync.hasError) {
+      return AppErrorWidget(
+        message:
+            'No se pudieron cargar tus horas de trabajo.\nVerifica tu conexión e intenta de nuevo.',
+        icon: Icons.schedule_outlined,
+        onRetry: () {
+          ref.invalidate(employeeTodayAnalyticsProvider);
+          ref.invalidate(employeeTodaySummaryProvider);
+          ref.invalidate(employeeDailySummariesProvider);
+        },
+      );
+    }
+
+    // ── Datos disponibles ─────────────────────────────────────
+    final analytics = analyticsAsync.valueOrNull as EmployeeAnalytics?;
+    final summary = summaryAsync.valueOrNull as DailyWorkSummary?;
+    final summaries = (summariesAsync.valueOrNull as List<DailyWorkSummary>?) ?? [];
+
+    if ((summary == null) && (analytics == null || !analytics.hasData)) {
+      return _EmptyHoursView(onRetry: () {
+        ref.invalidate(employeeTodaySummaryProvider);
+        ref.invalidate(employeeTodayAnalyticsProvider);
+      });
+    }
+
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          sliver: SliverToBoxAdapter(
+            child: _SummaryHeroCard(summary: summary),
+          ),
+        ),
+        if (summary != null)
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            sliver: SliverToBoxAdapter(
+              child: _MetricsGrid(summary: summary),
+            ),
+          ),
+        if (summary != null && summary.hasAnomalies)
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            sliver: SliverToBoxAdapter(
+              child: _AnomaliesCard(summary: summary),
+            ),
+          ),
+        if (analytics != null && analytics.hasData) ...[
+          const SliverPadding(
+            padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
+            sliver: SliverToBoxAdapter(
+              child: Text(
+                _activitySectionTitle,
+                style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            sliver: SliverToBoxAdapter(
+              child: _ActivityOverviewCard(analytics: analytics),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate(
+                _buildStateBreakdown(analytics),
+              ),
+            ),
+          ),
+        ],
+        if (summaries.isNotEmpty) ...[
+          const SliverPadding(
+            padding: EdgeInsets.fromLTRB(20, 10, 20, 8),
+            sliver: SliverToBoxAdapter(
+              child: Text(
+                _historySectionTitle,
+                style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+            sliver: SliverList.separated(
+              itemCount: summaries.take(5).length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) => _HistoryCard(
+                summary: summaries[index],
+              ),
+            ),
+          ),
+        ],
+        // Extra bottom padding
+        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+      ],
     );
   }
 
@@ -204,6 +225,72 @@ class MyHoursScreen extends ConsumerWidget {
   String _fmtDur(Duration d) => HoursFormatters.formatDuration(d);
 }
 
+// ── Empty ─────────────────────────────────────────────────────────────────────
+
+class _EmptyHoursView extends StatelessWidget {
+  final VoidCallback? onRetry;
+  const _EmptyHoursView({this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 92,
+              height: 92,
+              decoration: BoxDecoration(
+                color: AppColors.cardDark,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              ),
+              child: const Icon(
+                Icons.access_time_rounded,
+                size: 40,
+                color: Colors.white24,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'AÚN NO HAY HORAS CONSOLIDADAS',
+              style: TextStyle(
+                color: Colors.white30,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Tu resumen aparecerá automáticamente cuando\nse registren sesiones durante la jornada.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white38, fontSize: 13, height: 1.5),
+            ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 28),
+              OutlinedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('Actualizar'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white54,
+                  side: const BorderSide(color: Colors.white12),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Summary Hero Card ─────────────────────────────────────────────────────────
+
 class _SummaryHeroCard extends StatelessWidget {
   const _SummaryHeroCard({required this.summary});
 
@@ -259,7 +346,7 @@ class _SummaryHeroCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             expected > 0
-                ? 'Meta del dia: ${HoursFormatters.formatMinutes(expected)}'
+                ? 'Meta del día: ${HoursFormatters.formatMinutes(expected)}'
                 : 'Aún no hay una meta de turno configurada',
             style: const TextStyle(color: Colors.white70, height: 1.35),
           ),
@@ -291,7 +378,6 @@ class _SummaryHeroCard extends StatelessWidget {
       ),
     );
   }
-
 }
 
 class _HeroChip extends StatelessWidget {
@@ -332,6 +418,8 @@ class _HeroChip extends StatelessWidget {
     );
   }
 }
+
+// ── Metrics Grid ──────────────────────────────────────────────────────────────
 
 class _MetricsGrid extends StatelessWidget {
   const _MetricsGrid({required this.summary});
@@ -401,6 +489,8 @@ class _MetricData {
   final IconData icon;
 }
 
+// ── Anomalies Card ────────────────────────────────────────────────────────────
+
 class _AnomaliesCard extends StatelessWidget {
   const _AnomaliesCard({required this.summary});
 
@@ -448,6 +538,8 @@ class _AnomaliesCard extends StatelessWidget {
   }
 }
 
+// ── Activity Overview Card ────────────────────────────────────────────────────
+
 class _ActivityOverviewCard extends StatelessWidget {
   const _ActivityOverviewCard({required this.analytics});
 
@@ -485,8 +577,9 @@ class _ActivityOverviewCard extends StatelessWidget {
       ),
     );
   }
-
 }
+
+// ── History Card ──────────────────────────────────────────────────────────────
 
 class _HistoryCard extends StatelessWidget {
   const _HistoryCard({required this.summary});
@@ -531,7 +624,8 @@ class _HistoryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${HoursFormatters.formatMinutes(summary.workedMinutes)} trabajados de ${HoursFormatters.formatMinutes(summary.expectedMinutes)} esperados',
+                  '${HoursFormatters.formatMinutes(summary.workedMinutes)} trabajados'
+                  ' de ${HoursFormatters.formatMinutes(summary.expectedMinutes)} esperados',
                   style: const TextStyle(color: Colors.white60, fontSize: 12),
                 ),
               ],
@@ -563,6 +657,8 @@ class _HistoryCard extends StatelessWidget {
     );
   }
 }
+
+// ── Activity Pill ─────────────────────────────────────────────────────────────
 
 class _ActivityPill extends StatelessWidget {
   const _ActivityPill({
@@ -599,68 +695,6 @@ class _ActivityPill extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _EmptyHoursView extends ConsumerWidget {
-  const _EmptyHoursView();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 92,
-              height: 92,
-              decoration: BoxDecoration(
-                color: AppColors.cardDark,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-              ),
-              child: const Icon(
-                Icons.access_time_rounded,
-                size: 40,
-                color: Colors.white24,
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'AUN NO HAY HORAS CONSOLIDADAS',
-              style: TextStyle(
-                color: Colors.white30,
-                fontSize: 15,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.4,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Tu resumen aparecera automaticamente cuando se registren sesiones y actividad durante la jornada.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white38, fontSize: 13, height: 1.5),
-            ),
-            const SizedBox(height: 28),
-            OutlinedButton.icon(
-              onPressed: () {
-                ref.invalidate(employeeTodaySummaryProvider);
-                ref.invalidate(employeeTodayAnalyticsProvider);
-              },
-              icon: const Icon(Icons.refresh, size: 16),
-              label: const Text('Actualizar'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white54,
-                side: const BorderSide(color: Colors.white12),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

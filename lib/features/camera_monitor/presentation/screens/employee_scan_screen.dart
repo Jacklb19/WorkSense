@@ -307,13 +307,13 @@
     String _getGuidanceMessage(int index) {
       switch (index) {
         case 0: return 'Mira directo a la cámara';
-        case 1: return 'Gira levemente la cabeza hacia tu izquierda';
-        case 2: return 'Gira levemente la cabeza hacia tu derecha';
+        case 1: return 'Gira levemente la cabeza a tu derecha';
+        case 2: return 'Gira levemente la cabeza a tu izquierda';
         case 3: return 'Levanta levemente la cabeza';
         case 4: return 'Inclina levemente la cabeza hacia abajo';
         case 5: return 'De frente otra vez para confirmar';
-        case 6: return 'Gira de nuevo levemente a la izquierda';
-        case 7: return 'Gira de nuevo levemente a la derecha';
+        case 6: return 'Gira levemente la cabeza a tu derecha otra vez';
+        case 7: return 'Gira levemente la cabeza a tu izquierda otra vez';
         default: return 'Ajusta tu posición';
       }
     }

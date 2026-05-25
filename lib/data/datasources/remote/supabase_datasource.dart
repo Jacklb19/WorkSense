@@ -6,7 +6,7 @@ import 'package:worksense_app/domain/entities/app_role.dart';
 class SupabaseDataSource {
   final SupabaseClient _client = Supabase.instance.client;
 
-  /// MÃ©todo genÃ©rico â€” el nÃºcleo del Outbox Pattern
+  /// Método genérico — el núcleo del Outbox Pattern
   Future<void> upsert(String table, Map<String, dynamic> data) async {
     try {
       await _client.from(table).upsert(data);
@@ -52,7 +52,7 @@ class SupabaseDataSource {
     }
   }
 
-  // MÃ©todos especÃficos (usan el genÃ©rico internamente)
+  // Métodos específicos (usan el genérico internamente)
   Future<void> insertEmployee(Map<String, dynamic> data) =>
       upsert('employees', data);
 

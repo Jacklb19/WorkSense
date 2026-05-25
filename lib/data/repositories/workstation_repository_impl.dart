@@ -70,7 +70,7 @@ class WorkstationRepositoryImpl implements WorkstationRepository {
       // 1. Eliminar localmente
       await (_db.delete(_db.workstationRecords)..where((t) => t.id.equals(id))).go();
 
-      // 2. Encolar eliminaciÃ³n
+      // 2. Encolar eliminación
       await _syncRepo.enqueue(
         targetTable: 'workstations',
         operation: 'DELETE',
