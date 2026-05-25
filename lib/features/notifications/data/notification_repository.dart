@@ -41,21 +41,7 @@ class NotificationRepository {
       });
     } catch (_) {}
 
-    try {
-      // 2. Push real via FCM Edge Function (si el usuario no tiene la app abierta)
-      await _client.functions.invoke(
-        'send-push',
-        body: {
-          'recipient_id': recipientId,
-          'company_id': companyId,
-          'title': title,
-          'body': body,
-          'data': {'route': route ?? '', 'type': type},
-        },
-      );
-    } catch (_) {
-      // No interrumpimos el flujo si el push falla
-    }
+    // FCM push desactivado (Firebase no configurado)
   }
 
   /// Envía una notificación a todos los admins de una empresa.
@@ -85,19 +71,7 @@ class NotificationRepository {
       });
     } catch (_) {}
 
-    try {
-      // 2. Push real a todos los admins de la empresa
-      await _client.functions.invoke(
-        'send-push',
-        body: {
-          'to_role': 'ADMIN',
-          'company_id': companyId,
-          'title': title,
-          'body': body,
-          'data': {'route': route ?? '', 'type': type},
-        },
-      );
-    } catch (_) {}
+    // FCM push desactivado (Firebase no configurado)
   }
 
   // ── Leer ───────────────────────────────────────────────────────────────────

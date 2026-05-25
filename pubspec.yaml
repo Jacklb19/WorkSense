@@ -45,10 +45,6 @@ dependencies:
   # ── Notificaciones locales ───────────────────────────────────
   flutter_local_notifications: ^17.2.2
 
-  # ── Firebase (Push Notifications - FCM) ──────────────────────
-  firebase_core: ^3.13.1
-  firebase_messaging: ^15.2.5
-
   # ── Seguridad y almacenamiento ───────────────────────────────
   flutter_secure_storage: ^9.2.2
   shared_preferences: ^2.3.2
@@ -84,6 +80,10 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  # ── Icono y splash ───────────────────────────────────────────
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.3
+
   # ── Generacion de codigo ─────────────────────────────────────
   build_runner: ^2.4.11
   drift_dev: ^2.19.1
@@ -114,3 +114,26 @@ flutter:
   #         weight: 500
   #       - asset: assets/fonts/Inter-Bold.ttf
   #         weight: 700
+
+# ── Flutter Launcher Icons ────────────────────────────────────────────────────
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icons/app_icon.png"
+  min_sdk_android: 21
+  web:
+    generate: false
+  windows:
+    generate: false
+
+# ── Flutter Native Splash ─────────────────────────────────────────────────────
+flutter_native_splash:
+  color: "#080C18"
+  image: assets/icons/app_icon.png
+  color_dark: "#080C18"
+  image_dark: assets/icons/app_icon.png
+  android_12:
+    color: "#080C18"
+    image: assets/icons/app_icon.png
+    icon_background_color: "#080C18"
+  fullscreen: false

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -15,7 +14,6 @@ import 'core/presentation/splash_screen.dart';
 import 'shared/providers/locale_provider.dart';
 import 'shared/providers/theme_provider.dart';
 import 'shared/services/notification_service.dart';
-import 'shared/services/push_notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,15 +42,9 @@ Future<void> main() async {
     anonKey: supabaseAnonKey,
   );
 
-  // Inicializar Firebase (lee google-services.json automáticamente en Android)
-  await Firebase.initializeApp();
-
   // Inicializar notificaciones locales (flutter_local_notifications)
   await NotificationService.instance.initialize();
   await NotificationService.instance.requestPermissions();
-
-  // Inicializar FCM push notifications
-  await PushNotificationService.instance.initialize();
 
   runApp(
     const ProviderScope(
@@ -75,13 +67,6 @@ class _WorkSenseAppState extends ConsumerState<WorkSenseApp> {
   @override
   void initState() {
     super.initState();
-    // Escuchar rutas emitidas al tocar una notificación push
-    _pushNavSub =
-        PushNotificationService.instance.navigationStream.listen((route) {
-      if (mounted) {
-        ref.read(routerProvider).go(route);
-      }
-    });
   }
 
   @override
