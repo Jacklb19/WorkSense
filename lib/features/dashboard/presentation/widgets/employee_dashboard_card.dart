@@ -4,9 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_theme_extensions.dart';
+import '../../../../core/theme/app_animations.dart';
 import '../../../../domain/entities/employee.dart';
 import '../../../camera_monitor/presentation/widgets/state_badge_widget.dart';
 import '../../presentation/providers/admin_analytics_provider.dart';
@@ -20,7 +23,6 @@ class EmployeeDashboardCard extends ConsumerWidget {
     required this.employee,
   });
 
-  // Color del avatar basado en el primer char del nombre
   Color _avatarColor() {
     const colors = [
       AppColors.primary,
@@ -44,44 +46,45 @@ class EmployeeDashboardCard extends ConsumerWidget {
         shifts.where((s) => s.id == employee.shiftId).firstOrNull;
 
     final accentColor = _avatarColor();
+    final cardColor = context.appCard;
+    final onSurface = context.appOnSurface;
+    final onSurfaceSecondary = context.appOnSurfaceSecondary;
+    final glassBorder = context.appGlassBorder;
 
-    return GestureDetector(
-      onTap: () => context.push(
-        AppRoutes.analyticsDetail.replaceFirst(':employeeId', employee.id),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.dividerDark),
-          boxShadow: [
-            BoxShadow(
-              color: accentColor.withValues(alpha: 0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
+    return Semantics(
+      button: true,
+      label: 'Empleado ${employee.displayName}',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.push(
+            AppRoutes.analyticsDetail.replaceFirst(':employeeId', employee.id),
+          ),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusCardLg),
+          child: Ink(
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusCardLg),
+              border: Border.all(color: glassBorder),
+              boxShadow: [
+                BoxShadow(
+                  color: accentColor.withValues(alpha: 0.06),
+                  blurRadius: AppDimensions.spacingXxl,
+                  offset: const Offset(0, AppDimensions.spacingMd),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => context.push(
-              AppRoutes.analyticsDetail
-                  .replaceFirst(':employeeId', employee.id),
-            ),
-            borderRadius: BorderRadius.circular(18),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppDimensions.spacingXxl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ── Header ──────────────────────────────────────────
                   Row(
                     children: [
-                      // Avatar con glow
                       Container(
-                        width: 44,
-                        height: 44,
+                        width: AppDimensions.iconContainerSm,
+                        height: AppDimensions.iconContainerSm,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topLeft,
@@ -91,12 +94,12 @@ class EmployeeDashboardCard extends ConsumerWidget {
                               accentColor.withValues(alpha: 0.7),
                             ],
                           ),
-                          borderRadius: BorderRadius.circular(13),
+                          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
                           boxShadow: [
                             BoxShadow(
                               color: accentColor.withValues(alpha: 0.3),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                              blurRadius: AppDimensions.spacingXxl,
+                              offset: const Offset(0, AppDimensions.spacingMd),
                             ),
                           ],
                         ),
@@ -106,15 +109,15 @@ class EmployeeDashboardCard extends ConsumerWidget {
                                 ? employee.displayName[0].toUpperCase()
                                 : '?',
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.white,
                               fontWeight: FontWeight.w800,
-                              fontSize: 18,
+                              fontSize: AppDimensions.fontTitleLg,
                             ),
                           ),
                         ),
                       ),
 
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppDimensions.spacingMd),
 
                       Expanded(
                         child: Column(
@@ -122,27 +125,27 @@ class EmployeeDashboardCard extends ConsumerWidget {
                           children: [
                             Text(
                               employee.displayName,
-                              style: const TextStyle(
-                                color: AppColors.textPrimaryDark,
+                              style: TextStyle(
+                                color: onSurface,
                                 fontWeight: FontWeight.w700,
-                                fontSize: 14,
+                                fontSize: AppDimensions.fontBodyMd,
                                 height: 1.2,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 3),
+                            const SizedBox(height: AppDimensions.spacingXxs),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
+                                  horizontal: AppDimensions.spacingMd, vertical: AppDimensions.spacingXxs / 2),
                               decoration: BoxDecoration(
                                 color: accentColor.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(5),
+                                borderRadius: BorderRadius.circular(AppDimensions.radiusXxs),
                               ),
                               child: Text(
                                 'EMP-${employee.id.substring(0, 4).toUpperCase()}',
                                 style: TextStyle(
-                                  fontSize: 9,
+                                  fontSize: AppDimensions.fontXs,
                                   color: accentColor,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 0.8,
@@ -153,11 +156,10 @@ class EmployeeDashboardCard extends ConsumerWidget {
                         ),
                       ),
 
-                      // Arrow
-                      const Icon(
+                      Icon(
                         Icons.arrow_forward_ios_rounded,
-                        size: 12,
-                        color: AppColors.textDisabledDark,
+                        size: AppDimensions.fontCaption,
+                        color: context.appOnSurfaceSecondary,
                       ),
                     ],
                   ),
@@ -167,17 +169,17 @@ class EmployeeDashboardCard extends ConsumerWidget {
                   // ── Shift ────────────────────────────────────────────
                   Row(
                     children: [
-                      const Icon(Icons.schedule_rounded,
-                          size: 13, color: AppColors.textDisabledDark),
-                      const SizedBox(width: 5),
+                      Icon(Icons.schedule_rounded,
+                          size: AppDimensions.fontCaption, color: onSurfaceSecondary),
+                      const SizedBox(width: AppDimensions.spacingXs),
                       Expanded(
                         child: Text(
                           currentShift != null
                               ? '${currentShift.name} · ${currentShift.startTime.hour}:${currentShift.startTime.minute.toString().padLeft(2, '0')}'
-                              : 'Sin turno asignado',
-                          style: const TextStyle(
-                            color: AppColors.textSecondaryDark,
-                            fontSize: 11,
+                              : AppStrings.noShiftAssigned,
+                          style: TextStyle(
+                            color: onSurfaceSecondary,
+                            fontSize: AppDimensions.fontSm,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -186,7 +188,7 @@ class EmployeeDashboardCard extends ConsumerWidget {
                     ],
                   ),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppDimensions.spacingMd),
 
                   // ── Analytics / Attendance ────────────────────────────
                   analyticsAsync.when(
@@ -194,15 +196,15 @@ class EmployeeDashboardCard extends ConsumerWidget {
                       if (analytics != null && analytics.hasData) {
                         return Row(
                           children: [
-                            const Icon(Icons.show_chart_rounded,
-                                size: 13, color: AppColors.textDisabledDark),
-                            const SizedBox(width: 5),
+                            Icon(Icons.show_chart_rounded,
+                                size: AppDimensions.fontCaption, color: onSurfaceSecondary),
+                            const SizedBox(width: AppDimensions.spacingXs),
                             StateBadgeWidget(state: analytics.lastState!),
                             const Spacer(),
                             Text(
                               '${analytics.totalTrackedTime.inMinutes}m',
                               style: const TextStyle(
-                                fontSize: 11,
+                                fontSize: AppDimensions.fontSm,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.primary,
                               ),
@@ -220,16 +222,16 @@ class EmployeeDashboardCard extends ConsumerWidget {
                                 : '${timeFormat.format(latest.clockInTime)} — ${timeFormat.format(latest.clockOutTime!)}';
                             return Row(
                               children: [
-                                const Icon(Icons.badge_outlined,
-                                    size: 13,
-                                    color: AppColors.textDisabledDark),
-                                const SizedBox(width: 5),
+                                Icon(Icons.badge_outlined,
+                                    size: AppDimensions.fontCaption,
+                                    color: onSurfaceSecondary),
+                                const SizedBox(width: AppDimensions.spacingXs),
                                 Expanded(
                                   child: Text(
                                     label,
                                     style: const TextStyle(
                                       color: AppColors.primary,
-                                      fontSize: 11,
+                                      fontSize: AppDimensions.fontSm,
                                       fontWeight: FontWeight.w600,
                                     ),
                                     maxLines: 1,
@@ -242,20 +244,18 @@ class EmployeeDashboardCard extends ConsumerWidget {
                           return const _NoDataRow();
                         },
                         loading: () => const SizedBox(
-                          height: 16,
+                          height: AppDimensions.spacingXxl,
                           child: LinearProgressIndicator(
                             color: AppColors.primary,
-                            backgroundColor: AppColors.dividerDark,
                           ),
                         ),
                         error: (_, __) => const _NoDataRow(),
                       );
                     },
                     loading: () => const SizedBox(
-                      height: 16,
+                      height: AppDimensions.spacingXxl,
                       child: LinearProgressIndicator(
                         color: AppColors.primary,
-                        backgroundColor: AppColors.dividerDark,
                       ),
                     ),
                     error: (_, __) => const _NoDataRow(),
@@ -267,8 +267,8 @@ class EmployeeDashboardCard extends ConsumerWidget {
         ),
       ),
     ).animate().fadeIn(
-          duration: AppDimensions.animEntrance,
-          curve: Curves.easeOutCubic,
+          duration: AppAnimations.entrance,
+          curve: AppAnimations.entranceCurve,
         );
   }
 }
@@ -278,13 +278,14 @@ class _NoDataRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    final onSurfaceSecondary = context.appOnSurfaceSecondary;
+    return Row(
       children: [
-        Icon(Icons.show_chart_rounded, size: 13, color: AppColors.textDisabledDark),
-        SizedBox(width: 5),
+        Icon(Icons.show_chart_rounded, size: AppDimensions.fontCaption, color: onSurfaceSecondary),
+        SizedBox(width: AppDimensions.spacingXs),
         Text(
-          'Sin actividad registrada hoy',
-          style: TextStyle(color: AppColors.textDisabledDark, fontSize: 11),
+          AppStrings.noRegisteredToday,
+          style: TextStyle(color: onSurfaceSecondary, fontSize: AppDimensions.fontSm),
         ),
       ],
     );

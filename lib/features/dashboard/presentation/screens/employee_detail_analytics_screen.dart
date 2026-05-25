@@ -4,9 +4,11 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_theme_extensions.dart';
 import '../../../../domain/entities/activity_state.dart';
 import '../../../../shared/widgets/loading_widget.dart';
-import '../../../../shared/widgets/styled/app_avatar.dart';
+
+import '../../../../shared/widgets/styled/app_content_constrainer.dart';
 import '../../../../shared/widgets/styled/app_stat_chip.dart';
 import '../../domain/entities/employee_analytics.dart';
 import '../providers/admin_analytics_provider.dart';
@@ -21,6 +23,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final detailAsync = ref.watch(employeeDetailProvider(employeeId));
     final attendanceAsync =
         ref.watch(employeeAttendanceProvider(employeeId));
@@ -52,13 +55,12 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
 
           return CustomScrollView(
             slivers: [
-              SliverToBoxAdapter(
+              AppSliverContentConstrainer(
+                width: AppContentWidth.dashboard,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppDimensions.spacingXxl,
-                    AppDimensions.spacingLg,
-                    AppDimensions.spacingXxl,
-                    AppDimensions.spacingXs,
+                  padding: const EdgeInsets.only(
+                    top: AppDimensions.spacingLg,
+                    bottom: AppDimensions.spacingXs,
                   ),
                   child: Row(
                     children: [
@@ -81,13 +83,14 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              SliverToBoxAdapter(
+              AppSliverContentConstrainer(
+                width: AppContentWidth.dashboard,
                 child: _SummaryHeader(analytics: analytics),
               ),
-              SliverToBoxAdapter(
+              AppSliverContentConstrainer(
+                width: AppContentWidth.dashboard,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimensions.spacingXxl,
                     vertical: AppDimensions.spacingMd,
                   ),
                   child: Text(
@@ -103,13 +106,12 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                   _buildStateBreakdown(context, analytics),
                 ),
               ),
-              SliverToBoxAdapter(
+              AppSliverContentConstrainer(
+                width: AppContentWidth.dashboard,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppDimensions.spacingXxl,
-                    AppDimensions.spacing24,
-                    AppDimensions.spacingXxl,
-                    AppDimensions.spacingMd,
+                  padding: const EdgeInsets.only(
+                    top: AppDimensions.spacing24,
+                    bottom: AppDimensions.spacingMd,
                   ),
                   child: Text(
                     'Asistencia Diaria (Horas Reales)',
@@ -122,13 +124,14 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
               attendanceAsync.when(
                 data: (logs) {
                   if (logs.isEmpty) {
-                    return const SliverToBoxAdapter(
+                    return AppSliverContentConstrainer(
+                      width: AppContentWidth.dashboard,
                       child: Padding(
-                        padding: EdgeInsets.all(AppDimensions.spacingXxl),
-                        child: Text(
-                          'No hay registros de asistencia en el scanner.',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
+                        padding: const EdgeInsets.all(AppDimensions.spacingXxl),
+child: Text(
+                'No hay registros de asistencia en el scanner.',
+                style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary),
+              ),
                       ),
                     );
                   }
@@ -146,13 +149,10 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                           horizontal: AppDimensions.spacingXxl,
                           vertical: AppDimensions.spacingMd,
                         ),
-                        child: Text(
-                          'Total horas en oficina: ${_fmtDur(totalNetTime)}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        ),
+child: Text(
+                           'Total horas en oficina: ${_fmtDur(totalNetTime)}',
+                           style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
+                         ),
                       ),
                       ...logs.map((log) {
                         final inStr =
@@ -163,14 +163,14 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                         final diff = (log.clockOutTime ?? DateTime.now())
                             .difference(log.clockInTime);
                         return ListTile(
-                          leading: const Icon(
+                          leading: Icon(
                             Icons.sensor_door,
-                            color: AppColors.textDisabled,
+                            color: context.appOnSurfaceDisabled,
                           ),
                           title: Text('Entrada: $inStr - Salida: $outStr'),
                           trailing: Text(
                             _fmtDur(diff),
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                            style: theme.textTheme.labelLarge?.copyWith(),
                           ),
                         );
                       }),
@@ -229,7 +229,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
               flex: 3,
               child: Text(
                 entry.key.label,
-                style: const TextStyle(fontSize: AppDimensions.fontBody),
+                style: theme.textTheme.bodyLarge,
               ),
             ),
             Expanded(
@@ -238,7 +238,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(AppDimensions.radiusXs),
                 child: LinearProgressIndicator(
                   value: pct,
-                  backgroundColor: AppColors.surface,
+                  backgroundColor: context.appSurface,
                   color: entry.key.color,
                   minHeight: AppDimensions.progressBarHeight,
                 ),
@@ -249,9 +249,8 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
               width: AppDimensions.stateBreakdownPercentageWidth,
               child: Text(
                 '${(pct * 100).round()}% - ${_fmtDur(entry.value)}',
-                style: const TextStyle(
-                  fontSize: AppDimensions.fontSm,
-                  color: AppColors.textSecondary,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: context.appOnSurfaceSecondary,
                 ),
                 textAlign: TextAlign.right,
               ),
@@ -273,12 +272,12 @@ class _SummaryHeader extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.all(AppDimensions.spacingXxl),
+      padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingXxl),
       child: Card(
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
-          side: BorderSide(color: AppColors.glassBorder),
+          side: BorderSide(color: context.appGlassBorder),
         ),
         child: Padding(
           padding: const EdgeInsets.all(AppDimensions.spacingXxl),
@@ -293,11 +292,10 @@ class _SummaryHeader extends StatelessWidget {
                       analytics.employee.displayName.isNotEmpty
                           ? analytics.employee.displayName[0].toUpperCase()
                           : '?',
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
-                      ),
+style: theme.textTheme.titleLarge?.copyWith(
+                         color: AppColors.primary,
+                         fontWeight: FontWeight.bold,
+                       ),
                     ),
                   ),
                   const SizedBox(width: AppDimensions.spacingXl),
@@ -315,7 +313,7 @@ class _SummaryHeader extends StatelessWidget {
                           Text(
                             'Ultima actividad: ${DateFormat('HH:mm').format(analytics.lastUpdate!)}',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
+                              color: context.appOnSurfaceSecondary,
                             ),
                           ),
                       ],
@@ -339,9 +337,8 @@ class _SummaryHeader extends StatelessWidget {
                       ),
                       child: Text(
                         analytics.lastState!.label,
-                        style: TextStyle(
+                        style: theme.textTheme.labelSmall?.copyWith(
                           color: analytics.lastState!.color,
-                          fontSize: AppDimensions.fontSm,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -397,11 +394,11 @@ class _Chip extends StatelessWidget {
       onSelected: (_) => onTap(),
       selectedColor: AppColors.primary.withAlpha(38),
       labelStyle: TextStyle(
-        color: selected ? AppColors.primary : AppColors.textSecondary,
+        color: selected ? AppColors.primary : context.appOnSurfaceSecondary,
         fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
       ),
       side: BorderSide(
-        color: selected ? AppColors.primary : AppColors.glassBorder,
+        color: selected ? AppColors.primary : context.appGlassBorder,
       ),
     );
   }
@@ -418,23 +415,23 @@ class _EmptyDetailView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.person_search_outlined,
             size: AppDimensions.iconEmptyStateLg,
-            color: AppColors.textDisabled,
+            color: context.appOnSurfaceDisabled,
           ),
           const SizedBox(height: AppDimensions.spacingXxl),
           Text(
             'Sin datos para $name',
             style: theme.textTheme.titleMedium?.copyWith(
-              color: AppColors.textSecondary,
+              color: context.appOnSurfaceSecondary,
             ),
           ),
           const SizedBox(height: AppDimensions.spacingMd),
           Text(
             'No se han registrado eventos\nen el periodo seleccionado.',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.textDisabled,
+              color: context.appOnSurfaceDisabled,
             ),
             textAlign: TextAlign.center,
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 
 class AppStatChip extends StatelessWidget {
   const AppStatChip({
@@ -18,6 +19,9 @@ class AppStatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onSurface = context.appOnSurface;
+    final onSurfaceSecondary = context.appOnSurfaceSecondary;
+
     return Semantics(
       label: '$label: $value',
       child: Column(
@@ -28,15 +32,19 @@ class AppStatChip extends StatelessWidget {
           const SizedBox(height: AppDimensions.spacingXs),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: AppDimensions.fontHeadlineLg, fontWeight: FontWeight.w800, color: AppColors.textPrimary,
+            style: TextStyle(
+              fontSize: AppDimensions.fontHeadlineLg,
+              fontWeight: FontWeight.w800,
+              color: onSurface,
             ),
           ),
           const SizedBox(height: AppDimensions.spacingXxs),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: AppDimensions.fontSm, fontWeight: FontWeight.w500, color: AppColors.textSecondary,
+            style: TextStyle(
+              fontSize: AppDimensions.fontSm,
+              fontWeight: FontWeight.w500,
+              color: onSurfaceSecondary,
             ),
           ),
         ],

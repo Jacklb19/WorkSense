@@ -5,6 +5,8 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_theme_extensions.dart';
+import '../../../../shared/widgets/styled/app_content_constrainer.dart';
 import '../../../../shared/widgets/styled/app_section_header.dart';
 import '../../presentation/providers/shifts_provider.dart';
 
@@ -214,7 +216,7 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_isEditing ? 'Turno actualizado exitosamente' : 'Turno registrado exitosamente'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         context.pop();
@@ -233,129 +235,158 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
         title: Text(_isEditing ? 'Editar Horario' : 'Configurar Horario'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── Name Section ─────────────────────────────────────
-              const AppSectionHeader(title: 'DETALLES DEL TURNO'),
-              const SizedBox(height: AppDimensions.spacing20),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre Identificador',
-                  hintText: 'Ej. Oficina Estándar',
-                  prefixIcon: Icon(Icons.label_outline),
-                ),
-                validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
-              ),
-              
-              // ── Work Hours Section ───────────────────────────────
-              const SizedBox(height: AppDimensions.spacing40),
-              const AppSectionHeader(title: 'JORNADA LABORAL'),
-              const SizedBox(height: AppDimensions.spacing20),
-              
-              Row(
-                  children: [
-                    Expanded(
-                      child: _TimeCard(
-                        title: 'ENTRADA',
-                        time: _startTime,
-                        onTap: () => _selectTime(
-                          context,
-                          initial: _startTime,
-                          onSelected: (t) => _startTime = t,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppDimensions.spacingXxl),
-                    Expanded(
-                      child: _TimeCard(
-                        title: 'SALIDA',
-                        time: _endTime,
-                        onTap: () => _selectTime(
-                        context,
-                        initial: _endTime,
-                        onSelected: (t) => _endTime = t,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              // ── Break / Lunch Section ────────────────────────────
-              const SizedBox(height: AppDimensions.spacing32),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('RECESO / ALMUERZO', 
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                    fontSize: AppDimensions.fontSm,
-                  )
-                ),
-                subtitle: const Text('Activar si aplica hora de almuerzo'),
-                value: _hasBreak,
-                onChanged: (val) => setState(() => _hasBreak = val),
-                activeThumbColor: AppColors.primary,
-              ),
-
-              if (_hasBreak) ...[
-                const SizedBox(height: AppDimensions.spacingXxl),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _TimeCard(
-                        title: 'INICIO RECESO',
-                        time: _breakStartTime,
-                        accentColor: AppColors.orangeWarning,
-                        onTap: () => _selectTime(
-                          context,
-                          initial: _breakStartTime,
-                          onSelected: (t) => _breakStartTime = t,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppDimensions.spacingXxl),
-                    Expanded(
-                      child: _TimeCard(
-                        title: 'FIN RECESO',
-                        time: _breakEndTime,
-                        accentColor: AppColors.orangeWarning,
-                        onTap: () => _selectTime(
-                          context,
-                          initial: _breakEndTime,
-                          onSelected: (t) => _breakEndTime = t,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing24, vertical: AppDimensions.spacing32),
+        child: AppContentConstrainer(
+          width: AppContentWidth.form,
+          center: false,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildShiftDetailsSection(),
+                _buildWorkScheduleSection(),
+                _buildBreakSection(),
+                _buildSubmitSection(formState),
               ],
-              
-              // ── Submit ────────────────────────────────────────────
-              const SizedBox(height: AppDimensions.spacing56),
-              FilledButton(
-                onPressed: formState.isLoading ? null : _handleSubmit,
-                style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, 60)),
-                child: formState.isLoading
-                  ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                  : Text(_isEditing ? 'ACTUALIZAR TURNO' : 'GUARDAR TURNO'),
-              ),
-              if (formState.errorMessage != null) ...[
-                const SizedBox(height: AppDimensions.spacingXxl),
-                Text(formState.errorMessage!, 
-                  textAlign: TextAlign.center, 
-                  style: const TextStyle(color: AppColors.error, fontSize: AppDimensions.fontBody)
-                ),
-              ],
-            ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildShiftDetailsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const AppSectionHeader(title: 'DETALLES DEL TURNO'),
+        const SizedBox(height: AppDimensions.spacing20),
+        TextFormField(
+          controller: _nameController,
+          decoration: const InputDecoration(
+            labelText: 'Nombre Identificador',
+            hintText: 'Ej. Oficina Estándar',
+            prefixIcon: Icon(Icons.label_outline),
+          ),
+          validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
+        ),
+        const SizedBox(height: AppDimensions.spacing40),
+      ],
+    );
+  }
+
+  Widget _buildWorkScheduleSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const AppSectionHeader(title: 'JORNADA LABORAL'),
+        const SizedBox(height: AppDimensions.spacing20),
+        Row(
+          children: [
+            Expanded(
+              child: _TimeCard(
+                title: 'ENTRADA',
+                time: _startTime,
+                onTap: () => _selectTime(
+                  context,
+                  initial: _startTime,
+                  onSelected: (t) => _startTime = t,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppDimensions.spacingXxl),
+            Expanded(
+              child: _TimeCard(
+                title: 'SALIDA',
+                time: _endTime,
+                onTap: () => _selectTime(
+                  context,
+                  initial: _endTime,
+                  onSelected: (t) => _endTime = t,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppDimensions.spacing32),
+      ],
+    );
+  }
+
+  Widget _buildBreakSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('RECESO / ALMUERZO',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+                fontSize: AppDimensions.fontSm,
+              )),
+          subtitle: const Text('Activar si aplica hora de almuerzo'),
+          value: _hasBreak,
+          onChanged: (val) => setState(() => _hasBreak = val),
+          activeThumbColor: AppColors.primary,
+        ),
+        if (_hasBreak) ...[
+          const SizedBox(height: AppDimensions.spacingXxl),
+          Row(
+            children: [
+              Expanded(
+                child: _TimeCard(
+                  title: 'INICIO RECESO',
+                  time: _breakStartTime,
+                  accentColor: AppColors.orangeWarning,
+                  onTap: () => _selectTime(
+                    context,
+                    initial: _breakStartTime,
+                    onSelected: (t) => _breakStartTime = t,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppDimensions.spacingXxl),
+              Expanded(
+                child: _TimeCard(
+                  title: 'FIN RECESO',
+                  time: _breakEndTime,
+                  accentColor: AppColors.orangeWarning,
+                  onTap: () => _selectTime(
+                    context,
+                    initial: _breakEndTime,
+                    onSelected: (t) => _breakEndTime = t,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSubmitSection(ShiftFormState formState) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: AppDimensions.spacing56),
+        FilledButton(
+          onPressed: formState.isLoading ? null : _handleSubmit,
+          style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, 60)),
+          child: formState.isLoading
+              ? const CircularProgressIndicator(color: AppColors.white, strokeWidth: 2)
+              : Text(_isEditing ? 'ACTUALIZAR TURNO' : 'GUARDAR TURNO'),
+        ),
+        if (formState.errorMessage != null) ...[
+          const SizedBox(height: AppDimensions.spacingXxl),
+          Text(formState.errorMessage!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.error, fontSize: AppDimensions.fontBody)),
+        ],
+      ],
     );
   }
 }
@@ -373,8 +404,6 @@ class _ShiftTimeline {
     required this.breakEnd,
   });
 }
-
-// ── Reusable Time Selection Card ─────────────────────────────────────────────
 
 class _TimeCard extends StatelessWidget {
   final String title;
@@ -400,14 +429,14 @@ class _TimeCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingXxl, horizontal: AppDimensions.spacingLg),
         decoration: BoxDecoration(
-          color: AppColors.card,
+          color: context.appCard,
           borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
-          border: Border.all(color: AppColors.glassBorder),
+          border: Border.all(color: context.appGlassBorder),
         ),
         child: Column(
           children: [
-            Text(title, style: const TextStyle(color: AppColors.grey500, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-            const SizedBox(height: 8),
+            Text(title, style: TextStyle(color: context.appOnSurfaceSecondary, fontSize: AppDimensions.fontSm, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+            const SizedBox(height: AppDimensions.spacingMd),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/domain/entities/payroll.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/features/payroll/data/payroll_repository.dart';
 import 'package:worksense_app/features/payroll/presentation/providers/payroll_provider.dart';
+
 
 class PayrollPeriodDetailScreen extends ConsumerStatefulWidget {
   final String periodId;
@@ -34,6 +37,7 @@ class _PayrollPeriodDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final entriesAsync = ref.watch(payrollEntriesProvider(widget.periodId));
     final employeesAsync = ref.watch(adminEmployeesProvider);
 
@@ -46,33 +50,26 @@ class _PayrollPeriodDetailScreenState
     final isApproved = period.status == PayrollStatus.approved;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.appSurface,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               period.name,
-              style: const TextStyle(
-                color: AppColors.textPrimaryDark,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
+              style: theme.textTheme.titleMedium?.copyWith(color: context.appOnSurface, fontWeight: FontWeight.w700),
             ),
             Text(
               '${_dateFmt.format(period.startDate)} – ${_dateFmt.format(period.endDate)}',
-              style: const TextStyle(
-                color: AppColors.textSecondaryDark,
-                fontSize: 11,
-              ),
+              style: theme.textTheme.labelSmall?.copyWith(color: context.appOnSurfaceSecondary),
             ),
           ],
         ),
         actions: [
           if (isDraft)
             Padding(
-              padding: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.only(right: AppDimensions.spacingLg),
               child: FilledButton(
                 onPressed: () => _confirmStatusChange(
                   context,
@@ -82,14 +79,14 @@ class _PayrollPeriodDetailScreenState
                 ),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.success,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl),
                 ),
-                child: const Text('Aprobar', style: TextStyle(fontSize: 13)),
+                child: Text('Aprobar', style: theme.textTheme.bodyLarge),
               ),
             ),
           if (isApproved)
             Padding(
-              padding: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.only(right: AppDimensions.spacingLg),
               child: FilledButton(
                 onPressed: () => _confirmStatusChange(
                   context,
@@ -99,9 +96,9 @@ class _PayrollPeriodDetailScreenState
                 ),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl),
                 ),
-                child: const Text('Marcar pagado', style: TextStyle(fontSize: 13)),
+                child: Text('Marcar pagado', style: theme.textTheme.bodyLarge),
               ),
             ),
         ],
@@ -112,31 +109,29 @@ class _PayrollPeriodDetailScreenState
         ),
         error: (e, _) => Center(
           child: Text('Error: $e',
-              style: const TextStyle(color: AppColors.error)),
+              style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.error)),
         ),
         data: (entries) {
           return Column(
             children: [
-              // ── Summary banner ─────────────────────────────────────
               _SummaryBanner(
                 period: period,
                 entries: entries,
                 currFmt: _currFmt,
               ),
-              // ── Entries list ───────────────────────────────────────
               Expanded(
                 child: entries.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Text(
                           'Sin entradas en este período',
-                          style: TextStyle(color: AppColors.textSecondaryDark),
+                          style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary),
                         ),
                       )
                     : ListView.separated(
                         padding: const EdgeInsets.symmetric(
-                            vertical: 12, horizontal: 16),
+                            vertical: AppDimensions.spacingXl, horizontal: AppDimensions.spacingXxl),
                         itemCount: entries.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        separatorBuilder: (_, __) => const SizedBox(height: AppDimensions.spacingMd),
                         itemBuilder: (ctx, i) {
                           final entry = entries[i];
                           final emp = empMap[entry.employeeId];
@@ -165,16 +160,16 @@ class _PayrollPeriodDetailScreenState
     String message,
     PayrollStatus newStatus,
   ) async {
-    // Capture navigator before any async gap
     final nav = Navigator.of(context);
+    final theme = Theme.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.appSurface,
         title: Text(title,
-            style: const TextStyle(color: AppColors.textPrimaryDark)),
+            style: theme.textTheme.titleMedium?.copyWith(color: context.appOnSurface)),
         content: Text(message,
-            style: const TextStyle(color: AppColors.textSecondaryDark)),
+            style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -196,21 +191,22 @@ class _PayrollPeriodDetailScreenState
   }
 
   Future<void> _editDeductions(BuildContext ctx, PayrollEntry entry) async {
+    final theme = Theme.of(context);
     final ctrl = TextEditingController(
       text: entry.deductions > 0 ? entry.deductions.toStringAsFixed(0) : '',
     );
     final ok = await showDialog<bool>(
       context: ctx,
       builder: (dlgCtx) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text(
-          'Editar deducciones',
-          style: TextStyle(color: AppColors.textPrimaryDark),
-        ),
+        backgroundColor: context.appSurface,
+title: Text(
+            'Editar deducciones',
+            style: theme.textTheme.titleMedium?.copyWith(color: context.appOnSurface),
+          ),
         content: TextField(
           controller: ctrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: false),
-          style: const TextStyle(color: AppColors.textPrimaryDark),
+          style: TextStyle(color: context.appOnSurface),
           decoration: const InputDecoration(
             labelText: 'Deducción (COP)',
             prefixText: '\$ ',
@@ -252,6 +248,7 @@ class _SummaryBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final totalNet =
         entries.fold<double>(0, (s, e) => s + e.netPay);
     final totalDed =
@@ -260,11 +257,11 @@ class _SummaryBanner extends StatelessWidget {
         entries.fold<double>(0, (s, e) => s + e.hoursWorked);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceDark,
+      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacingXl),
+      decoration: BoxDecoration(
+        color: context.appSurface,
         border: Border(
-            bottom: BorderSide(color: AppColors.glassBorder, width: 0.5)),
+            bottom: BorderSide(color: context.appGlassBorder, width: 0.5)),
       ),
       child: Row(
         children: [
@@ -274,21 +271,21 @@ class _SummaryBanner extends StatelessWidget {
             color: AppColors.primary,
             icon: Icons.people_rounded,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppDimensions.spacingLg),
           _Stat(
             label: 'Hrs totales',
             value: totalHours.toStringAsFixed(1),
             color: AppColors.secondary,
             icon: Icons.schedule_rounded,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppDimensions.spacingLg),
           _Stat(
             label: 'Deducciones',
             value: currFmt.format(totalDed),
             color: AppColors.warning,
             icon: Icons.remove_circle_outline_rounded,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppDimensions.spacingLg),
           _Stat(
             label: 'Pago neto',
             value: currFmt.format(totalNet),
@@ -298,18 +295,17 @@ class _SummaryBanner extends StatelessWidget {
           const Spacer(),
           Container(
             padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXl, vertical: AppDimensions.spacingSm),
             decoration: BoxDecoration(
               color: period.status.color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
               border: Border.all(
                   color: period.status.color.withValues(alpha: 0.3)),
             ),
             child: Text(
               period.status.label.toUpperCase(),
-              style: TextStyle(
+              style: theme.textTheme.labelSmall?.copyWith(
                 color: period.status.color,
-                fontSize: 10,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1,
               ),
@@ -336,6 +332,7 @@ class _Stat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -343,24 +340,20 @@ class _Stat extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 12, color: color),
-            const SizedBox(width: 4),
+            Icon(icon, size: AppDimensions.spacingXxl, color: color),
+            const SizedBox(width: AppDimensions.spacingXs),
             Text(
               label,
-              style: TextStyle(
-                color: color.withValues(alpha: 0.8),
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-              ),
+              style: theme.textTheme.labelSmall?.copyWith(color: color.withValues(alpha: 0.8)),
             ),
           ],
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: AppDimensions.spacingXxs),
         Text(
           value,
           style: TextStyle(
             color: color,
-            fontSize: 13,
+            fontSize: AppDimensions.fontBody,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -388,6 +381,7 @@ class _EntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final name = employee?.displayName ?? entry.employeeId;
     final initials = (employee != null)
         ? '${employee!.name.isNotEmpty ? employee!.name[0] : ''}${employee!.lastName.isNotEmpty ? employee!.lastName[0] : ''}'
@@ -395,50 +389,40 @@ class _EntryCard extends StatelessWidget {
         : '?';
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(AppDimensions.spacingXl),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.glassBorder),
+        color: context.appSurface,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+        border: Border.all(color: context.appGlassBorder),
       ),
       child: Row(
         children: [
-          // Avatar
           Container(
             width: 40,
             height: 40,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                   colors: AppColors.primaryGradient),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
             ),
             child: Center(
               child: Text(
                 initials,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
+                style: theme.textTheme.labelLarge?.copyWith(color: AppColors.white),
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          // Info
+          const SizedBox(width: AppDimensions.spacingLg),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   name,
-                  style: const TextStyle(
-                    color: AppColors.textPrimaryDark,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
+                  style: theme.textTheme.bodyLarge?.copyWith(color: context.appOnSurface, fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppDimensions.spacingXs),
                 Row(
                   children: [
                     _MiniStat(
@@ -446,7 +430,7 @@ class _EntryCard extends StatelessWidget {
                       icon: Icons.schedule,
                       color: AppColors.secondary,
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: AppDimensions.spacingXl),
                     _MiniStat(
                       label: '${currFmt.format(entry.hourlyRate)}/hr',
                       icon: Icons.attach_money,
@@ -457,37 +441,34 @@ class _EntryCard extends StatelessWidget {
               ],
             ),
           ),
-          // Pay info
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 currFmt.format(entry.netPay),
-                style: const TextStyle(
-                  color: AppColors.success,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
-                ),
+                style: theme.textTheme.titleSmall?.copyWith(color: AppColors.success, fontWeight: FontWeight.w800),
               ),
               if (entry.deductions > 0)
                 Text(
                   '- ${currFmt.format(entry.deductions)}',
-                  style: const TextStyle(
-                    color: AppColors.warning,
-                    fontSize: 11,
-                  ),
+                  style: theme.textTheme.labelSmall?.copyWith(color: AppColors.warning),
                 ),
               if (isDraft)
-                GestureDetector(
-                  onTap: onEditDeductions,
-                  child: const Padding(
-                    padding: EdgeInsets.only(top: 4),
-                    child: Text(
-                      'Editar ded.',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 10,
-                        decoration: TextDecoration.underline,
+                Semantics(
+                  button: true,
+                  label: 'Editar deducciones',
+                  child: InkWell(
+                    onTap: onEditDeductions,
+                    borderRadius: BorderRadius.circular(AppDimensions.spacingXs),
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: AppDimensions.spacingXs),
+                      child: Text(
+                        'Editar ded.',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: AppDimensions.fontXs,
+                          decoration: TextDecoration.underline,
+                        ),
                       ),
                     ),
                   ),
@@ -513,17 +494,15 @@ class _MiniStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 11, color: color.withValues(alpha: 0.7)),
-        const SizedBox(width: 3),
+        Icon(icon, size: AppDimensions.spacingXxl, color: color.withValues(alpha: 0.7)),
+        const SizedBox(width: AppDimensions.spacingSm),
         Text(
           label,
-          style: const TextStyle(
-            color: AppColors.textSecondaryDark,
-            fontSize: 11,
-          ),
+          style: theme.textTheme.labelSmall?.copyWith(color: context.appOnSurfaceSecondary),
         ),
       ],
     );

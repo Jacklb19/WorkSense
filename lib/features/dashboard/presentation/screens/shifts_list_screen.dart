@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/domain/entities/shift.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
-import 'package:worksense_app/shared/widgets/loading_widget.dart';
-import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/shared/widgets/async_value_widget.dart';
+import 'package:worksense_app/shared/widgets/styled/app_content_constrainer.dart';
 
 class ShiftsListScreen extends ConsumerWidget {
   const ShiftsListScreen({super.key});
@@ -22,15 +24,16 @@ class ShiftsListScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(shiftsProvider),
-        child: shiftsAsync.when(
-          loading: () => const AppLoadingWidget(),
-          error: (e, _) => Center(child: Text('Error: $e')),
-          data: (shifts) {
+        child: AsyncValueWidget(
+          value: shiftsAsync,
+          builder: (shifts) {
             if (shifts.isEmpty) {
               return const _EmptyShiftsView();
             }
 
-            return ListView.separated(
+            return AppContentConstrainer(
+              width: AppContentWidth.list,
+              child: ListView.separated(
               padding: const EdgeInsets.all(AppDimensions.spacingXxl),
               itemCount: shifts.length,
               separatorBuilder: (_, __) =>
@@ -45,7 +48,7 @@ class ShiftsListScreen extends ConsumerWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius:
                         BorderRadius.circular(AppDimensions.radiusRound),
-                    side: BorderSide(color: AppColors.glassBorder),
+                    side: BorderSide(color: context.appGlassBorder),
                   ),
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(
@@ -56,7 +59,7 @@ class ShiftsListScreen extends ConsumerWidget {
                       padding: const EdgeInsets.all(AppDimensions.spacingLg),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
                       ),
                     ),
                     title: Text(
@@ -72,7 +75,7 @@ class ShiftsListScreen extends ConsumerWidget {
                       child: Text(
                         '$startStr - $endStr',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.appOnSurfaceSecondary,
                         ),
                       ),
                     ),
@@ -96,6 +99,7 @@ class ShiftsListScreen extends ConsumerWidget {
                   ),
                 );
               },
+            ),
             );
           },
         ),
@@ -143,16 +147,16 @@ class _EmptyShiftsView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.event_busy, size: 64, color: AppColors.grey300),
-          const SizedBox(height: 16),
+          Icon(Icons.event_busy, size: 64, color: context.appOnSurfaceDisabled),
+          const SizedBox(height: AppDimensions.spacingXxl),
           Text(
             'No hay turnos registrados',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.grey500),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(color: context.appOnSurfaceSecondary),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDimensions.spacingMd),
           Text(
             'Crea tu primer horario laboral \npara asignarlo a tus empleados.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.grey400),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceDisabled),
             textAlign: TextAlign.center,
           ),
         ],

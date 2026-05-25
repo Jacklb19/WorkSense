@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/domain/entities/leave_request.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/features/leaves/presentation/providers/leaves_provider.dart';
@@ -35,19 +37,19 @@ class _LeavesListScreenState extends ConsumerState<LeavesListScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final userState = ref.watch(currentUserProvider).valueOrNull;
     final isAdmin = userState?.role == AppRole.admin ||
         userState?.role == AppRole.superAdmin;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text(
+        backgroundColor: context.appSurface,
+        title: Text(
           'PERMISOS',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: context.appOnSurface,
             fontWeight: FontWeight.w900,
             letterSpacing: 1,
           ),
@@ -58,8 +60,8 @@ class _LeavesListScreenState extends ConsumerState<LeavesListScreen>
           tabAlignment: TabAlignment.start,
           indicatorColor: AppColors.primary,
           labelColor: AppColors.primary,
-          unselectedLabelColor: Colors.white38,
-          labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          unselectedLabelColor: context.tabUnselectedLabelColor(),
+          labelStyle: const TextStyle(fontSize: AppDimensions.fontCaption, fontWeight: FontWeight.w600),
           tabs: const [
             Tab(text: 'Todos'),
             Tab(text: 'Pendientes'),
@@ -102,6 +104,7 @@ class _AdminLeavesList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final leavesAsync = ref.watch(companyLeavesProvider);
     final employeesAsync = ref.watch(employeesProvider);
     final user = ref.watch(currentUserProvider).valueOrNull;
@@ -109,7 +112,7 @@ class _AdminLeavesList extends ConsumerWidget {
     return leavesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(
-        child: Text('$e', style: const TextStyle(color: AppColors.error)),
+        child: Text('$e', style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.error)),
       ),
       data: (leaves) {
         final filtered = filterStatus != null
@@ -119,7 +122,6 @@ class _AdminLeavesList extends ConsumerWidget {
         final employees = employeesAsync.valueOrNull ?? [];
         final empMap = {for (final e in employees) e.id: e};
 
-        // Count stats across all leaves (not just filtered)
         final totalAll = leaves.length;
         final approvedCount = leaves.where((l) => l.status == LeaveStatus.approved).length;
         final rejectedCount = leaves.where((l) => l.status == LeaveStatus.rejected).length;
@@ -127,29 +129,27 @@ class _AdminLeavesList extends ConsumerWidget {
 
         return Column(
           children: [
-            // ── Stats panel ──────────────────────────────────────────
             if (filterStatus == null)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacingXl, AppDimensions.spacingXxl, 0),
                 child: Row(
                   children: [
                     _StatChip(label: 'Total', count: totalAll, color: AppColors.primary),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppDimensions.spacingMd),
                     _StatChip(label: 'Aprobados', count: approvedCount, color: AppColors.success),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppDimensions.spacingMd),
                     _StatChip(label: 'Rechazados', count: rejectedCount, color: AppColors.error),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppDimensions.spacingMd),
                     _StatChip(label: 'Pendientes', count: pendingCount, color: AppColors.warning),
                   ],
                 ),
               ),
 
-            // ── List ─────────────────────────────────────────────────
             Expanded(
               child: filtered.isEmpty
                   ? _EmptyState(filterStatus: filterStatus, isAdmin: true)
                   : ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(AppDimensions.spacingXxl),
                       itemCount: filtered.length,
                       itemBuilder: (context, i) {
                         final req = filtered[i];
@@ -213,31 +213,32 @@ class _AdminLeavesList extends ConsumerWidget {
     LeaveRequest req,
     String reviewerId,
   ) async {
+    final theme = Theme.of(context);
     final noteCtrl = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text('Rechazar permiso',
-            style: TextStyle(color: Colors.white)),
+        backgroundColor: context.appSurface,
+        title: Text('Rechazar permiso',
+            style: theme.textTheme.titleMedium?.copyWith(color: context.appOnSurface)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Motivo del rechazo (opcional)',
-                style: TextStyle(color: Colors.white70, fontSize: 13)),
-            const SizedBox(height: 8),
+            Text('Motivo del rechazo (opcional)',
+                style: theme.textTheme.bodyLarge?.copyWith(color: context.appOnSurfaceSecondary)),
+            const SizedBox(height: AppDimensions.spacingMd),
             TextField(
               controller: noteCtrl,
-              style: const TextStyle(color: Colors.white),
+              style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurface),
               maxLines: 2,
               decoration: InputDecoration(
                 hintText: 'Escribe una nota…',
-                hintStyle: const TextStyle(color: Colors.white38),
+                hintStyle: TextStyle(color: context.appOnSurfaceDisabled),
                 filled: true,
-                fillColor: AppColors.backgroundDark,
+                fillColor: context.appBackground,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.glassBorder),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+                  borderSide: BorderSide(color: context.appGlassBorder),
                 ),
               ),
             ),
@@ -291,12 +292,13 @@ class _StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingMd, horizontal: AppDimensions.spacingXs),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
           border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
@@ -305,14 +307,14 @@ class _StatChip extends StatelessWidget {
               '$count',
               style: TextStyle(
                 color: color,
-                fontSize: 18,
+                fontSize: AppDimensions.fontTitleLg,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: AppDimensions.spacingXxs),
             Text(
               label,
-              style: const TextStyle(color: AppColors.grey400, fontSize: 10),
+              style: TextStyle(color: AppColors.grey400, fontSize: AppDimensions.fontXs),
               textAlign: TextAlign.center,
             ),
           ],
@@ -331,12 +333,13 @@ class _EmployeeLeavesList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final leavesAsync = ref.watch(myLeavesProvider);
 
     return leavesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(
-        child: Text('$e', style: const TextStyle(color: AppColors.error)),
+        child: Text('$e', style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.error)),
       ),
       data: (leaves) {
         final filtered = filterStatus != null
@@ -348,7 +351,7 @@ class _EmployeeLeavesList extends ConsumerWidget {
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacingXxl, AppDimensions.spacingXxl, 100),
           itemCount: filtered.length,
           itemBuilder: (context, i) {
             final req = filtered[i];
@@ -368,11 +371,11 @@ class _EmployeeLeavesList extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.appSurface,
         title:
-            const Text('Cancelar solicitud', style: TextStyle(color: Colors.white)),
-        content: const Text('¿Seguro que quieres cancelar esta solicitud?',
-            style: TextStyle(color: Colors.white70)),
+            Text('Cancelar solicitud', style: theme.textTheme.titleMedium?.copyWith(color: context.appOnSurface)),
+        content: Text('¿Seguro que quieres cancelar esta solicitud?',
+            style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -402,6 +405,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final message = filterStatus != null
         ? 'No hay permisos ${filterStatus!.label.toLowerCase()}'
         : isAdmin
@@ -415,18 +419,15 @@ class _EmptyState extends StatelessWidget {
           Icon(
             Icons.beach_access_outlined,
             size: 64,
-            color: Colors.white.withValues(alpha: 0.2),
+            color: context.appOnSurfaceDisabled,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDimensions.spacingXxl),
           Text(
             message,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.4),
-              fontSize: 14,
-            ),
+            style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary),
           ),
           if (!isAdmin && filterStatus == null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: AppDimensions.spacingLg),
             TextButton.icon(
               onPressed: () => context.push(AppRoutes.leaveNew),
               icon: const Icon(Icons.add, color: AppColors.primary),

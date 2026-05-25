@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/dashboard/domain/entities/daily_work_summary.dart';
 import 'package:worksense_app/features/dashboard/domain/entities/employee_analytics.dart';
@@ -8,7 +10,7 @@ import 'package:worksense_app/features/dashboard/presentation/helpers/hours_form
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
 import 'package:worksense_app/shared/widgets/error_widget.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
-import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/shared/widgets/styled/app_content_constrainer.dart';
 
 class MyHoursScreen extends ConsumerWidget {
   const MyHoursScreen({super.key});
@@ -25,7 +27,7 @@ class MyHoursScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           _screenTitle,
           style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.6),
         ),
@@ -42,12 +44,11 @@ class MyHoursScreen extends ConsumerWidget {
     AsyncValue summaryAsync,
     AsyncValue summariesAsync,
   ) {
-    // ── Cargando ──────────────────────────────────────────────
+    final theme = Theme.of(context);
     if (analyticsAsync.isLoading || summaryAsync.isLoading || summariesAsync.isLoading) {
       return const AppLoadingWidget(message: 'Calculando tus horas...');
     }
 
-    // ── Error ─────────────────────────────────────────────────
     if (analyticsAsync.hasError || summaryAsync.hasError || summariesAsync.hasError) {
       return AppErrorWidget(
         message:
@@ -61,7 +62,6 @@ class MyHoursScreen extends ConsumerWidget {
       );
     }
 
-    // ── Datos disponibles ─────────────────────────────────────
     final analytics = analyticsAsync.valueOrNull as EmployeeAnalytics?;
     final summary = summaryAsync.valueOrNull as DailyWorkSummary?;
     final summaries = (summariesAsync.valueOrNull as List<DailyWorkSummary>?) ?? [];
@@ -75,65 +75,69 @@ class MyHoursScreen extends ConsumerWidget {
 
     return CustomScrollView(
       slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-          sliver: SliverToBoxAdapter(
+        AppSliverContentConstrainer(
+          width: AppContentWidth.dashboard,
+          child: Padding(
+            padding: const EdgeInsets.only(top: AppDimensions.spacing20, bottom: AppDimensions.spacingLg),
             child: _SummaryHeroCard(summary: summary),
           ),
         ),
         if (summary != null)
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            sliver: SliverToBoxAdapter(
+          AppSliverContentConstrainer(
+            width: AppContentWidth.dashboard,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingMd),
               child: _MetricsGrid(summary: summary),
             ),
           ),
         if (summary != null && summary.hasAnomalies)
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            sliver: SliverToBoxAdapter(
+          AppSliverContentConstrainer(
+            width: AppContentWidth.dashboard,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingMd),
               child: _AnomaliesCard(summary: summary),
             ),
           ),
         if (analytics != null && analytics.hasData) ...[
-          const SliverPadding(
-            padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
-            sliver: SliverToBoxAdapter(
+          AppSliverContentConstrainer(
+            width: AppContentWidth.dashboard,
+            child: Padding(
+              padding: const EdgeInsets.only(top: AppDimensions.spacingLg, bottom: AppDimensions.spacingMd),
               child: Text(
                 _activitySectionTitle,
-                style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: 11,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: context.appOnSurfaceSecondary,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.2,
                 ),
               ),
             ),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            sliver: SliverToBoxAdapter(
+          AppSliverContentConstrainer(
+            width: AppContentWidth.dashboard,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingMd),
               child: _ActivityOverviewCard(analytics: analytics),
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+            padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacingMd, AppDimensions.spacingXxl, AppDimensions.spacingXxl),
             sliver: SliverList(
               delegate: SliverChildListDelegate(
-                _buildStateBreakdown(analytics),
+                _buildStateBreakdown(context, analytics),
               ),
             ),
           ),
         ],
         if (summaries.isNotEmpty) ...[
-          const SliverPadding(
-            padding: EdgeInsets.fromLTRB(20, 10, 20, 8),
-            sliver: SliverToBoxAdapter(
+          AppSliverContentConstrainer(
+            width: AppContentWidth.dashboard,
+            child: Padding(
+              padding: const EdgeInsets.only(top: AppDimensions.spacingLg, bottom: AppDimensions.spacingMd),
               child: Text(
                 _historySectionTitle,
-                style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: 11,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: context.appOnSurfaceSecondary,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.2,
                 ),
@@ -141,23 +145,23 @@ class MyHoursScreen extends ConsumerWidget {
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+            padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacingMd, AppDimensions.spacingXxl, AppDimensions.spacingXxl),
             sliver: SliverList.separated(
               itemCount: summaries.take(5).length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, __) => const SizedBox(height: AppDimensions.spacingLg),
               itemBuilder: (context, index) => _HistoryCard(
                 summary: summaries[index],
               ),
             ),
           ),
         ],
-        // Extra bottom padding
-        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+        const SliverToBoxAdapter(child: SizedBox(height: AppDimensions.spacingXxl)),
       ],
     );
   }
 
-  List<Widget> _buildStateBreakdown(EmployeeAnalytics analytics) {
+  List<Widget> _buildStateBreakdown(BuildContext context, EmployeeAnalytics analytics) {
+    final theme = Theme.of(context);
     final sorted = ActivityState.values.toList()
       ..sort(
         (a, b) => (analytics.stateDurations[b] ?? Duration.zero)
@@ -170,13 +174,13 @@ class MyHoursScreen extends ConsumerWidget {
       if (dur.inSeconds == 0) return const SizedBox.shrink();
 
       return Padding(
-        padding: const EdgeInsets.only(bottom: 18),
+        padding: const EdgeInsets.only(bottom: AppDimensions.spacingLg),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppDimensions.spacingXxl),
           decoration: BoxDecoration(
-            color: AppColors.cardDark,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            color: context.appCard,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusCardLg),
+            border: Border.all(color: context.appGlassBorder),
           ),
           child: Column(
             children: [
@@ -194,25 +198,22 @@ class MyHoursScreen extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       state.label,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: theme.textTheme.headlineLarge?.copyWith(color: context.appOnSurface, fontWeight: FontWeight.w800),
                     ),
                   ),
                   Text(
                     _fmtDur(dur),
-                    style: const TextStyle(color: Colors.white70),
+                    style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppDimensions.spacingLg),
               ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
                 child: LinearProgressIndicator(
                   value: pct,
                   minHeight: 8,
-                  backgroundColor: Colors.white.withValues(alpha: 0.05),
+                  backgroundColor: context.appOnSurface.withValues(alpha: 0.05),
                   color: state.color,
                 ),
               ),
@@ -226,14 +227,13 @@ class MyHoursScreen extends ConsumerWidget {
   String _fmtDur(Duration d) => HoursFormatters.formatDuration(d);
 }
 
-// ── Empty ─────────────────────────────────────────────────────────────────────
-
 class _EmptyHoursView extends StatelessWidget {
   final VoidCallback? onRetry;
   const _EmptyHoursView({this.onRetry});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppDimensions.spacing40),
@@ -244,32 +244,31 @@ class _EmptyHoursView extends StatelessWidget {
               width: 92,
               height: 92,
               decoration: BoxDecoration(
-                color: AppColors.cardDark,
+                color: context.appCard,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                border: Border.all(color: context.appGlassBorder),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.access_time_rounded,
                 size: 40,
-                color: Colors.white24,
+                color: context.appOnSurfaceDisabled,
               ),
             ),
-            const SizedBox(height: 24),
-            const Text(
+            const SizedBox(height: AppDimensions.spacingXxl),
+            Text(
               'AÚN NO HAY HORAS CONSOLIDADAS',
-              style: TextStyle(
-                color: Colors.white30,
-                fontSize: 15,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: context.appOnSurfaceDisabled,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1.4,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 12),
-            const Text(
+            const SizedBox(height: AppDimensions.spacingLg),
+            Text(
               'Tu resumen aparecerá automáticamente cuando\nse registren sesiones durante la jornada.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white38, fontSize: 13, height: 1.5),
+              style: theme.textTheme.bodyLarge?.copyWith(color: context.appOnSurfaceDisabled, height: 1.5),
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 28),
@@ -278,8 +277,8 @@ class _EmptyHoursView extends StatelessWidget {
                 icon: const Icon(Icons.refresh, size: 16),
                 label: const Text('Actualizar'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white54,
-                  side: const BorderSide(color: Colors.white12),
+                  foregroundColor: context.appOnSurfaceSecondary,
+                  side: BorderSide(color: context.appGlassBorder),
                 ),
               ),
             ],
@@ -289,8 +288,6 @@ class _EmptyHoursView extends StatelessWidget {
     );
   }
 }
-
-// ── Summary Hero Card ─────────────────────────────────────────────────────────
 
 class _SummaryHeroCard extends StatelessWidget {
   const _SummaryHeroCard({required this.summary});
@@ -314,7 +311,7 @@ class _SummaryHeroCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCardXxl),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.20),
@@ -329,17 +326,17 @@ class _SummaryHeroCard extends StatelessWidget {
           const Text(
             'RESUMEN DE LA JORNADA',
             style: TextStyle(
-              color: Colors.white70,
-              fontSize: 11,
+              color: AppColors.white70,
+              fontSize: AppDimensions.fontSm,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.2,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDimensions.spacingLg),
           Text(
             '${HoursFormatters.formatMinutes(worked)} trabajados',
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.white,
               fontSize: 28,
               fontWeight: FontWeight.w900,
             ),
@@ -349,19 +346,19 @@ class _SummaryHeroCard extends StatelessWidget {
             expected > 0
                 ? 'Meta del día: ${HoursFormatters.formatMinutes(expected)}'
                 : 'Aún no hay una meta de turno configurada',
-            style: const TextStyle(color: Colors.white70, height: 1.35),
+            style: const TextStyle(color: AppColors.white70, height: 1.35),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: AppDimensions.spacingLg),
           ClipRRect(
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusInfinity),
             child: LinearProgressIndicator(
               value: ratio,
               minHeight: 10,
-              backgroundColor: Colors.white.withValues(alpha: 0.18),
-              color: Colors.white,
+              backgroundColor: AppColors.white.withValues(alpha: 0.18),
+              color: AppColors.white,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDimensions.spacingLg),
           Row(
             children: [
               _HeroChip(
@@ -389,11 +386,12 @@ class _HeroChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingLg, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(14),
+        color: AppColors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -401,16 +399,16 @@ class _HeroChip extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 10,
+              color: AppColors.white70,
+              fontSize: AppDimensions.fontXs,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             value,
-            style: const TextStyle(
-              color: Colors.white,
+            style: theme.textTheme.headlineLarge?.copyWith(
+              color: context.appOnSurface,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -420,8 +418,6 @@ class _HeroChip extends StatelessWidget {
   }
 }
 
-// ── Metrics Grid ──────────────────────────────────────────────────────────────
-
 class _MetricsGrid extends StatelessWidget {
   const _MetricsGrid({required this.summary});
 
@@ -429,6 +425,7 @@ class _MetricsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final tiles = [
       _MetricData('Esperado', HoursFormatters.formatMinutes(summary.expectedMinutes), Icons.schedule),
       _MetricData('Descanso', HoursFormatters.formatMinutes(summary.breakMinutes), Icons.free_breakfast),
@@ -443,19 +440,19 @@ class _MetricsGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
+        mainAxisSpacing: AppDimensions.spacingLg,
+        crossAxisSpacing: AppDimensions.spacingLg,
         childAspectRatio: 1.45,
       ),
       itemCount: tiles.length,
       itemBuilder: (context, index) {
         final item = tiles[index];
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppDimensions.spacingXxl),
           decoration: BoxDecoration(
-            color: AppColors.cardDark,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            color: context.appCard,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
+            border: Border.all(color: context.appGlassBorder),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -464,15 +461,15 @@ class _MetricsGrid extends StatelessWidget {
               Icon(item.icon, color: AppColors.primaryLight, size: 20),
               Text(
                 item.value,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
+                style: TextStyle(
+                  color: context.appOnSurface,
+                  fontSize: AppDimensions.fontHeadline,
                   fontWeight: FontWeight.w900,
                 ),
               ),
               Text(
                 item.label,
-                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                style: theme.textTheme.bodySmall?.copyWith(color: context.appOnSurfaceSecondary),
               ),
             ],
           ),
@@ -490,8 +487,6 @@ class _MetricData {
   final IconData icon;
 }
 
-// ── Anomalies Card ────────────────────────────────────────────────────────────
-
 class _AnomaliesCard extends StatelessWidget {
   const _AnomaliesCard({required this.summary});
 
@@ -499,37 +494,34 @@ class _AnomaliesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(AppDimensions.spacingLg),
       decoration: BoxDecoration(
         color: AppColors.warning.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
         border: Border.all(color: AppColors.warning.withValues(alpha: 0.18)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: AppColors.warning),
-              SizedBox(width: 10),
+              const Icon(Icons.warning_amber_rounded, color: AppColors.warning),
+              const SizedBox(width: 10),
               Text(
                 'Aspectos para revisar',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: theme.textTheme.titleMedium?.copyWith(color: context.appOnSurface, fontWeight: FontWeight.w800),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDimensions.spacingLg),
           ...summary.anomalies.map(
             (anomaly) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: AppDimensions.spacingMd),
               child: Text(
                 '• ${HoursFormatters.formatAnomalyLabel(anomaly)}',
-                style: const TextStyle(color: Colors.white70, height: 1.35),
+                style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary, height: 1.35),
               ),
             ),
           ),
@@ -539,8 +531,6 @@ class _AnomaliesCard extends StatelessWidget {
   }
 }
 
-// ── Activity Overview Card ────────────────────────────────────────────────────
-
 class _ActivityOverviewCard extends StatelessWidget {
   const _ActivityOverviewCard({required this.analytics});
 
@@ -549,11 +539,11 @@ class _ActivityOverviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(AppDimensions.spacingLg),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        color: context.appCard,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCardXl),
+        border: Border.all(color: context.appGlassBorder),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -580,8 +570,6 @@ class _ActivityOverviewCard extends StatelessWidget {
   }
 }
 
-// ── History Card ──────────────────────────────────────────────────────────────
-
 class _HistoryCard extends StatelessWidget {
   const _HistoryCard({required this.summary});
 
@@ -589,16 +577,17 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final date = summary.workDate;
     final dateLabel =
         '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppDimensions.spacingXxl),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        color: context.appCard,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCardLg),
+        border: Border.all(color: context.appGlassBorder),
       ),
       child: Row(
         children: [
@@ -607,9 +596,9 @@ class _HistoryCard extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
             ),
-            child: const Icon(Icons.calendar_today_rounded, color: AppColors.primaryLight, size: 18),
+            child: Icon(Icons.calendar_today_rounded, color: AppColors.primaryLight, size: AppDimensions.iconSm),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -618,16 +607,13 @@ class _HistoryCard extends StatelessWidget {
               children: [
                 Text(
                   dateLabel,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: theme.textTheme.headlineLarge?.copyWith(color: context.appOnSurface, fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${HoursFormatters.formatMinutes(summary.workedMinutes)} trabajados'
                   ' de ${HoursFormatters.formatMinutes(summary.expectedMinutes)} esperados',
-                  style: const TextStyle(color: Colors.white60, fontSize: 12),
+                  style: theme.textTheme.bodySmall?.copyWith(color: context.appOnSurfaceSecondary),
                 ),
               ],
             ),
@@ -637,18 +623,16 @@ class _HistoryCard extends StatelessWidget {
             children: [
               Text(
                 '${(summary.completionRatio * 100).round()}%',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: theme.textTheme.headlineLarge?.copyWith(
+                  color: context.appOnSurface,
                   fontWeight: FontWeight.w900,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 summary.hasAnomalies ? 'Revisar' : 'OK',
-                style: TextStyle(
+                style: theme.textTheme.labelMedium?.copyWith(
                   color: summary.hasAnomalies ? AppColors.warning : AppColors.success,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
@@ -658,8 +642,6 @@ class _HistoryCard extends StatelessWidget {
     );
   }
 }
-
-// ── Activity Pill ─────────────────────────────────────────────────────────────
 
 class _ActivityPill extends StatelessWidget {
   const _ActivityPill({
@@ -674,24 +656,25 @@ class _ActivityPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       children: [
         Icon(icon, size: 20, color: AppColors.primaryLight),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppDimensions.spacingMd),
         Text(
           value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 17,
+          style: TextStyle(
+            color: context.appOnSurface,
+            fontSize: AppDimensions.fontBodyLg,
             fontWeight: FontWeight.w900,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white54,
-            fontSize: 10,
+          style: TextStyle(
+            color: context.appOnSurfaceSecondary,
+            fontSize: AppDimensions.fontXs,
             fontWeight: FontWeight.w800,
           ),
         ),

@@ -1,4 +1,4 @@
-  import 'dart:io' show Platform;
+import 'dart:io' show Platform;
 
   import 'package:camera/camera.dart';
   import 'package:flutter/material.dart';
@@ -8,6 +8,8 @@
   import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
   import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
   import 'package:worksense_app/core/constants/ai_thresholds.dart';
+  import 'package:worksense_app/core/constants/app_dimensions.dart';
+  import 'package:worksense_app/core/constants/app_strings.dart';
   import 'package:worksense_app/core/theme/app_colors.dart';
   import 'package:worksense_app/domain/repositories/employee_repository.dart';
   import 'package:worksense_app/features/camera_monitor/ai/employee_profiler.dart';
@@ -727,7 +729,7 @@
       });
 
       return Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.black,
         body: Stack(
           fit: StackFit.expand,
           children: [
@@ -755,8 +757,8 @@
             if (!scanState.isComplete)
               Positioned(
                 bottom: 240,
-                left: 32,
-                right: 32,
+                left: AppDimensions.spacing32,
+                right: AppDimensions.spacing32,
                 child: _StepInstructionCard(
                   currentIndex: scanState.currentSampleIndex,
                   frameStatus: scanState.frameStatus,
@@ -803,9 +805,9 @@
               center: Alignment.center,
               radius: 0.8,
               colors: [
-                Colors.transparent,
-                Colors.black.withValues(alpha: 0.2),
-                Colors.black.withValues(alpha: 0.6),
+                AppColors.transparent,
+                AppColors.black.withValues(alpha: 0.2),
+                AppColors.black.withValues(alpha: 0.6),
               ],
               stops: const [0.5, 0.8, 1.0],
             ),
@@ -829,7 +831,7 @@
     @override
     Widget build(BuildContext context) {
       return const IgnorePointer(
-        child: ColoredBox(color: Colors.white),
+        child: ColoredBox(color: AppColors.white),
       );
     }
   }
@@ -843,12 +845,12 @@
     @override
     Widget build(BuildContext context) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing24, vertical: AppDimensions.spacingXxl),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
+            colors: [AppColors.black.withValues(alpha: 0.8), AppColors.transparent],
           ),
         ),
         child: SafeArea(
@@ -859,26 +861,30 @@
             children: [
               Row(
                 children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, color: Colors.white),
+                  Semantics(
+                    button: true,
+                    label: AppStrings.closeMonitor,
+                    child: IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close, color: AppColors.white),
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'ENROLAMIENTO BIOMÉTRICO',
-                    style: TextStyle(
+                  const SizedBox(width: AppDimensions.spacingMd),
+                  Text(
+                    AppStrings.biometricEnrollment,
+                    style: const TextStyle(
                       color: AppColors.primaryLight,
-                      fontSize: 12,
+                      fontSize: AppDimensions.fontCaption,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 2.0,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppDimensions.spacingMd),
               // Sample progress dots
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(total, (i) {
@@ -886,7 +892,7 @@
                     final active = i == current && !done;
                     return AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      margin: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXs),
                       width: active ? 20 : 10,
                       height: 10,
                       decoration: BoxDecoration(
@@ -894,18 +900,18 @@
                             ? AppColors.feedbackDetected
                             : active
                                 ? AppColors.primaryLight
-                                : Colors.white24,
+                                : AppColors.white24,
                         borderRadius: BorderRadius.circular(5),
                       ),
                     );
                   }),
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppDimensions.spacingXs),
               Center(
                 child: Text(
                   'Muestra $current de $total',
-                  style: const TextStyle(color: Colors.white54, fontSize: 11),
+                  style: const TextStyle(color: AppColors.white54, fontSize: AppDimensions.fontSm),
                 ),
               ),
             ],
@@ -935,39 +941,39 @@
 
       return AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacing10),
         decoration: BoxDecoration(
           color: isDetected
               ? AppColors.feedbackDetected.withValues(alpha: 0.15)
-              : Colors.black.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(16),
+              : AppColors.black.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
           border: Border.all(
             color: isDetected
                 ? AppColors.feedbackDetected.withValues(alpha: 0.5)
-                : Colors.white12,
+                : AppColors.white12,
             width: 1.5,
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(instr.emoji, style: const TextStyle(fontSize: 22)),
-            const SizedBox(width: 12),
+            Text(instr.emoji, style: const TextStyle(fontSize: AppDimensions.fontHeadlineLg)),
+            const SizedBox(width: AppDimensions.spacingXxl),
             Flexible(
               child: Text(
                 isCapturing ? 'Capturando…' : instr.text,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: isDetected ? AppColors.feedbackDetected : Colors.white,
-                  fontSize: 13,
+                  color: isDetected ? AppColors.feedbackDetected : AppColors.white,
+                  fontSize: AppDimensions.fontBody,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.5,
                 ),
               ),
             ),
             if (isDetected) ...[
-              const SizedBox(width: 12),
-              const Icon(Icons.check_circle, color: AppColors.feedbackDetected, size: 20),
+              const SizedBox(width: AppDimensions.spacingXxl),
+              const Icon(Icons.check_circle, color: AppColors.feedbackDetected, size: AppDimensions.iconDefault),
             ],
           ],
         ),
@@ -981,7 +987,7 @@
 
     Color get _color {
       switch (status) {
-        case FrameStatus.searching: return Colors.white38;
+        case FrameStatus.searching: return AppColors.white38;
         case FrameStatus.detected: return AppColors.feedbackDetected;
         case FrameStatus.error: return AppColors.feedbackError;
         case FrameStatus.capturing: return AppColors.feedbackCapturing;
@@ -991,8 +997,8 @@
     @override
     Widget build(BuildContext context) {
       final size = MediaQuery.of(context).size;
-      final frameW = size.width * 0.75;
-      final frameH = size.height * 0.45;
+      final frameW = size.width * AppDimensions.kioskGuideFrameWidthFraction;
+      final frameH = size.height * AppDimensions.kioskGuideFrameHeightFraction;
 
       return Center(
         child: Container(
@@ -1000,7 +1006,7 @@
           height: frameH,
           decoration: BoxDecoration(
             border: Border.all(color: _color.withValues(alpha: 0.5), width: 1),
-            borderRadius: BorderRadius.circular(32),
+            borderRadius: BorderRadius.circular(AppDimensions.guideFrameRadius),
           ),
           child: Stack(
             children: [
@@ -1030,14 +1036,14 @@
       return Positioned(
         top: top, bottom: bottom, left: left, right: right,
         child: Container(
-          width: 30,
-          height: 30,
+          width: AppDimensions.cornerIndicatorSize,
+          height: AppDimensions.cornerIndicatorSize,
           decoration: BoxDecoration(
             border: Border(
-              top: top != null ? BorderSide(color: color, width: 4) : BorderSide.none,
-              bottom: bottom != null ? BorderSide(color: color, width: 4) : BorderSide.none,
-              left: left != null ? BorderSide(color: color, width: 4) : BorderSide.none,
-              right: right != null ? BorderSide(color: color, width: 4) : BorderSide.none,
+              top: top != null ? BorderSide(color: color, width: AppDimensions.cornerIndicatorWidth) : BorderSide.none,
+              bottom: bottom != null ? BorderSide(color: color, width: AppDimensions.cornerIndicatorWidth) : BorderSide.none,
+              left: left != null ? BorderSide(color: color, width: AppDimensions.cornerIndicatorWidth) : BorderSide.none,
+              right: right != null ? BorderSide(color: color, width: AppDimensions.cornerIndicatorWidth) : BorderSide.none,
             ),
           ),
         ),
@@ -1056,12 +1062,12 @@
       final bool canCapture = state.frameStatus == FrameStatus.detected && !state.isCapturing;
 
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing32, vertical: AppDimensions.spacing32),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
-            colors: [Colors.black.withValues(alpha: 0.9), Colors.transparent],
+            colors: [AppColors.black.withValues(alpha: 0.9), AppColors.transparent],
           ),
         ),
         child: SafeArea(
@@ -1075,24 +1081,24 @@
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: _getStatusColor(state.frameStatus),
-                  fontSize: 13,
+                  fontSize: AppDimensions.fontBody,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.5,
                 ),
               ),
               if (state.isCapturing) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: AppDimensions.spacingLg),
                 Text(
                   'RAFAGA ${state.burstProgress}/${state.burstTotal}',
                   style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
+                    color: AppColors.white70,
+                    fontSize: AppDimensions.fontSm,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.2,
                   ),
                 ),
               ],
-              const SizedBox(height: 24),
+              const SizedBox(height: AppDimensions.spacing24),
 
               // Capture Button
               if (!state.isComplete)
@@ -1100,44 +1106,44 @@
                   onTap: canCapture ? onCapture : null,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
-                    height: 80,
-                    width: 80,
+                    height: AppDimensions.captureButtonSize,
+                    width: AppDimensions.captureButtonSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: canCapture ? Colors.white : Colors.white24,
-                        width: 4,
+                        color: canCapture ? AppColors.white : AppColors.white24,
+                        width: AppDimensions.captureButtonBorderWidth,
                       ),
                       color: canCapture
                           ? AppColors.primary.withValues(alpha: 0.2)
-                          : Colors.transparent,
+                          : AppColors.transparent,
                     ),
                     child: Center(
                       child: Container(
-                        height: 60,
-                        width: 60,
+                        height: AppDimensions.captureButtonInnerSize,
+                        width: AppDimensions.captureButtonInnerSize,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: canCapture ? Colors.white : Colors.white10,
+                          color: canCapture ? AppColors.white : AppColors.white10,
                         ),
                         child: state.isCapturing 
-                          ? const Padding(
-                              padding: EdgeInsets.all(16.0),
-                              child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.primary),
+                          ? Padding(
+                              padding: EdgeInsets.all(AppDimensions.spacingXxl),
+                              child: CircularProgressIndicator(strokeWidth: AppDimensions.progressStrokeWidth, color: AppColors.primary),
                             )
                           : Icon(
                               Icons.fingerprint, 
-                              color: canCapture ? AppColors.primary : Colors.white24, 
-                              size: 32
+                              color: canCapture ? AppColors.primary : AppColors.white24, 
+                              size: AppDimensions.iconXxl
                             ),
                       ),
                     ),
                   ),
                 )
               else
-                const Icon(Icons.check_circle, color: AppColors.success, size: 80),
+                Icon(Icons.check_circle, color: AppColors.success, size: AppDimensions.iconEmptyStateLg),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: AppDimensions.spacingXxl),
             ],
           ),
         ),
@@ -1148,7 +1154,7 @@
       switch (status) {
         case FrameStatus.detected: return AppColors.feedbackDetected;
         case FrameStatus.error: return AppColors.feedbackError;
-        default: return Colors.white70;
+        default: return AppColors.white70;
       }
     }
   }

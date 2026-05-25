@@ -39,6 +39,24 @@ class AppGlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final resolvedColor = color ??
+        (isDark ? AppColors.card.withValues(alpha: 0.6) : AppColors.lightCard.withValues(alpha: 0.8));
+    final resolvedBorderColor = borderColor ??
+        (isDark ? AppColors.glassBorder : AppColors.lightGlassBorder);
+    final gradientColors = isDark
+        ? const [AppColors.white5, AppColors.white10]
+        : const [AppColors.black5, AppColors.black8];
+
+    final defaultShadow = boxShadow ??
+        [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ];
+
     final radius = borderRadius ?? AppDimensions.radiusRound;
     final card = Container(
       width: width,
@@ -46,14 +64,7 @@ class AppGlassCard extends StatelessWidget {
       margin: margin ?? const EdgeInsets.symmetric(vertical: AppDimensions.spacingMd),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
-        boxShadow: boxShadow ??
-            [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.03),
-                blurRadius: 20,
-                offset: const Offset(0, 4),
-              ),
-            ],
+        boxShadow: defaultShadow,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),
@@ -62,16 +73,16 @@ class AppGlassCard extends StatelessWidget {
           child: Container(
             padding: padding ?? const EdgeInsets.all(AppDimensions.spacingXxl),
             decoration: BoxDecoration(
-              color: color ?? AppColors.card.withValues(alpha: 0.6),
+              color: resolvedColor,
               borderRadius: BorderRadius.circular(radius),
               border: Border.all(
-                color: borderColor ?? AppColors.glassBorder,
+                color: resolvedBorderColor,
                 width: borderWidth ?? 1,
               ),
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [AppColors.white5, AppColors.white10],
+                colors: gradientColors,
               ),
             ),
             child: child,
@@ -81,10 +92,13 @@ class AppGlassCard extends StatelessWidget {
     );
 
     if (onTap != null) {
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(radius),
-        child: card,
+      return Semantics(
+        button: true,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(radius),
+          child: card,
+        ),
       );
     }
 

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/domain/entities/evaluation.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/features/evaluations/presentation/providers/evaluations_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/widgets/styled/app_content_constrainer.dart';
 
 class EvaluationFormScreen extends ConsumerStatefulWidget {
   const EvaluationFormScreen({super.key});
@@ -23,7 +26,6 @@ class _EvaluationFormScreenState
   final Map<String, double> _scores = {};
   bool _saving = false;
 
-  // Use default criteria as template
   final List<EvaluationCriterion> _criteria = List.from(defaultCriteria);
 
   @override
@@ -54,19 +56,19 @@ class _EvaluationFormScreenState
         .toList();
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text(
+        backgroundColor: context.appSurface,
+        title: Text(
           'Nueva Evaluación',
           style: TextStyle(
-            color: AppColors.textPrimaryDark,
+            color: context.appOnSurface,
             fontWeight: FontWeight.w700,
           ),
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.only(right: AppDimensions.spacingLg),
             child: _saving
                 ? const SizedBox(
                     width: 24,
@@ -86,65 +88,61 @@ class _EvaluationFormScreenState
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Employee selector ────────────────────────────────
-            const _SectionHeader(title: 'Empleado'),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              // ignore: deprecated_member_use
-              value: _selectedEmployeeId,
-              dropdownColor: AppColors.surfaceDark,
-              decoration: _inputDeco('Seleccionar empleado'),
-              style: const TextStyle(color: AppColors.textPrimaryDark),
-              items: employees.map((e) {
-                return DropdownMenuItem(
-                  value: e.id,
-                  child: Text(e.displayName),
-                );
-              }).toList(),
-              onChanged: (v) => setState(() => _selectedEmployeeId = v),
-            ),
-            const SizedBox(height: 20),
-            // ── Period ───────────────────────────────────────────
-            const _SectionHeader(title: 'Período'),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _periodCtrl,
-              style: const TextStyle(color: AppColors.textPrimaryDark),
-              decoration:
-                  _inputDeco('Ej: Enero 2026, Q1 2026…'),
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: 24),
-            // ── Criteria ─────────────────────────────────────────
-            const _SectionHeader(title: 'Criterios de evaluación'),
-            const SizedBox(height: 4),
-            // Score header
-            _ScorePreview(
-              total: _totalScore,
-              max: _maxScore,
-            ),
-            const SizedBox(height: 12),
-            ..._criteria.map((c) => _CriterionSlider(
-                  criterion: c,
-                  value: _scores[c.name] ?? 0,
-                  onChanged: (v) {
-                    setState(() => _scores[c.name] = v);
-                  },
-                )),
-            const SizedBox(height: 20),
-            // ── Notes ────────────────────────────────────────────
-            const _SectionHeader(title: 'Notas (opcional)'),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _notesCtrl,
-              style: const TextStyle(color: AppColors.textPrimaryDark),
-              decoration: _inputDeco('Observaciones, recomendaciones…'),
-              maxLines: 3,
-            ),
-          ],
+        child: AppContentConstrainer(
+          width: AppContentWidth.form,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _SectionHeader(title: 'Empleado'),
+              const SizedBox(height: AppDimensions.spacingMd),
+              DropdownButtonFormField<String>(
+                value: _selectedEmployeeId,
+                dropdownColor: context.appSurface,
+                decoration: _inputDeco(context, 'Seleccionar empleado'),
+                style: TextStyle(color: context.appOnSurface),
+                items: employees.map((e) {
+                  return DropdownMenuItem(
+                    value: e.id,
+                    child: Text(e.displayName),
+                  );
+                }).toList(),
+                onChanged: (v) => setState(() => _selectedEmployeeId = v),
+              ),
+              const SizedBox(height: AppDimensions.spacing20),
+              const _SectionHeader(title: 'Período'),
+              const SizedBox(height: AppDimensions.spacingMd),
+              TextField(
+                controller: _periodCtrl,
+                style: TextStyle(color: context.appOnSurface),
+                decoration: _inputDeco(context, 'Ej: Enero 2026, Q1 2026…'),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: AppDimensions.spacingXxl),
+              const _SectionHeader(title: 'Criterios de evaluación'),
+              const SizedBox(height: AppDimensions.spacingXs),
+              _ScorePreview(
+                total: _totalScore,
+                max: _maxScore,
+              ),
+              const SizedBox(height: AppDimensions.spacingXxl),
+              ..._criteria.map((c) => _CriterionSlider(
+                    criterion: c,
+                    value: _scores[c.name] ?? 0,
+                    onChanged: (v) {
+                      setState(() => _scores[c.name] = v);
+                    },
+                  )),
+              const SizedBox(height: AppDimensions.spacing20),
+              const _SectionHeader(title: 'Notas (opcional)'),
+              const SizedBox(height: AppDimensions.spacingMd),
+              TextField(
+                controller: _notesCtrl,
+                style: TextStyle(color: context.appOnSurface),
+                decoration: _inputDeco(context, 'Observaciones, recomendaciones…'),
+                maxLines: 3,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -193,22 +191,22 @@ class _EvaluationFormScreenState
     }
   }
 
-  InputDecoration _inputDeco(String hint) => InputDecoration(
+  InputDecoration _inputDeco(BuildContext context, String hint) => InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
-            color: AppColors.textSecondaryDark.withValues(alpha: 0.5)),
+            color: context.appOnSurfaceSecondary.withValues(alpha: 0.5)),
         filled: true,
-        fillColor: AppColors.surfaceDark,
+        fillColor: context.appSurface,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.glassBorder),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
+          borderSide: BorderSide(color: context.appGlassBorder),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.glassBorder),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
+          borderSide: BorderSide(color: context.appGlassBorder),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
           borderSide:
               const BorderSide(color: AppColors.primary, width: 1.5),
         ),
@@ -240,7 +238,7 @@ class _CriterionSlider extends StatelessWidget {
                 : AppColors.error;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: AppDimensions.spacingXxl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -249,25 +247,25 @@ class _CriterionSlider extends StatelessWidget {
             children: [
               Text(
                 criterion.name,
-                style: const TextStyle(
-                  color: AppColors.textPrimaryDark,
-                  fontSize: 13,
+                style: TextStyle(
+                  color: context.appOnSurface,
+                  fontSize: AppDimensions.fontBody,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 3),
+                    horizontal: AppDimensions.radiusXl, vertical: 3),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
                   border: Border.all(color: color.withValues(alpha: 0.3)),
                 ),
                 child: Text(
                   '${value.toStringAsFixed(0)} / ${criterion.maxScore.toStringAsFixed(0)}',
                   style: TextStyle(
                     color: color,
-                    fontSize: 12,
+                    fontSize: AppDimensions.fontCaption,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -282,7 +280,7 @@ class _CriterionSlider extends StatelessWidget {
               overlayColor: color.withValues(alpha: 0.1),
               trackHeight: 4,
               thumbShape:
-                  const RoundSliderThumbShape(enabledThumbRadius: 8),
+                  const RoundSliderThumbShape(enabledThumbRadius: AppDimensions.radiusLg),
             ),
             child: Slider(
               value: value,
@@ -318,28 +316,28 @@ class _ScorePreview extends StatelessWidget {
                 : AppColors.error;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacingXxl),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
         border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
-          Icon(Icons.stars_rounded, color: color, size: 20),
-          const SizedBox(width: 10),
-          const Text(
+          Icon(Icons.stars_rounded, color: color, size: AppDimensions.spacing20),
+          const SizedBox(width: AppDimensions.spacingXl),
+          Text(
             'Puntaje total: ',
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
-              fontSize: 13,
+              color: context.appOnSurfaceSecondary,
+              fontSize: AppDimensions.fontBody,
             ),
           ),
           Text(
             '${total.toStringAsFixed(0)} / ${max.toStringAsFixed(0)}',
             style: TextStyle(
               color: color,
-              fontSize: 14,
+              fontSize: AppDimensions.fontBodyMd,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -348,7 +346,7 @@ class _ScorePreview extends StatelessWidget {
             '${(pct * 100).toStringAsFixed(0)}%',
             style: TextStyle(
               color: color,
-              fontSize: 18,
+              fontSize: AppDimensions.fontTitleLg,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -369,9 +367,9 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title.toUpperCase(),
-      style: const TextStyle(
-        color: AppColors.textSecondaryDark,
-        fontSize: 11,
+      style: TextStyle(
+        color: context.appOnSurfaceSecondary,
+        fontSize: AppDimensions.fontSm,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.2,
       ),

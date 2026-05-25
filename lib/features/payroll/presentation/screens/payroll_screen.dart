@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/domain/entities/payroll.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
@@ -19,28 +21,28 @@ class PayrollScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final periodsAsync = ref.watch(payrollPeriodsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text(
+        backgroundColor: context.appSurface,
+        title: Text(
           'NÓMINA',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: context.appOnSurface,
             fontWeight: FontWeight.w900,
             letterSpacing: 1,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: AppColors.textSecondaryDark),
+            icon: Icon(Icons.settings_outlined, color: context.appOnSurfaceSecondary),
             tooltip: 'Configurar tarifas',
             onPressed: () => _openRatesConfig(context, ref),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: AppDimensions.spacingXs),
         ],
       ),
       body: periodsAsync.when(
@@ -52,9 +54,9 @@ class PayrollScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.error_outline, color: AppColors.error, size: 48),
-              const SizedBox(height: 12),
-              Text('Error: $e', style: const TextStyle(color: AppColors.textSecondaryDark)),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppDimensions.spacingLg),
+              Text('Error: $e', style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary)),
+              const SizedBox(height: AppDimensions.spacingXxl),
               FilledButton(
                 onPressed: () => ref.read(payrollPeriodsProvider.notifier).refresh(),
                 child: const Text('Reintentar'),
@@ -64,12 +66,12 @@ class PayrollScreen extends ConsumerWidget {
         ),
         data: (periods) => RefreshIndicator(
           color: AppColors.primary,
-          backgroundColor: AppColors.surfaceDark,
+          backgroundColor: context.appSurface,
           onRefresh: () => ref.read(payrollPeriodsProvider.notifier).refresh(),
           child: periods.isEmpty
               ? _EmptyState(onCreateTap: () => _showNewPeriodDialog(context, ref))
               : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                  padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacingXxl, AppDimensions.spacingXxl, 100),
                   itemCount: periods.length,
                   itemBuilder: (_, i) => _PeriodCard(period: periods[i]),
                 ),
@@ -84,8 +86,6 @@ class PayrollScreen extends ConsumerWidget {
     );
   }
 
-  // ── Dialogo nuevo período ───────────────────────────────────────────────────
-
   void _showNewPeriodDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
@@ -93,13 +93,11 @@ class PayrollScreen extends ConsumerWidget {
     );
   }
 
-  // ── Config de tarifas ───────────────────────────────────────────────────────
-
   void _openRatesConfig(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.transparent,
       builder: (_) => const _RatesConfigSheet(),
     );
   }
@@ -113,85 +111,81 @@ class _PeriodCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final dateFmt = DateFormat('dd/MM/yyyy');
 
-    return GestureDetector(
-      onTap: () => context.push(
-        AppRoutes.payrollPeriod.replaceFirst(':periodId', period.id),
-        extra: period,
-      ),
-      onLongPress: period.status == PayrollStatus.draft
-          ? () => _confirmDelete(context, ref)
-          : null,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.glassBorder),
+    return Semantics(
+      button: true,
+      label: 'Ver detalle de período ${period.name}',
+      child: InkWell(
+        onTap: () => context.push(
+          AppRoutes.payrollPeriod.replaceFirst(':periodId', period.id),
+          extra: period,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    period.name,
-                    style: const TextStyle(
-                      color: AppColors.textPrimaryDark,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
+        onLongPress: period.status == PayrollStatus.draft
+            ? () => _confirmDelete(context, ref)
+            : null,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: AppDimensions.spacingLg),
+          padding: const EdgeInsets.all(AppDimensions.spacingXxl),
+          decoration: BoxDecoration(
+            color: context.appSurface,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
+            border: Border.all(color: context.appGlassBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      period.name,
+                      style: theme.textTheme.titleSmall?.copyWith(color: context.appOnSurface, fontWeight: FontWeight.w700),
                     ),
                   ),
-                ),
-                _StatusBadge(status: period.status),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '${dateFmt.format(period.startDate)} – ${dateFmt.format(period.endDate)}',
-              style: const TextStyle(
-                color: AppColors.textSecondaryDark,
-                fontSize: 12,
+                  _StatusBadge(status: period.status),
+                ],
               ),
-            ),
-            const SizedBox(height: 12),
-            const Divider(color: AppColors.glassBorder, height: 1),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _InfoChip(
-                  icon: Icons.people_outline,
-                  label: '${period.employeeCount} empleados',
-                ),
-                const Spacer(),
-                Text(
-                  _currFmt.format(period.totalGross),
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
+              const SizedBox(height: AppDimensions.spacingSm),
+              Text(
+                '${dateFmt.format(period.startDate)} – ${dateFmt.format(period.endDate)}',
+                style: theme.textTheme.bodySmall?.copyWith(color: context.appOnSurfaceSecondary),
+              ),
+              const SizedBox(height: AppDimensions.spacingLg),
+              Divider(color: context.appGlassBorder, height: 1),
+              const SizedBox(height: AppDimensions.spacingLg),
+              Row(
+                children: [
+                  _InfoChip(
+                    icon: Icons.people_outline,
+                    label: '${period.employeeCount} empleados',
                   ),
-                ),
-              ],
-            ),
-          ],
+                  const Spacer(),
+                  Text(
+                    _currFmt.format(period.totalGross),
+                    style: theme.textTheme.titleMedium?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w800),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final theme = Theme.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text('Eliminar período',
-            style: TextStyle(color: Colors.white)),
+        backgroundColor: context.appSurface,
+        title: Text('Eliminar período',
+            style: theme.textTheme.titleMedium?.copyWith(color: context.appOnSurface)),
         content: Text('¿Eliminar "${period.name}"?',
-            style: const TextStyle(color: AppColors.textSecondaryDark)),
+            style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -219,20 +213,16 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: status.color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
         border: Border.all(color: status.color.withValues(alpha: 0.3)),
       ),
       child: Text(
         status.label,
-        style: TextStyle(
-          color: status.color,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-        ),
+        style: theme.textTheme.labelSmall?.copyWith(color: status.color, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -247,14 +237,14 @@ class _InfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: AppColors.textSecondaryDark),
-        const SizedBox(width: 4),
+        Icon(icon, size: AppDimensions.spacingXxl, color: context.appOnSurfaceSecondary),
+        const SizedBox(width: AppDimensions.spacingXs),
         Text(label,
-            style: const TextStyle(
-                color: AppColors.textSecondaryDark, fontSize: 12)),
+            style: theme.textTheme.bodySmall?.copyWith(color: context.appOnSurfaceSecondary)),
       ],
     );
   }
@@ -268,25 +258,25 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.payments_outlined,
-              size: 64, color: Colors.white.withValues(alpha: 0.15)),
-          const SizedBox(height: 16),
-          const Text(
+              size: 64, color: context.appOnSurfaceDisabled),
+          const SizedBox(height: AppDimensions.spacingXxl),
+          Text(
             'Sin períodos de nómina',
-            style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 15),
+            style: theme.textTheme.titleSmall?.copyWith(color: context.appOnSurfaceSecondary),
           ),
-          const SizedBox(height: 8),
-          const Text(
+          const SizedBox(height: AppDimensions.spacingMd),
+          Text(
             'Crea el primer período para calcular\nla nómina de tu equipo.',
             textAlign: TextAlign.center,
-            style:
-                TextStyle(color: AppColors.textDisabledDark, fontSize: 12),
+            style: theme.textTheme.bodySmall?.copyWith(color: context.appOnSurfaceDisabled),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppDimensions.spacingXxl),
           FilledButton.icon(
             onPressed: onCreateTap,
             icon: const Icon(Icons.add),
@@ -319,7 +309,7 @@ class _NewPeriodDialogState extends ConsumerState<_NewPeriodDialog> {
     super.initState();
     final now = DateTime.now();
     _start = DateTime(now.year, now.month, 1);
-    _end   = DateTime(now.year, now.month + 1, 0); // last day of month
+    _end   = DateTime(now.year, now.month + 1, 0);
     _nameCtrl.text =
         DateFormat('MMMM yyyy', 'es').format(now);
   }
@@ -332,30 +322,31 @@ class _NewPeriodDialogState extends ConsumerState<_NewPeriodDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final dateFmt = DateFormat('dd/MM/yyyy');
     return AlertDialog(
-      backgroundColor: AppColors.surfaceDark,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text('Nuevo período de nómina',
-          style: TextStyle(color: Colors.white, fontSize: 16)),
+      backgroundColor: context.appSurface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusPill)),
+      title: Text('Nuevo período de nómina',
+          style: theme.textTheme.titleMedium?.copyWith(color: context.appOnSurface)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             controller: _nameCtrl,
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: context.appOnSurface),
             decoration: InputDecoration(
               labelText: 'Nombre del período',
               labelStyle:
-                  const TextStyle(color: AppColors.textSecondaryDark),
+                  TextStyle(color: context.appOnSurfaceSecondary),
               filled: true,
-              fillColor: AppColors.cardDark,
+              fillColor: context.appCard,
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
                   borderSide: BorderSide.none),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDimensions.spacingXxl),
           _DateRow(
             label: 'Desde',
             date: _start,
@@ -369,7 +360,7 @@ class _NewPeriodDialogState extends ConsumerState<_NewPeriodDialog> {
               if (d != null) setState(() => _start = d);
             },
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDimensions.spacingMd),
           _DateRow(
             label: 'Hasta',
             date: _end,
@@ -383,11 +374,10 @@ class _NewPeriodDialogState extends ConsumerState<_NewPeriodDialog> {
               if (d != null) setState(() => _end = d);
             },
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDimensions.spacingMd),
           Text(
             '${dateFmt.format(_start)} – ${dateFmt.format(_end)}',
-            style: const TextStyle(
-                color: AppColors.textSecondaryDark, fontSize: 11),
+            style: theme.textTheme.labelSmall?.copyWith(color: context.appOnSurfaceSecondary),
           ),
         ],
       ),
@@ -403,7 +393,7 @@ class _NewPeriodDialogState extends ConsumerState<_NewPeriodDialog> {
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
+                      strokeWidth: 2, color: AppColors.white),
                 )
               : const Text('Calcular y crear'),
         ),
@@ -446,33 +436,32 @@ class _DateRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Row(
-      children: [
-        SizedBox(
-          width: 50,
-          child: Text(label,
-              style: const TextStyle(
-                  color: AppColors.textSecondaryDark, fontSize: 12)),
-        ),
         Expanded(
-          child: GestureDetector(
-            onTap: onPick,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.cardDark,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_today_rounded,
-                      size: 14, color: AppColors.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    DateFormat('dd/MM/yyyy').format(date),
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
-                  ),
-                ],
+          child: Semantics(
+            button: true,
+            label: 'Seleccionar fecha $label',
+            child: InkWell(
+              onTap: onPick,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingLg, vertical: AppDimensions.spacingXl),
+                decoration: BoxDecoration(
+                  color: context.appCard,
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today_rounded,
+                        size: 14, color: AppColors.primary),
+                    const SizedBox(width: AppDimensions.spacingMd),
+                    Text(
+                      DateFormat('dd/MM/yyyy').format(date),
+                      style: theme.textTheme.bodyLarge?.copyWith(color: context.appOnSurface),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -489,6 +478,7 @@ class _RatesConfigSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final configsAsync   = ref.watch(payrollConfigsProvider);
     final employeesAsync = ref.watch(adminEmployeesProvider);
 
@@ -497,36 +487,33 @@ class _RatesConfigSheet extends ConsumerWidget {
       minChildSize:     0.4,
       maxChildSize:     0.95,
       builder: (ctx, scroll) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: context.appSurface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppDimensions.radiusPill)),
         ),
         child: Column(
           children: [
-            const SizedBox(height: 8),
+            const SizedBox(height: AppDimensions.spacingMd),
             Container(
               width: 36, height: 4,
               decoration: BoxDecoration(
-                color: AppColors.glassBorder,
-                borderRadius: BorderRadius.circular(2),
+                color: context.appGlassBorder,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusXxs),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppDimensions.spacing20, AppDimensions.spacingXxl, AppDimensions.spacing20, AppDimensions.spacingMd),
               child: Row(
                 children: [
                   Icon(Icons.payments_outlined,
-                      color: AppColors.primary, size: 20),
-                  SizedBox(width: 10),
+                      color: AppColors.primary, size: AppDimensions.spacing20),
+                  const SizedBox(width: AppDimensions.spacingXl),
                   Text('Tarifas por hora',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700)),
+                      style: theme.textTheme.titleMedium?.copyWith(color: context.appOnSurface)),
                 ],
               ),
             ),
-            const Divider(color: AppColors.glassBorder),
+            Divider(color: context.appGlassBorder),
             Expanded(
               child: configsAsync.when(
                 loading: () => const Center(
@@ -534,24 +521,22 @@ class _RatesConfigSheet extends ConsumerWidget {
                         CircularProgressIndicator(color: AppColors.primary)),
                 error: (e, _) => Center(
                     child: Text('$e',
-                        style: const TextStyle(
-                            color: AppColors.textSecondaryDark))),
+                        style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary))),
                 data: (configs) {
                   final workers = (employeesAsync.valueOrNull ?? [])
                       .where((e) => e.role == AppRole.employee)
                       .toList();
 
                   if (workers.isEmpty) {
-                    return const Center(
+                    return Center(
                       child: Text('Sin empleados registrados',
-                          style: TextStyle(
-                              color: AppColors.textSecondaryDark)),
+                          style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary)),
                     );
                   }
 
                   return ListView.builder(
                     controller: scroll,
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(AppDimensions.spacingXxl),
                     itemCount: workers.length,
                     itemBuilder: (_, i) {
                       final emp = workers[i];
@@ -621,15 +606,16 @@ class _RateTileState extends State<_RateTile> {
     super.dispose();
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppDimensions.spacingLg),
       child: Row(
         children: [
           CircleAvatar(
             backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-            radius: 20,
+            radius: AppDimensions.spacing20,
             child: Text(
               widget.employee.displayName.isNotEmpty
                   ? widget.employee.displayName[0].toUpperCase()
@@ -638,48 +624,45 @@ class _RateTileState extends State<_RateTile> {
                   color: AppColors.primary, fontWeight: FontWeight.w700),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppDimensions.spacingLg),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   widget.employee.displayName,
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w600),
+                  style: theme.textTheme.labelLarge?.copyWith(color: context.appOnSurface),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const Text('\$ / hora',
-                    style: TextStyle(
-                        color: AppColors.textSecondaryDark, fontSize: 11)),
+                Text('\$ / hora',
+                    style: theme.textTheme.labelSmall?.copyWith(color: context.appOnSurfaceSecondary)),
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppDimensions.spacingMd),
           SizedBox(
             width: 100,
             child: TextField(
               controller: _ctrl,
               keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+              style: TextStyle(color: context.appOnSurface, fontSize: AppDimensions.fontBody),
               textAlign: TextAlign.right,
               decoration: InputDecoration(
                 hintText: '0',
                 hintStyle:
-                    const TextStyle(color: AppColors.textDisabledDark),
+                    TextStyle(color: context.appOnSurfaceDisabled),
                 filled: true,
-                fillColor: AppColors.cardDark,
+                fillColor: context.appCard,
                 contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 8),
+                    horizontal: AppDimensions.spacingXl, vertical: AppDimensions.spacingMd),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+                    borderSide: BorderSide.none),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppDimensions.spacingMd),
           _saving
               ? const SizedBox(
                   width: 24, height: 24,

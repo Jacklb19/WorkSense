@@ -5,12 +5,13 @@ import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/core/theme/app_spacing.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/shared/utils/app_snack_bar.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
-import 'package:worksense_app/shared/widgets/loading_widget.dart';
+import 'package:worksense_app/shared/widgets/async_value_widget.dart';
 import 'package:worksense_app/shared/widgets/styled/app_empty_state.dart';
+import 'package:worksense_app/shared/widgets/styled/app_content_constrainer.dart';
 import 'package:intl/intl.dart';
 
 class EmployeesListScreen extends ConsumerWidget {
@@ -24,23 +25,16 @@ class EmployeesListScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text(AppStrings.employees),
       ),
-      body: employeesAsync.when(
-        loading: () => const AppLoadingWidget(),
-        error: (error, _) => Center(
-          child: Text(
-            'Error: $error',
-            style: const TextStyle(color: AppColors.error),
-          ),
-        ),
-        data: (employees) {
+      body: AsyncValueWidget(
+        value: employeesAsync,
+        builder: (employees) {
           if (employees.isEmpty) {
             return const AppEmptyState(icon: Icons.people_outline, title: AppStrings.noEmployees, subtitle: AppStrings.addEmployeeHint);
           }
 
-          return Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: AppSpacing.listMaxWidth(context)),
-              child: ListView.separated(
+          return AppContentConstrainer(
+            width: AppContentWidth.list,
+            child: ListView.separated(
             itemCount: employees.length,
             separatorBuilder: (_, __) =>
                 const Divider(height: 1, indent: AppDimensions.dividerIndent),
@@ -62,9 +56,9 @@ class EmployeesListScreen extends ConsumerWidget {
                 title: Text(employee.displayName),
                 subtitle: Text(
                   'Registrado el ${DateFormat('dd/MM/yyyy').format(employee.createdAt)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: AppDimensions.fontCaption,
-                    color: AppColors.grey500,
+                    color: context.appOnSurfaceSecondary,
                   ),
                 ),
                 onTap: () => _navigateToEdit(context, ref, employee.id),
@@ -112,7 +106,6 @@ class EmployeesListScreen extends ConsumerWidget {
               );
             },
           ),
-            ),
           );
         },
       ),
@@ -166,7 +159,6 @@ class EmployeesListScreen extends ConsumerWidget {
           .read(employeeFormNotifierProvider.notifier)
           .deleteEmployee(id);
       
-      // Forzar y esperar la sincronización para que Supabase se actualice antes de recargar
       await ref.read(syncNotifierProvider.notifier).sync();
       
       ref.invalidate(adminEmployeesProvider);
@@ -180,5 +172,3 @@ class EmployeesListScreen extends ConsumerWidget {
     }
   }
 }
-
-

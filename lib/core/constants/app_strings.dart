@@ -381,4 +381,46 @@ abstract final class AppStrings {
   // ERROR WIDGET
   // ─────────────────────────────────────────────────────────
   static const String retryButton = 'Reintentar';
+
+  // ─────────────────────────────────────────────────────────
+  // PROFILE
+  // ─────────────────────────────────────────────────────────
+static const String myProfile = 'Mi Perfil';
+  static const String nameLabelProfile = 'Nombre';
+  static const String emailLabelProfile = 'Email';
+  static const String roleLabelProfile = 'Rol';
+  static const String shiftLabel = 'Turno';
+  static const String noShiftAssigned = 'Sin turno asignado';
+  static const String companyLabel = 'Empresa';
+  static const String myStatistics = 'Mis estadísticas';
+  static const String totalTasks = 'Tareas totales';
+  static const String completedTasks = 'Completadas';
+  static const String pendingTasksLabel = 'Pendientes';
+  static const String requestedLeaves = 'Permisos solicitados';
+  static const String approvedLeaves = 'Aprobados';
+  static const String pendingLeaves = 'Permisos pendientes';
+  static const String roleAdminDisplay = 'Administrador';
+  static const String roleSuperAdminDisplay = 'Super Admin';
+  static const String roleCameraMonitorDisplay = 'Monitor de Cámara';
+  static const String roleEmployeeDisplay = 'Empleado';
+
+  // ─────────────────────────────────────────────────────────
+  // WORKSTATION CARD / DASHBOARD TILES
+  // ─────────────────────────────────────────────────────────
+  static const String noRecentActivity = 'SIN ACTIVIDAD RECIENTE';
+  static const String justNow = 'Hace un momento';
+  static const String minutesAgo = 'Hace \$min min';
+  static const String confidence = 'CONFIANZA';
+  static const String now = 'AHORA';
+  static const String minutesAbbrev = '\$minM';
+  static const String workstationPrefix = 'PUESTO';
+  static const String noRegisteredToday = 'Sin actividad registrada hoy';
+  static const String computing = 'Calculando...';
+
+  // ─────────────────────────────────────────────────────────
+  // KIOSK
+  // ─────────────────────────────────────────────────────────
+  static const String facialRecognitionSuccess = 'Rostro reconocido con éxito';
+  static const String scannerActive = 'SCANNER ACTIVO';
+  static const String worksenseBrand = 'WORKSENSE';
 }

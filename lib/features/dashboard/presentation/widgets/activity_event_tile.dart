@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/domain/entities/activity_event.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
+import 'package:worksense_app/domain/entities/activity_event.dart';
 
 class ActivityEventTile extends StatelessWidget {
   final ActivityEvent event;
@@ -14,17 +16,22 @@ class ActivityEventTile extends StatelessWidget {
     super.key,
   });
 
+  static final _timeFmt = DateFormat('HH:mm');
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final onSurfaceSecondary = context.appOnSurfaceSecondary;
+    final glassBorder = context.appGlassBorder;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppDimensions.spacingMd),
       child: Container(
         padding: const EdgeInsets.all(AppDimensions.spacingXxl),
         decoration: BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.02)),
+          color: context.appCard,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
+          border: Border.all(color: glassBorder.withValues(alpha: 0.02)),
         ),
         child: Row(
           children: [
@@ -63,17 +70,17 @@ class ActivityEventTile extends StatelessWidget {
                             vertical: AppDimensions.spacingXxs / 2,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
+                            color: AppColors.orangeWarning.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(AppDimensions.radiusXxs),
                           ),
                         ),
                     ],
                   ),
                   const SizedBox(height: AppDimensions.spacingXs),
                   Text(
-                    'CONFIANZA: ${(event.confidence * 100).round()}%',
+                    '${AppStrings.confidence}: ${(event.confidence * 100).round()}%',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.textDisabled,
+                      color: onSurfaceSecondary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -86,15 +93,15 @@ class ActivityEventTile extends StatelessWidget {
                 Text(
                   _formatTimestamp(event.timestamp),
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: AppColors.textDisabled,
+                    color: onSurfaceSecondary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 if (showWorkstationId)
                   Text(
-                    'PUESTO ${event.workstationId.split('-').last.toUpperCase()}',
+                    '${AppStrings.workstationPrefix} ${event.workstationId.split('-').last.toUpperCase()}',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.textDisabled.withAlpha(40),
+                      color: onSurfaceSecondary.withValues(alpha: 0.4),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -109,8 +116,8 @@ class ActivityEventTile extends StatelessWidget {
   String _formatTimestamp(DateTime dt) {
     final now = DateTime.now();
     final diff = now.difference(dt);
-    if (diff.inMinutes < 1) return 'AHORA';
+    if (diff.inMinutes < 1) return AppStrings.now;
     if (diff.inMinutes < 60) return '${diff.inMinutes}M';
-    return DateFormat('HH:mm').format(dt);
+    return _timeFmt.format(dt);
   }
 }

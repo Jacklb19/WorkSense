@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 
 class AppAvatar extends StatelessWidget {
   const AppAvatar({
@@ -25,13 +26,18 @@ class AppAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final r = radius ?? AppDimensions.avatarRadiusMd;
+    final theme = Theme.of(context);
+    final resolvedBorderColor = borderColor ?? AppColors.primary;
+    final resolvedBgColor = backgroundColor ?? context.appCard;
+    final textColor = theme.colorScheme.onSurface;
+
     return Container(
       decoration: showGlow
           ? BoxDecoration(
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: (borderColor ?? AppColors.primary).withValues(alpha: 0.4),
+                  color: resolvedBorderColor.withValues(alpha: 0.4),
                   blurRadius: r * 0.5,
                   spreadRadius: r * 0.1,
                 ),
@@ -40,10 +46,10 @@ class AppAvatar extends StatelessWidget {
           : null,
       child: CircleAvatar(
         radius: r,
-        backgroundColor: borderColor ?? AppColors.primary,
+        backgroundColor: resolvedBorderColor,
         child: CircleAvatar(
           radius: r - borderWidth,
-          backgroundColor: backgroundColor ?? AppColors.surfaceContainerHigh,
+          backgroundColor: resolvedBgColor,
           backgroundImage: imageUrl != null ? NetworkImage(imageUrl!) : null,
           child: imageUrl == null
               ? Text(
@@ -51,7 +57,7 @@ class AppAvatar extends StatelessWidget {
                   style: TextStyle(
                     fontSize: r * 0.7,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: textColor,
                   ),
                 )
               : null,

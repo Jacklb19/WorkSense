@@ -3,7 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../core/constants/app_dimensions.dart';
 import '../../../core/theme/app_animations.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 
 class AppEmptyState extends StatelessWidget {
   const AppEmptyState({
@@ -34,7 +34,9 @@ class AppEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = iconColor ?? AppColors.textDisabled;
+    final onSurface = context.appOnSurface;
+    final onSurfaceSecondary = context.appOnSurfaceSecondary;
+    final color = iconColor ?? theme.colorScheme.onSurface.withValues(alpha: 0.38);
 
     return Semantics(
       label: '$title${subtitle != null ? '. $subtitle' : ''}',
@@ -67,7 +69,7 @@ class AppEmptyState extends StatelessWidget {
                 style: titleStyle ??
                     theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: onSurface,
                     ),
                 textAlign: TextAlign.center,
               ).animate().fadeIn(
@@ -80,7 +82,7 @@ class AppEmptyState extends StatelessWidget {
                   subtitle!,
                   style: subtitleStyle ??
                       theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: onSurfaceSecondary,
                       ),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(

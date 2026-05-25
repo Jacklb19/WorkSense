@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/alert_log.dart';
 import 'package:worksense_app/domain/entities/announcement.dart';
@@ -12,6 +14,7 @@ import 'package:worksense_app/features/leaves/presentation/providers/leaves_prov
 import 'package:worksense_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/shared/services/report_service.dart';
+import 'package:worksense_app/shared/widgets/styled/app_content_constrainer.dart';
 
 class ReportsScreen extends ConsumerWidget {
   const ReportsScreen({super.key});
@@ -26,17 +29,19 @@ class ReportsScreen extends ConsumerWidget {
     final announcementsAsync = ref.watch(companyAnnouncementsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.backgroundDark,
-        title: const Text(
+        backgroundColor: context.appBackground,
+        title: Text(
           'Reportes',
           style: TextStyle(
-              color: AppColors.white, fontWeight: FontWeight.bold),
+              color: context.appOnSurface, fontWeight: FontWeight.bold),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
+      body: AppContentConstrainer(
+        width: AppContentWidth.list,
+        child: ListView(
+        padding: const EdgeInsets.all(AppDimensions.spacing20),
         children: [
           _ReportCard(
             icon: Icons.task_alt,
@@ -53,7 +58,7 @@ class ReportsScreen extends ConsumerWidget {
                       companyName: companyName,
                     ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDimensions.spacingLg),
           _ReportCard(
             icon: Icons.event_available,
             iconColor: AppColors.info,
@@ -70,7 +75,7 @@ class ReportsScreen extends ConsumerWidget {
                       companyName: companyName,
                     ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDimensions.spacingLg),
           _ReportCard(
             icon: Icons.warning_amber_rounded,
             iconColor: AppColors.warning,
@@ -87,7 +92,7 @@ class ReportsScreen extends ConsumerWidget {
                       companyName: companyName,
                     ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDimensions.spacingLg),
           _ReportCard(
             icon: Icons.campaign_outlined,
             iconColor: AppColors.info,
@@ -104,26 +109,26 @@ class ReportsScreen extends ConsumerWidget {
                       companyName: companyName,
                     ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppDimensions.spacing24),
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(AppDimensions.spacingLg),
             decoration: BoxDecoration(
-              color: AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.glassBorder),
+              color: context.appSurface,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+              border: Border.all(color: context.appGlassBorder),
             ),
-            child: const Row(
+            child: Row(
               children: [
                 Icon(Icons.info_outline,
-                    color: AppColors.grey400, size: 18),
-                SizedBox(width: 10),
+                    color: context.appOnSurfaceSecondary, size: 18),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Los reportes incluyen sólo datos locales sincronizados. '
                     'Para reportes completos asegúrate de estar conectado a internet.',
                     style: TextStyle(
-                      color: AppColors.grey400,
-                      fontSize: 12,
+                      color: context.appOnSurfaceSecondary,
+                      fontSize: AppDimensions.fontCaption,
                       height: 1.4,
                     ),
                   ),
@@ -132,6 +137,7 @@ class ReportsScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -170,7 +176,6 @@ class ReportsScreen extends ConsumerWidget {
     required List<AlertLogData> alertRows,
     required String companyName,
   }) async {
-    // Map DB rows to domain entities
     final alerts = alertRows
         .map((r) => AlertLog(
               id: r.id,
@@ -224,8 +229,6 @@ class ReportsScreen extends ConsumerWidget {
   }
 }
 
-// ── Report card ───────────────────────────────────────────────────────────────
-
 class _ReportCard extends StatelessWidget {
   const _ReportCard({
     required this.icon,
@@ -246,13 +249,13 @@ class _ReportCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: AppColors.cardDark,
+      color: context.appCard,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: AppColors.glassBorder),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCardLg),
+        side: BorderSide(color: context.appGlassBorder),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppDimensions.spacingXxl),
         child: Row(
           children: [
             Container(
@@ -260,7 +263,7 @@ class _ReportCard extends StatelessWidget {
               height: 52,
               decoration: BoxDecoration(
                 color: iconColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
               ),
               child: Icon(icon, color: iconColor, size: 26),
             ),
@@ -274,26 +277,26 @@ class _ReportCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           title,
-                          style: const TextStyle(
-                            color: AppColors.white,
+                          style: TextStyle(
+                            color: context.appOnSurface,
                             fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                            fontSize: AppDimensions.fontBodyMd,
                           ),
                         ),
                       ),
                       if (count != null)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                              horizontal: AppDimensions.spacingMd, vertical: 2),
                           decoration: BoxDecoration(
                             color: iconColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
                           ),
                           child: Text(
                             '$count registros',
                             style: TextStyle(
                               color: iconColor,
-                              fontSize: 11,
+                              fontSize: AppDimensions.fontSm,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -303,9 +306,9 @@ class _ReportCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     description,
-                    style: const TextStyle(
-                      color: AppColors.grey400,
-                      fontSize: 12,
+                    style: TextStyle(
+                      color: context.appOnSurfaceSecondary,
+                      fontSize: AppDimensions.fontCaption,
                       height: 1.4,
                     ),
                   ),
@@ -315,16 +318,16 @@ class _ReportCard extends StatelessWidget {
                     child: FilledButton.icon(
                       onPressed: onGenerate,
                       icon: const Icon(Icons.picture_as_pdf, size: 16),
-                      label: const Text(
+                      label: Text(
                         'Generar PDF',
-                        style: TextStyle(fontSize: 13),
+                        style: TextStyle(fontSize: AppDimensions.fontBody),
                       ),
                       style: FilledButton.styleFrom(
                         backgroundColor: iconColor.withValues(alpha: 0.2),
                         foregroundColor: iconColor,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingMd),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
                           side: BorderSide(
                               color: iconColor.withValues(alpha: 0.4)),
                         ),

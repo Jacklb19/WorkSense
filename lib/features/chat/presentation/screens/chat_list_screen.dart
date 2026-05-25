@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/features/chat/data/chat_repository.dart';
 import 'package:worksense_app/features/chat/domain/entities/chat_message.dart';
 import 'package:worksense_app/features/chat/presentation/providers/chat_provider.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/widgets/styled/app_content_constrainer.dart';
 
 // ── Admin: lista de conversaciones ───────────────────────────────────────────
 
@@ -17,40 +20,33 @@ class AdminChatListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final partnersAsync = ref.watch(chatPartnersProvider);
     final employeesAsync = ref.watch(adminEmployeesProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text(
+        backgroundColor: context.appSurface,
+        title: Text(
           'Conversaciones',
-          style: TextStyle(
-            color: AppColors.textPrimaryDark,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+          style: theme.textTheme.headlineSmall?.copyWith(color: context.appOnSurface),
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: AppDimensions.spacingMd),
             child: partnersAsync.when(
               data: (ids) => Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXl, vertical: AppDimensions.spacingXs),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
                 ),
-                child: Text(
-                  '${ids.length}',
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
-                ),
+child: Text(
+                          '${ids.length}',
+                          style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
+                        ),
               ),
               loading: () => const SizedBox.shrink(),
               error: (_, __) => const SizedBox.shrink(),
@@ -63,10 +59,10 @@ class AdminChatListScreen extends ConsumerWidget {
           child: CircularProgressIndicator(
               color: AppColors.primary, strokeWidth: 2),
         ),
-        error: (_, __) => const Center(
-          child: Text('Error cargando conversaciones',
-              style: TextStyle(color: AppColors.textSecondaryDark)),
-        ),
+        error: (_, __) => Center(
+child: Text('Error cargando conversaciones',
+              style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary)),
+          ),
         data: (partnerIds) {
           if (partnerIds.isEmpty) {
             return const _EmptyChatList();
@@ -77,19 +73,21 @@ class AdminChatListScreen extends ConsumerWidget {
 
           return RefreshIndicator(
             color: AppColors.primary,
-            backgroundColor: AppColors.surfaceDark,
+            backgroundColor: context.appSurface,
             onRefresh: () async {
               ref.invalidate(chatPartnersProvider);
               ref.invalidate(adminEmployeesProvider);
             },
-            child: ListView.separated(
+            child: AppContentConstrainer(
+              width: AppContentWidth.list,
+              child: ListView.separated(
               padding:
-                  const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+                  const EdgeInsets.symmetric(vertical: AppDimensions.spacingMd),
               itemCount: partnerIds.length,
-              separatorBuilder: (_, __) => const Divider(
-                color: AppColors.glassBorder,
+              separatorBuilder: (_, __) => Divider(
+                color: context.appGlassBorder,
                 height: 1,
-                indent: 72,
+                indent: AppDimensions.dividerIndent,
               ),
               itemBuilder: (context, i) {
                 final partnerId = partnerIds[i];
@@ -108,6 +106,7 @@ class AdminChatListScreen extends ConsumerWidget {
                 );
               },
             ),
+            ),
           );
         },
       ),
@@ -122,27 +121,24 @@ class EmployeeChatScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final cu = ref.watch(currentUserProvider).valueOrNull;
     final companyId = cu?.companyId ?? '';
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text(
+        backgroundColor: context.appSurface,
+        title: Text(
           'Mensajes',
-          style: TextStyle(
-            color: AppColors.textPrimaryDark,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+          style: theme.textTheme.headlineSmall?.copyWith(color: context.appOnSurface),
         ),
       ),
       body: companyId.isEmpty
-          ? const Center(
+          ? Center(
               child: Text('Cargando…',
                   style:
-                      TextStyle(color: AppColors.textSecondaryDark)),
+                      theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary)),
             )
           : _EmployeeChatBody(companyId: companyId),
     );
@@ -174,6 +170,7 @@ class _EmployeeChatBodyState extends State<_EmployeeChatBody> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     if (_loading) {
       return const Center(
         child: CircularProgressIndicator(
@@ -182,22 +179,22 @@ class _EmployeeChatBodyState extends State<_EmployeeChatBody> {
     }
 
     if (_adminId == null) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(32),
+          padding: const EdgeInsets.all(AppDimensions.spacing32),
           child: Text(
             'No se encontró un administrador.\nContacta a soporte.',
-            style: TextStyle(
-                color: AppColors.textSecondaryDark, fontSize: 14),
+            style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary),
             textAlign: TextAlign.center,
           ),
         ),
       );
     }
 
-    // One conversation tile pointing to admin
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return AppContentConstrainer(
+      width: AppContentWidth.list,
+      child: ListView(
+      padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingXxl),
       children: [
         _AdminConversationCard(
           adminId: _adminId!,
@@ -210,6 +207,7 @@ class _EmployeeChatBodyState extends State<_EmployeeChatBody> {
           },
         ),
       ],
+    ),
     );
   }
 }
@@ -225,60 +223,58 @@ class _AdminConversationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.glassBorder),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: AppColors.primaryGradient,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+    final theme = Theme.of(context);
+    return Semantics(
+      button: true,
+      label: 'Chatear con administrador',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
+        child: Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacingXl),
+          decoration: BoxDecoration(
+            color: context.appSurface,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
+            border: Border.all(color: context.appGlassBorder),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: AppColors.primaryGradient,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
                 ),
-                borderRadius: BorderRadius.circular(14),
+                child: const Icon(Icons.admin_panel_settings_rounded,
+                    color: AppColors.white, size: 24),
               ),
-              child: const Icon(Icons.admin_panel_settings_rounded,
-                  color: Colors.white, size: 24),
-            ),
-            const SizedBox(width: 14),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Administrador',
-                    style: TextStyle(
-                      color: AppColors.textPrimaryDark,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
+              const SizedBox(width: AppDimensions.spacingXl),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Administrador',
+                      style: theme.textTheme.titleSmall?.copyWith(color: context.appOnSurface, fontWeight: FontWeight.w700),
                     ),
-                  ),
-                  SizedBox(height: 3),
-                  Text(
-                    'Envía un mensaje a tu empresa',
-                    style: TextStyle(
-                      color: AppColors.textSecondaryDark,
-                      fontSize: 12,
+                    const SizedBox(height: AppDimensions.spacingSm),
+                    Text(
+                      'Envía un mensaje a tu empresa',
+                      style: theme.textTheme.bodySmall?.copyWith(color: context.appOnSurfaceSecondary),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const Icon(Icons.chevron_right_rounded,
-                color: AppColors.textSecondaryDark, size: 20),
-          ],
+              Icon(Icons.chevron_right_rounded,
+                  color: context.appOnSurfaceSecondary, size: AppDimensions.spacing20),
+            ],
+          ),
         ),
       ),
     );
@@ -313,121 +309,113 @@ class _ConversationTileState extends State<_ConversationTile> {
   }
 
   Future<void> _load() async {
-    // We don't have a ref here, but we can call the repo directly
-    // since this is a StatefulWidget (not ConsumerWidget)
-    // This is acceptable for read-only display data
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final name = widget.employee?.displayName ?? 'Empleado';
     final initial =
         name.isNotEmpty ? name[0].toUpperCase() : 'E';
 
-    return InkWell(
-      onTap: widget.onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            // Avatar
-            Stack(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Center(
-                    child: Text(
-                      initial,
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                if (_unread > 0)
-                  Positioned(
-                    top: -2,
-                    right: -2,
-                    child: Container(
-                      constraints: const BoxConstraints(
-                          minWidth: 18, minHeight: 18),
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 4),
-                      decoration: const BoxDecoration(
-                        color: AppColors.error,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        _unread > 9 ? '9+' : '$_unread',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(width: 14),
-            // Content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Semantics(
+      button: true,
+      label: 'Conversación con $name',
+      child: InkWell(
+        onTap: widget.onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacingLg),
+          child: Row(
+            children: [
+              Stack(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
+                    ),
+                    child: Center(
+                      child: Text(
+                        initial,
+                        style: theme.textTheme.headlineLarge?.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  if (_unread > 0)
+                    Positioned(
+                      top: -2,
+                      right: -2,
+                      child: Container(
+                        constraints: const BoxConstraints(
+                            minWidth: 18, minHeight: 18),
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXs),
+                        decoration: const BoxDecoration(
+                          color: AppColors.error,
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
                         child: Text(
-                          name,
+                          _unread > 9 ? '9+' : '$_unread',
                           style: TextStyle(
-                            color: AppColors.textPrimaryDark,
-                            fontSize: 14,
-                            fontWeight: _unread > 0
-                                ? FontWeight.w700
-                                : FontWeight.w600,
+                            color: AppColors.white,
+                            fontSize: AppDimensions.fontXs,
+                            fontWeight: FontWeight.bold,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (_lastMsg != null)
-                        Text(
-                          _fmtDate(_lastMsg!.createdAt),
-                          style: TextStyle(
-                            color: _unread > 0
-                                ? AppColors.primary
-                                : AppColors.grey400,
-                            fontSize: 11,
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    widget.employee?.email ?? 'Ver conversación →',
-                    style: const TextStyle(
-                      color: AppColors.textSecondaryDark,
-                      fontSize: 12,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
                 ],
               ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.chevron_right_rounded,
-                color: AppColors.grey400, size: 18),
-          ],
+              const SizedBox(width: AppDimensions.spacingXl),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+child: Text(
+                              name,
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: context.appOnSurface,
+                                fontWeight: _unread > 0
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                        ),
+                        if (_lastMsg != null)
+                          Text(
+                            _fmtDate(_lastMsg!.createdAt),
+                            style: TextStyle(
+                              color: _unread > 0
+                                  ? AppColors.primary
+                                  : AppColors.grey400,
+                              fontSize: AppDimensions.fontSm,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: AppDimensions.spacingSm),
+                    Text(
+                      widget.employee?.email ?? 'Ver conversación →',
+                      style: theme.textTheme.bodySmall?.copyWith(color: context.appOnSurfaceSecondary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppDimensions.spacingMd),
+              Icon(Icons.chevron_right_rounded,
+                  color: AppColors.grey400, size: 18),
+            ],
+          ),
         ),
       ),
     );
@@ -452,9 +440,10 @@ class _EmptyChatList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppDimensions.spacing32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -465,28 +454,25 @@ class _EmptyChatList extends StatelessWidget {
                 color: AppColors.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.forum_outlined,
                 size: 36,
                 color: AppColors.primary,
               ),
             ),
-            const SizedBox(height: 20),
-            const Text(
+            const SizedBox(height: AppDimensions.spacing20),
+            Text(
               'Sin conversaciones',
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
-                fontSize: 17,
+                color: context.appOnSurface,
+                fontSize: AppDimensions.fontBodyLg,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            const SizedBox(height: AppDimensions.spacingMd),
+            Text(
               'Los mensajes con empleados\naparecerán aquí.',
-              style: TextStyle(
-                color: AppColors.textSecondaryDark,
-                fontSize: 13,
-              ),
+              style: theme.textTheme.bodyLarge?.copyWith(color: context.appOnSurfaceSecondary),
               textAlign: TextAlign.center,
             ),
           ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 
 class AppSectionHeader extends StatelessWidget {
   const AppSectionHeader({
@@ -16,6 +17,8 @@ class AppSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onSurfaceSecondary = context.appOnSurfaceSecondary;
+
     return Semantics(
       header: true,
       label: title,
@@ -52,9 +55,9 @@ class AppSectionHeader extends StatelessWidget {
               padding: const EdgeInsets.only(left: AppDimensions.spacingMd + 3),
               child: Text(
                 subtitle!,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: AppDimensions.fontSm,
-                  color: AppColors.textSecondary,
+                  color: onSurfaceSecondary,
                 ),
               ),
             ),

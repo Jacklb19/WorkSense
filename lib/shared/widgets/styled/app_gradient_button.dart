@@ -19,13 +19,16 @@ class AppGradientButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final gradient = isDark ? AppGradients.primaryButton : AppGradients.lightPrimaryButton;
+
     return Semantics(
       button: true,
       label: isLoading ? '$label - Cargando' : label,
       enabled: !isLoading,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: AppGradients.primaryButton,
+          gradient: gradient,
           borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
           boxShadow: [
             BoxShadow(

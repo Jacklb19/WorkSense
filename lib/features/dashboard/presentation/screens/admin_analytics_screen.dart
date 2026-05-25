@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_theme_extensions.dart';
 import '../../../../domain/entities/activity_state.dart';
 import '../../../../shared/widgets/loading_widget.dart';
 import '../../../../shared/widgets/styled/app_empty_state.dart';
+import '../../../../shared/widgets/styled/app_content_constrainer.dart';
 import '../../domain/entities/employee_analytics.dart';
 import '../providers/admin_analytics_provider.dart';
 
@@ -92,7 +94,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                       const SizedBox(height: AppDimensions.spacingXxl),
                       Text(
                         'Error: $e',
-                        style: const TextStyle(color: AppColors.textSecondary),
+                        style: TextStyle(color: context.appOnSurfaceSecondary),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -111,7 +113,9 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                 return RefreshIndicator(
                   onRefresh: () async =>
                       ref.invalidate(employeeAnalyticsProvider),
-                  child: ListView.separated(
+                  child: AppContentConstrainer(
+                    width: AppContentWidth.dashboard,
+                    child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(
                       AppDimensions.spacingXxl,
                       AppDimensions.spacingMd,
@@ -131,6 +135,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                               delay: (index * 60).ms,
                               duration: AppDimensions.animEntrance,
                             ),
+                    ),
                   ),
                 );
               },
@@ -209,11 +214,11 @@ class _DateChip extends StatelessWidget {
       onSelected: (_) => onTap(),
       selectedColor: AppColors.primary.withAlpha(38),
       labelStyle: TextStyle(
-        color: selected ? AppColors.primary : AppColors.textSecondary,
+        color: selected ? AppColors.primary : context.appOnSurfaceSecondary,
         fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
       ),
       side: BorderSide(
-        color: selected ? AppColors.primary : AppColors.glassBorder,
+        color: selected ? AppColors.primary : context.appGlassBorder,
       ),
     );
   }
@@ -237,7 +242,7 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
-        side: BorderSide(color: AppColors.glassBorder),
+        side: BorderSide(color: context.appGlassBorder),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
@@ -282,15 +287,15 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
                               ? '${analytics.totalEvents} eventos - ${_formatDuration(analytics.totalTrackedTime)}'
                               : 'Sin datos registrados',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.appOnSurfaceSecondary,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.chevron_right,
-                    color: AppColors.textDisabled,
+                    color: context.appOnSurfaceDisabled,
                   ),
                 ],
               ),
@@ -341,14 +346,14 @@ class _MiniStat extends StatelessWidget {
           value,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: context.appOnSurface,
               ),
         ),
         const SizedBox(height: AppDimensions.spacingXxs),
         Text(
           label,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: AppColors.textSecondary,
+                color: context.appOnSurfaceSecondary,
               ),
         ),
       ],

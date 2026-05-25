@@ -1,12 +1,13 @@
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
-import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:worksense_app/shared/widgets/styled/app_content_constrainer.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -76,6 +77,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final loginState = ref.watch(loginNotifierProvider);
 
     ref.listen<AsyncValue<bool>>(isAuthenticatedProvider, (_, next) {
@@ -85,19 +87,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     });
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.appBackground,
       body: Stack(
         children: [
-          // ── Animated background blobs ─────────────────────────────────
           _AnimatedBackground(controller: _bgController),
 
-          // ── Content ───────────────────────────────────────────────────
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
+                child: AppContentConstrainer(
+                  width: AppContentWidth.form,
+                  center: false,
                   child: FadeTransition(
                     opacity: _fadeAnim,
                     child: SlideTransition(
@@ -121,16 +122,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             ),
                           ),
                           const SizedBox(height: 48),
-                          const Text(
+                          Text(
                             'WORKSENSE SYSTEM v2.0',
-                            style: TextStyle(
-                              color: AppColors.textDisabledDark,
-                              fontSize: 10,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: context.appOnSurfaceDisabled,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 2,
                             ),
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: AppDimensions.spacing32),
                         ],
                       ),
                     ),
@@ -145,8 +145,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 }
 
-// ── Animated background ───────────────────────────────────────────────────────
-
 class _AnimatedBackground extends StatelessWidget {
   final AnimationController controller;
   const _AnimatedBackground({required this.controller});
@@ -159,7 +157,6 @@ class _AnimatedBackground extends StatelessWidget {
         final t = controller.value;
         return Stack(
           children: [
-            // Blob 1 — azul eléctrico
             Positioned(
               top: -120 + 60 * math.sin(t * 2 * math.pi),
               left: -80 + 40 * math.cos(t * 2 * math.pi),
@@ -177,7 +174,6 @@ class _AnimatedBackground extends StatelessWidget {
                 ),
               ),
             ),
-            // Blob 2 — violeta
             Positioned(
               bottom: -100 + 50 * math.cos(t * 2 * math.pi + 1),
               right: -60 + 30 * math.sin(t * 2 * math.pi + 1),
@@ -195,7 +191,6 @@ class _AnimatedBackground extends StatelessWidget {
                 ),
               ),
             ),
-            // Blob 3 — cyan sutil
             Positioned(
               top: MediaQuery.of(context).size.height * 0.45,
               right: -40 + 20 * math.sin(t * 2 * math.pi + 2),
@@ -220,19 +215,16 @@ class _AnimatedBackground extends StatelessWidget {
   }
 }
 
-// ── Brand section ─────────────────────────────────────────────────────────────
-
 class _BrandSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
-      children: [
-        // Logo con glow
         Container(
           width: AppDimensions.loginLogoSize,
           height: AppDimensions.loginLogoSize,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(AppDimensions.loginLogoRadius),
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -247,23 +239,23 @@ class _BrandSection extends StatelessWidget {
               ),
             ],
           ),
-          child: const Icon(
+          child: Icon(
             Icons.remove_red_eye_rounded,
-            color: Colors.white,
+            color: context.appOnPrimary,
             size: 38,
           ),
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: AppDimensions.spacing20),
 
         ShaderMask(
           shaderCallback: (bounds) => const LinearGradient(
             colors: [AppColors.primaryLight, AppColors.accentLight],
           ).createShader(bounds),
-          child: const Text(
+          child: Text(
             'WORKSENSE',
             style: TextStyle(
-              color: Colors.white,
+              color: context.appOnSurface,
               fontSize: 30,
               fontWeight: FontWeight.w900,
               letterSpacing: 5,
@@ -271,12 +263,11 @@ class _BrandSection extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: 8),
+        const SizedBox(height: AppDimensions.spacingMd),
         Text(
           'BIOMETRIC CONTROL INTERFACE',
-          style: TextStyle(
-            color: AppColors.textDisabledDark.withValues(alpha: 0.8),
-            fontSize: 10,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: context.appOnSurfaceDisabled.withValues(alpha: 0.8),
             fontWeight: FontWeight.w700,
             letterSpacing: 2.5,
           ),
@@ -285,8 +276,6 @@ class _BrandSection extends StatelessWidget {
     );
   }
 }
-
-// ── Glass card ────────────────────────────────────────────────────────────────
 
 class _GlassCard extends StatelessWidget {
   final Widget child;
@@ -300,10 +289,10 @@ class _GlassCard extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: Container(
           decoration: BoxDecoration(
-            color: AppColors.surfaceDark.withValues(alpha: 0.75),
+            color: context.appSurface.withValues(alpha: 0.75),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: AppColors.glassBorderBright,
+              color: context.appGlassBorder,
               width: 0.8,
             ),
           ),
@@ -314,8 +303,6 @@ class _GlassCard extends StatelessWidget {
     );
   }
 }
-
-// ── Login form ────────────────────────────────────────────────────────────────
 
 class _LoginForm extends StatelessWidget {
   final GlobalKey<FormState> formKey;
@@ -338,36 +325,34 @@ class _LoginForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Form(
       key: formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Título del form
-          const Text(
+          Text(
             'Iniciar sesión',
-            style: TextStyle(
-              color: AppColors.textPrimaryDark,
-              fontSize: 22,
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: context.appOnSurface,
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppDimensions.spacingSm),
           Text(
             'Ingresa tus credenciales de acceso',
-            style: TextStyle(
-              color: AppColors.textSecondaryDark.withValues(alpha: 0.8),
-              fontSize: 13,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: context.appOnSurfaceSecondary.withValues(alpha: 0.8),
             ),
           ),
           const SizedBox(height: 28),
 
-          // Email
           TextFormField(
             controller: emailController,
             keyboardType: TextInputType.emailAddress,
-            style: const TextStyle(color: AppColors.textPrimaryDark, fontSize: 15),
+            style: TextStyle(color: context.appOnSurface, fontSize: AppDimensions.fontSubtitle),
             decoration: _inputDecoration(
+              context: context,
               hint: 'correo@empresa.com',
               label: 'Correo de acceso',
               prefixIcon: Icons.alternate_email_rounded,
@@ -376,14 +361,14 @@ class _LoginForm extends StatelessWidget {
                 (v == null || v.isEmpty) ? 'Ingresa tu correo' : null,
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDimensions.spacingXxl),
 
-          // Password
           TextFormField(
             controller: passwordController,
             obscureText: obscurePassword,
-            style: const TextStyle(color: AppColors.textPrimaryDark, fontSize: 15),
+            style: TextStyle(color: context.appOnSurface, fontSize: AppDimensions.fontSubtitle),
             decoration: _inputDecoration(
+              context: context,
               hint: '••••••••',
               label: 'Contraseña',
               prefixIcon: Icons.lock_outline_rounded,
@@ -393,7 +378,7 @@ class _LoginForm extends StatelessWidget {
                   obscurePassword
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
-                  color: AppColors.textSecondaryDark,
+                  color: context.appOnSurfaceSecondary,
                   size: 20,
                 ),
                 onPressed: onTogglePassword,
@@ -404,18 +389,17 @@ class _LoginForm extends StatelessWidget {
             onFieldSubmitted: (_) => onSubmit(),
           ),
 
-          // Error message
           AnimatedSize(
             duration: const Duration(milliseconds: 250),
             child: loginState.errorMessage != null
                 ? Padding(
-                    padding: const EdgeInsets.only(top: 14),
+                    padding: const EdgeInsets.only(top: AppDimensions.spacingLg),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
                         color: AppColors.error.withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
                         border: Border.all(
                             color: AppColors.error.withValues(alpha: 0.3)),
                       ),
@@ -423,16 +407,12 @@ class _LoginForm extends StatelessWidget {
                         children: [
                           const Icon(Icons.error_outline_rounded,
                               color: AppColors.error, size: 16),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppDimensions.spacingMd),
                           Expanded(
-                            child: Text(
-                              loginState.errorMessage!,
-                              style: const TextStyle(
-                                color: AppColors.error,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+child: Text(
+                                loginState.errorMessage!,
+                                style: theme.textTheme.labelMedium?.copyWith(color: AppColors.error),
                               ),
-                            ),
                           ),
                         ],
                       ),
@@ -443,7 +423,6 @@ class _LoginForm extends StatelessWidget {
 
           const SizedBox(height: 28),
 
-          // Submit button
           _GradientButton(
             isLoading: loginState.isLoading,
             onPressed: loginState.isLoading ? null : onSubmit,
@@ -455,6 +434,7 @@ class _LoginForm extends StatelessWidget {
   }
 
   InputDecoration _inputDecoration({
+    required BuildContext context,
     required String hint,
     required String label,
     required IconData prefixIcon,
@@ -464,40 +444,38 @@ class _LoginForm extends StatelessWidget {
       labelText: label,
       prefixIcon: Padding(
         padding: const EdgeInsets.only(left: 14, right: 10),
-        child: Icon(prefixIcon, size: 20, color: AppColors.textSecondaryDark),
+        child: Icon(prefixIcon, size: 20, color: context.appOnSurfaceSecondary),
       ),
       prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
       filled: true,
-      fillColor: AppColors.backgroundDark.withValues(alpha: 0.5),
-      hintStyle: const TextStyle(
-          color: AppColors.textDisabledDark, fontSize: 14),
-      labelStyle: const TextStyle(
-          color: AppColors.textSecondaryDark, fontSize: 13),
+      fillColor: context.appBackground.withValues(alpha: 0.5),
+      hintStyle: TextStyle(
+          color: context.appOnSurfaceDisabled, fontSize: AppDimensions.fontBodyMd),
+      labelStyle: TextStyle(
+          color: context.appOnSurfaceSecondary, fontSize: AppDimensions.fontCaption),
       floatingLabelStyle: const TextStyle(
-          color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600),
+          color: AppColors.primary, fontSize: AppDimensions.fontCaption, fontWeight: FontWeight.w600),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.dividerDark, width: 1),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCardLg),
+        borderSide: BorderSide(color: context.appDivider, width: 1),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCardLg),
         borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCardLg),
         borderSide: const BorderSide(color: AppColors.error, width: 1.5),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCardLg),
         borderSide: const BorderSide(color: AppColors.error, width: 2),
       ),
       contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacingXxl),
     );
   }
 }
-
-// ── Gradient button ───────────────────────────────────────────────────────────
 
 class _GradientButton extends StatelessWidget {
   final bool isLoading;
@@ -512,6 +490,7 @@ class _GradientButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       height: 54,
@@ -523,8 +502,8 @@ class _GradientButton extends StatelessWidget {
                 colors: AppColors.primaryGradient,
               )
             : null,
-        color: onPressed == null ? AppColors.dividerDark : null,
-        borderRadius: BorderRadius.circular(14),
+        color: onPressed == null ? context.appDivider : null,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCardLg),
         boxShadow: onPressed != null
             ? [
                 BoxShadow(
@@ -536,10 +515,10 @@ class _GradientButton extends StatelessWidget {
             : null,
       ),
       child: Material(
-        color: Colors.transparent,
+        color: AppColors.transparent,
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusCardLg),
           child: Center(
             child: isLoading
                 ? const SizedBox(
@@ -547,15 +526,14 @@ class _GradientButton extends StatelessWidget {
                     width: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: AppColors.white,
                     ),
                   )
                 : Text(
                     label,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: context.appOnPrimary,
                       fontWeight: FontWeight.w800,
-                      fontSize: 14,
                       letterSpacing: 1.2,
                     ),
                   ),
