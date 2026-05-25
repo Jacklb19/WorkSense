@@ -4,9 +4,9 @@ import 'package:worksense_app/domain/entities/leave_request.dart';
 import 'package:worksense_app/domain/repositories/leave_request_repository.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart'
     show appDatabaseProvider;
+import 'package:worksense_app/features/notifications/data/notification_repository.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
-import 'package:worksense_app/shared/services/notification_service.dart';
 
 // ── Repository provider ───────────────────────────────────────────────────────
 
@@ -57,9 +57,17 @@ class LeavesNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _repo.saveLeaveRequest(request));
     if (state is AsyncData) {
-      // Notify admin about the new leave request
-      await NotificationService.instance
-          .notifyLeaveRequest(request.employeeId);
+      // Notificar a todos los admins de la empresa (no al empleado que la envía)
+      await NotificationRepository.instance.pushToAdmins(
+        companyId: request.companyId,
+        type: 'leave_request',
+        title: '📅 Nueva solicitud de permiso',
+        body: '${request.type.label} · '
+            '${request.startDate.day}/${request.startDate.month} – '
+            '${request.endDate.day}/${request.endDate.month}',
+        senderId: request.employeeId,
+        route: '/leaves',
+      );
     }
   }
 
@@ -67,6 +75,8 @@ class LeavesNotifier extends StateNotifier<AsyncValue<void>> {
     required String requestId,
     required LeaveStatus status,
     required String reviewedById,
+    required String employeeId,    // NEW – necesario para notificar al empleado
+    required String companyId,     // NEW – para la notificación
     String? reviewNote,
     DateTime? startDate,
     DateTime? endDate,
@@ -80,12 +90,22 @@ class LeavesNotifier extends StateNotifier<AsyncValue<void>> {
         reviewNote: reviewNote,
       ),
     );
-    if (state is AsyncData && startDate != null && endDate != null) {
-      // Notify employee about the review result
-      await NotificationService.instance.notifyLeaveReviewed(
-        approved: status == LeaveStatus.approved,
-        startDate: startDate,
-        endDate: endDate,
+    if (state is AsyncData) {
+      // Notificar al empleado sobre la resolución
+      final approved = status == LeaveStatus.approved;
+      final dateStr = startDate != null && endDate != null
+          ? '${startDate.day}/${startDate.month} – ${endDate.day}/${endDate.month}'
+          : '';
+      await NotificationRepository.instance.pushToUser(
+        recipientId: employeeId,
+        companyId: companyId,
+        type: approved ? 'leave_approved' : 'leave_rejected',
+        title: approved
+            ? '✅ Permiso aprobado'
+            : '❌ Permiso rechazado',
+        body: dateStr.isNotEmpty ? 'Tu solicitud ($dateStr) fue revisada' : 'Tu solicitud fue revisada',
+        senderId: reviewedById,
+        route: '/leaves',
       );
     }
   }

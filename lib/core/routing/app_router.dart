@@ -24,7 +24,15 @@ import 'package:worksense_app/features/leaves/presentation/screens/leaves_list_s
 import 'package:worksense_app/features/settings/presentation/screens/settings_screen.dart';
 import 'package:worksense_app/features/tasks/presentation/screens/task_form_screen.dart';
 import 'package:worksense_app/features/tasks/presentation/screens/tasks_list_screen.dart';
+import 'package:worksense_app/features/chat/presentation/screens/chat_list_screen.dart';
+import 'package:worksense_app/features/chat/presentation/screens/chat_screen.dart';
 import 'package:worksense_app/features/profile/presentation/screens/profile_screen.dart';
+import 'package:worksense_app/features/payroll/presentation/screens/payroll_screen.dart';
+import 'package:worksense_app/features/payroll/presentation/screens/payroll_period_detail_screen.dart';
+import 'package:worksense_app/features/evaluations/presentation/screens/evaluations_screen.dart';
+import 'package:worksense_app/features/evaluations/presentation/screens/evaluation_form_screen.dart';
+import 'package:worksense_app/features/evaluations/presentation/screens/evaluation_detail_screen.dart';
+import 'package:worksense_app/domain/entities/payroll.dart';
 import 'package:worksense_app/features/workstations/presentation/screens/workstation_form_screen.dart';
 import 'package:worksense_app/features/workstations/presentation/screens/workstations_list_screen.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
@@ -126,20 +134,33 @@ final routerProvider = Provider<GoRouter>((ref) {
             }
             break;
           case AppRole.employee:
-            final allowedEmployeeRoutes = [
+            // Fixed (non-parameterized) routes employees can access
+            const allowedEmployeeRoutes = {
               AppRoutes.dashboard,
               AppRoutes.history,
               AppRoutes.myActivity,
               AppRoutes.myHours,
               AppRoutes.settings,
               AppRoutes.tasks,
+              AppRoutes.taskNew,
               AppRoutes.leaves,
               AppRoutes.leaveNew,
               AppRoutes.announcements,
               AppRoutes.profile,
+              AppRoutes.chatList,
+              AppRoutes.login,
+              AppRoutes.evaluations,
+            };
+            // Parameterized route prefixes employees can access
+            const allowedEmployeePrefixes = [
+              '/chat/',          // individual conversation: /chat/:userId/:userName
+              '/tasks/edit/',    // task editing: /tasks/edit/:taskId
+              '/evaluations/',   // evaluation detail: /evaluations/:evalId
             ];
-            if (!allowedEmployeeRoutes.contains(loc) &&
-                loc != AppRoutes.login) {
+            final prefixAllowed = allowedEmployeePrefixes.any(
+              (p) => loc.startsWith(p),
+            );
+            if (!allowedEmployeeRoutes.contains(loc) && !prefixAllowed) {
               return AppRoutes.dashboard;
             }
             break;
@@ -301,6 +322,31 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (context, state) =>
             _slidePage(state, const ProfileScreen()),
+      ),
+
+      // ── Chat ──────────────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.chatList,
+        name: 'chat-list',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final cu = (state.extra as Map<String, dynamic>?)?['isEmployee'] == true;
+          return _slidePage(
+            state,
+            cu ? const EmployeeChatScreen() : const AdminChatListScreen(),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.chat,
+        name: 'chat',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final userId = state.pathParameters['userId']!;
+          final rawName = state.pathParameters['userName'] ?? '';
+          final userName = Uri.decodeComponent(rawName);
+          return _slidePage(state, ChatScreen(otherId: userId, otherName: userName));
+        },
       ),
 
       // ── Workstation Edit ──────────────────────────────────────────────────
@@ -480,6 +526,58 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'my-hours',
         pageBuilder: (context, state) =>
             _slidePage(state, const MyHoursScreen()),
+      ),
+
+      // ── Payroll (nómina) ──────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.payroll,
+        name: 'payroll',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) =>
+            _slidePage(state, const PayrollScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.payrollPeriod,
+        name: 'payroll-period',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final periodId = state.pathParameters['periodId']!;
+          final period = state.extra as PayrollPeriod?;
+          if (period == null) {
+            // Fallback: redirect to payroll list if period not passed
+            return _slidePage(state, const PayrollScreen());
+          }
+          return _slidePage(
+            state,
+            PayrollPeriodDetailScreen(periodId: periodId, period: period),
+          );
+        },
+      ),
+
+      // ── Evaluations ───────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.evaluations,
+        name: 'evaluations',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) =>
+            _slidePage(state, const EvaluationsScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.evaluationNew,
+        name: 'evaluation-new',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) =>
+            _modalPage(state, const EvaluationFormScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.evaluationDetail,
+        name: 'evaluation-detail',
+        parentNavigatorKey: _rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final evalId = state.pathParameters['evalId']!;
+          return _slidePage(
+              state, EvaluationDetailScreen(evalId: evalId));
+        },
       ),
 
     ],

@@ -7,8 +7,8 @@ import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/domain/entities/task_item.dart';
-import 'package:worksense_app/features/announcements/presentation/providers/announcements_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
+import 'package:worksense_app/features/notifications/presentation/widgets/notification_panel.dart';
 import 'package:worksense_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/shared/widgets/error_widget.dart';
@@ -28,7 +28,17 @@ class EmployeeDashboardScreen extends ConsumerWidget {
         title: const Text(AppStrings.mySpace),
         centerTitle: false,
         actions: [
-          _AnnouncementBell(ref: ref),
+          // Notification bell (unified: tasks, leaves, messages, etc.)
+          const NotificationBellButton(),
+          // Chat with admin
+          IconButton(
+            icon: const Icon(Icons.forum_outlined),
+            tooltip: 'Mensajes',
+            onPressed: () => context.push(
+              AppRoutes.chatList,
+              extra: {'isEmployee': true},
+            ),
+          ),
           const SyncIndicatorWidget(),
           const SizedBox(width: 8),
         ],
@@ -84,9 +94,9 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Text(
+                    const Text(
                       AppStrings.todaySummary,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.textSecondaryDark,
                         fontSize: 13,
                       ),
@@ -101,54 +111,61 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const _SectionHeader(label: AppStrings.assignedWorkstation,
+                    _SectionHeader(label: AppStrings.assignedWorkstation,
                         icon: Icons.desktop_windows_rounded),
-                    const SizedBox(height: 10),
-                    const _AssignedWorkstationSection(),
-                    const SizedBox(height: 24),
+                    SizedBox(height: 10),
+                    _AssignedWorkstationSection(),
+                    SizedBox(height: 24),
 
-                    const _SectionHeader(label: AppStrings.myProductivityToday,
+                    _SectionHeader(label: AppStrings.myProductivityToday,
                         icon: Icons.bar_chart_rounded),
-                    const SizedBox(height: 10),
-                    const _PersonalProductivitySection(),
-                    const SizedBox(height: 24),
+                    SizedBox(height: 10),
+                    _PersonalProductivitySection(),
+                    SizedBox(height: 24),
 
-                    const _SectionHeader(label: AppStrings.recentActivityLive,
+                    _SectionHeader(label: AppStrings.recentActivityLive,
                         icon: Icons.history_rounded),
-                    const SizedBox(height: 10),
-                    const _RecentActivitySection(),
-                    const SizedBox(height: 24),
+                    SizedBox(height: 10),
+                    _RecentActivitySection(),
+                    SizedBox(height: 24),
 
-                    const _SectionHeader(label: 'MIS TAREAS',
+                    _SectionHeader(label: 'MIS TAREAS',
                         icon: Icons.task_alt_rounded),
-                    const SizedBox(height: 10),
-                    const _TaskMiniWidget(),
-                    const SizedBox(height: 24),
+                    SizedBox(height: 10),
+                    _TaskMiniWidget(),
+                    SizedBox(height: 24),
 
-                    const _SectionHeader(label: 'ACCESOS RÁPIDOS',
+                    _SectionHeader(label: 'ACCESOS RÁPIDOS',
                         icon: Icons.grid_view_rounded),
-                    const SizedBox(height: 10),
-                    const _QuickAccessCard(
+                    SizedBox(height: 10),
+                    _QuickAccessCard(
                       icon: Icons.history_rounded,
                       title: 'Mi actividad',
                       subtitle: 'Ver historial personal detallado',
                       route: AppRoutes.myActivity,
                     ),
-                    const SizedBox(height: 10),
-                    const _QuickAccessCard(
+                    SizedBox(height: 10),
+                    _QuickAccessCard(
                       icon: Icons.schedule_rounded,
                       title: 'Mis horas',
                       subtitle: 'Consultar horas, sesiones y resumen diario',
                       route: AppRoutes.myHours,
                     ),
-                    const SizedBox(height: 10),
-                    const _QuickAccessCard(
+                    SizedBox(height: 10),
+                    _QuickAccessCard(
                       icon: Icons.person_rounded,
                       title: 'Mi perfil',
                       subtitle: 'Ver estadísticas personales y datos de cuenta',
                       route: AppRoutes.profile,
                     ),
-                    const SizedBox(height: 48),
+                    SizedBox(height: 10),
+                    _QuickAccessCard(
+                      icon: Icons.star_rounded,
+                      title: 'Mis evaluaciones',
+                      subtitle: 'Consultar tus evaluaciones de desempeño',
+                      route: AppRoutes.evaluations,
+                    ),
+                    SizedBox(height: 48),
                   ],
                 ),
               ),
@@ -586,50 +603,6 @@ class _RecentActivitySection extends ConsumerWidget {
     final min = time.minute.toString().padLeft(2, '0');
     final sec = time.second.toString().padLeft(2, '0');
     return '$hour:$min:$sec';
-  }
-}
-
-// ── Announcement bell button ──────────────────────────────────────────────────
-
-class _AnnouncementBell extends StatelessWidget {
-  const _AnnouncementBell({required this.ref});
-  final WidgetRef ref;
-
-  @override
-  Widget build(BuildContext context) {
-    final unread = ref.watch(unreadAnnouncementsCountProvider);
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.campaign_rounded),
-          tooltip: 'Comunicados',
-          onPressed: () => context.push(AppRoutes.announcements),
-        ),
-        if (unread > 0)
-          Positioned(
-            top: 4,
-            right: 4,
-            child: Container(
-              width: 16,
-              height: 16,
-              decoration: const BoxDecoration(
-                color: AppColors.error,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                unread > 9 ? '9+' : '$unread',
-                style: const TextStyle(
-                  color: AppColors.white,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
   }
 }
 

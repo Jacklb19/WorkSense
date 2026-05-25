@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/navigation/app_bottom_nav_bar.dart';
 import 'package:worksense_app/core/navigation/nav_destination.dart';
 import 'package:worksense_app/core/navigation/nav_destinations.dart';
@@ -25,11 +26,12 @@ class ScaffoldWithBottomNav extends ConsumerWidget {
         user?.role == AppRole.admin || user?.role == AppRole.superAdmin;
 
     // ── Badge counts ───────────────────────────────────────────────────────
+    final l10n = AppLocalizations.of(context);
     final List<NavDestination> destinations;
     if (isAdmin) {
       final pendingTasks = ref.watch(companyPendingTasksCountProvider);
       final pendingLeaves = ref.watch(pendingLeavesCountProvider);
-      final base = adminDestinations;
+      final base = adminDestinations(l10n);
       // Admin UI: 0=Dashboard, 1=Employees, 2=Workstations, 3=Tasks, 4=Permisos, 5=Shifts, 6=Settings
       destinations = [
         base[0], base[1], base[2],
@@ -40,7 +42,7 @@ class ScaffoldWithBottomNav extends ConsumerWidget {
     } else {
       final pendingTasks = ref.watch(myPendingTasksCountProvider);
       final pendingLeaves = ref.watch(myPendingLeavesCountProvider);
-      final base = employeeDestinations;
+      final base = employeeDestinations(l10n);
       // Employee UI: 0=Home, 1=Tasks, 2=Leaves, 3=Activity, 4=Settings
       destinations = [
         base[0],

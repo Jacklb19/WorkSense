@@ -10,6 +10,9 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
+  /// Expuesto para que PushNotificationService pueda crear canales Android.
+  FlutterLocalNotificationsPlugin get plugin => _plugin;
+
   bool _initialized = false;
 
   // ── Canales ───────────────────────────────────────────────────────────────
@@ -159,6 +162,37 @@ class NotificationService {
         channelName: 'Permisos',
         channelDesc: 'Notificaciones de solicitudes de permiso',
       ),
+    );
+  }
+
+  /// Muestra una notificación local recibida desde FCM (app en foreground).
+  Future<void> showPush({
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    if (!_initialized) return;
+    await _plugin.show(
+      title.hashCode & 0x7FFFFFFF, // ID determinístico basado en el título
+      title,
+      body,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'worksense_push',
+          'WorkSense',
+          channelDescription: 'Notificaciones push de WorkSense',
+          importance: Importance.high,
+          priority: Priority.high,
+          showWhen: true,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      payload: payload,
     );
   }
 

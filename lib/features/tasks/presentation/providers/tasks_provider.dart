@@ -4,9 +4,9 @@ import 'package:worksense_app/domain/entities/task_item.dart';
 import 'package:worksense_app/domain/repositories/task_repository.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart'
     show appDatabaseProvider;
+import 'package:worksense_app/features/notifications/data/notification_repository.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
-import 'package:worksense_app/shared/services/notification_service.dart';
 
 // ── Repository provider ───────────────────────────────────────────────────────
 
@@ -37,28 +37,43 @@ final myTasksProvider = StreamProvider<List<TaskItem>>((ref) {
 /// Conteo de tareas pendientes del empleado (badge)
 final myPendingTasksCountProvider = Provider<int>((ref) {
   final tasks = ref.watch(myTasksProvider).valueOrNull ?? [];
-  return tasks.where((t) => t.status == TaskStatus.pending || t.status == TaskStatus.inProgress).length;
+  return tasks
+      .where((t) =>
+          t.status == TaskStatus.pending || t.status == TaskStatus.inProgress)
+      .length;
 });
 
 /// Conteo de tareas pendientes de la empresa (badge admin)
 final companyPendingTasksCountProvider = Provider<int>((ref) {
   final tasks = ref.watch(companyTasksProvider).valueOrNull ?? [];
-  return tasks.where((t) => t.status == TaskStatus.pending || t.status == TaskStatus.inProgress).length;
+  return tasks
+      .where((t) =>
+          t.status == TaskStatus.pending || t.status == TaskStatus.inProgress)
+      .length;
 });
 
 // ── Notifier ─────────────────────────────────────────────────────────────────
 
 class TasksNotifier extends StateNotifier<AsyncValue<void>> {
   final TaskRepository _repo;
+  final String _companyId;
 
-  TasksNotifier(this._repo) : super(const AsyncValue.data(null));
+  TasksNotifier(this._repo, this._companyId)
+      : super(const AsyncValue.data(null));
 
   Future<void> saveTask(TaskItem task) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _repo.saveTask(task));
     if (state is AsyncData) {
-      // Notify the assigned employee
-      await NotificationService.instance.notifyTaskAssigned(task.title);
+      // Notificar al empleado asignado (no al creador)
+      await NotificationRepository.instance.pushToUser(
+        recipientId: task.assignedToId,
+        companyId: _companyId,
+        type: 'task_assigned',
+        title: '📋 Nueva tarea asignada',
+        body: task.title,
+        route: '/tasks',
+      );
     }
   }
 
@@ -76,5 +91,7 @@ class TasksNotifier extends StateNotifier<AsyncValue<void>> {
 final tasksNotifierProvider =
     StateNotifierProvider<TasksNotifier, AsyncValue<void>>((ref) {
   final repo = ref.watch(taskRepositoryProvider);
-  return TasksNotifier(repo);
+  final companyId =
+      ref.read(currentUserProvider).valueOrNull?.companyId ?? '';
+  return TasksNotifier(repo, companyId);
 });

@@ -188,6 +188,8 @@ class _AdminLeavesList extends ConsumerWidget {
           requestId: req.id,
           status: status,
           reviewedById: reviewerId,
+          employeeId: req.employeeId,
+          companyId: req.companyId,
           startDate: req.startDate,
           endDate: req.endDate,
         );
@@ -259,6 +261,8 @@ class _AdminLeavesList extends ConsumerWidget {
             requestId: req.id,
             status: LeaveStatus.rejected,
             reviewedById: reviewerId,
+            employeeId: req.employeeId,
+            companyId: req.companyId,
             reviewNote: noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim(),
             startDate: req.startDate,
             endDate: req.endDate,

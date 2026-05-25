@@ -38,4 +38,21 @@ class AppRoutes {
   // ── Fase 3: Profile, Workstation Edit ──────────────────────
   static const profile = '/profile';
   static const workstationEdit = '/workstations/edit/:workstationId';
+
+  // ── Chat ────────────────────────────────────────────────────
+  /// Lista de conversaciones (admin) o entrada al chat con admin (employee).
+  static const chatList = '/chat-list';
+
+  /// Pantalla de conversación individual. :userId = ID del otro usuario,
+  /// :userName = nombre codificado URI del otro usuario.
+  static const chat = '/chat/:userId/:userName';
+
+  // ── Nómina ───────────────────────────────────────────────────
+  static const payroll       = '/payroll';
+  static const payrollPeriod = '/payroll/:periodId';
+
+  // ── Evaluaciones ─────────────────────────────────────────────
+  static const evaluations      = '/evaluations';
+  static const evaluationNew    = '/evaluations/new';
+  static const evaluationDetail = '/evaluations/:evalId';
 }
