@@ -56,6 +56,77 @@ abstract final class AppStrings {
   static const String errorLoadingData = 'Error al cargar datos';
 
   // ─────────────────────────────────────────────────────────
+  // KIOSK WAITING
+  // ─────────────────────────────────────────────────────────
+  static const String configureDevice = 'CONFIGURAR DISPOSITIVO';
+  static const String selectDeviceFunction =
+      'Selecciona la función que este dispositivo cumplirá en la oficina.';
+  static const String setAsEntryKiosk = 'ESTABLECER COMO KIOSCO DE ENTRADA';
+  static const String assignMonitor = 'O asigna este dispositivo a un monitor personal:';
+  static const String selectCamera = 'Selecciona una cámara / puesto...';
+  static const String logoutDevice = 'CERRAR SESIÓN DEL DISPOSITIVO';
+
+  // ─────────────────────────────────────────────────────────
+  // ENTRANCE KIOSK
+  // ─────────────────────────────────────────────────────────
+  static const String kioskAccessFrontal = 'Kiosco de Acceso Frontal';
+  static const String welcome = '¡BIENVENIDO!';
+  static const String confirmClockOut = 'Confirmar cierre de jornada';
+  static const String confirmExitQuestion =
+      '¿Estás seguro que deseas cerrar sesión?';
+  static const String signIn = 'INICIAR SESIÓN';
+  static const String finishQuestion = '¿FINALIZAR?';
+  static const String clockOut = 'CERRAR SESIÓN';
+  static const String success = '¡ÉXITO!';
+  static const String workstation = 'ESTACIÓN DE TRABAJO';
+  static const String pauseLabel = 'EN PAUSA';
+  static const String waitingLabel = 'EN ESPERA';
+  static const String facialCapture = 'EMPEZAR CAPTURA';
+  static const String pauseByBreak = 'El monitoreo está pausado por descanso.';
+  static const String waitingForScan = 'Esperando escaneo...';
+  static const String scanningRequired =
+      'Se requiere una captura facial inicial para habilitar el reconocimiento en tiempo real.';
+  static const String noEmployeeAssignedKiosk =
+      'No hay un empleado asignado a este puesto de trabajo.';
+  static const String closeMonitor = 'Cerrar monitor';
+  static const String workstationId = 'Puesto de trabajo: ';
+
+  // ─────────────────────────────────────────────────────────
+  // EMPLOYEE SCAN
+  // ─────────────────────────────────────────────────────────
+  static const String biometricEnrollment = 'ENROLAMIENTO BIOMÉTRICO';
+  static const String captureSample = 'Capturar muestra biométrica';
+  static const String captureUnavailable = 'No disponible para captura';
+  static const String keepFrontCamera = 'Mantente frente a la cámara un momento';
+  static const String lookStraight = 'Mira directo a la cámara';
+  static const String turnLeft = 'Gira levemente la cabeza hacia tu izquierda';
+  static const String turnRight = 'Gira levemente la cabeza hacia tu derecha';
+  static const String lookUp = 'Levanta levemente la cabeza';
+  static const String lookDown = 'Inclina levemente la cabeza hacia abajo';
+  static const String lookFrontAgain = 'De frente otra vez para confirmar';
+  static const String turnLeftAgain = 'Gira de nuevo levemente a la izquierda';
+  static const String turnRightAgain = 'Gira de nuevo levemente a la derecha';
+  static const String adjustPosition = 'Ajusta tu posición';
+
+  // ─────────────────────────────────────────────────────────
+  // FORMS
+  // ─────────────────────────────────────────────────────────
+  static const String shiftDetails = 'DETALLES DEL TURNO';
+  static const String workSchedule = 'JORNADA LABORAL';
+  static const String breakLabel = 'RECESO / ALMUERZO';
+  static const String activateBreak = 'Activar si aplica hora de almuerzo';
+  static const String saveShift = 'GUARDAR TURNO';
+  static const String identity = 'IDENTIDAD';
+  static const String credentials = 'CREDENCIALES';
+  static const String registerEmployee = 'REGISTRAR EMPLEADO';
+  static const String saveChanges = 'Guardar cambios';
+  static const String deleteEmployeeConfirm =
+      '¿Estás seguro de que deseas eliminar permanentemente este colaborador? '
+      'Esta acción eliminará su acceso y todos sus datos de asistencia.';
+  static const String deleteEmployeeTitle = 'Eliminar colaborador';
+  static const String employeeDeleted = 'Colaborador eliminado';
+
+  // ─────────────────────────────────────────────────────────
   // EMPLOYEE DASHBOARD
   // ─────────────────────────────────────────────────────────
   static const String mySpace = 'Mi Espacio';
@@ -111,12 +182,8 @@ abstract final class AppStrings {
   static const String comeCloser = 'Acércate a la cámara';
   static const String onlyOnePersonAllowed =
       'Solo debe estar el empleado en cámara';
-  static const String bodyMustBeVisible =
-      'Asegúrate de que tu cuerpo sea visible';
-  static const String correctPosition = 'Posicion correcta';
   static const String scanComplete = 'Escaneo completado';
   static const String frameProcessingError = 'Error al procesar el frame';
-  static const String sampleCaptured = 'Muestra capturada';
   static const String noFaceDetected = 'No se detectó rostro. Acércate más.';
   static const String multiplePeopleDetected =
       'Solo debe estar el empleado en cámara.';
@@ -130,6 +197,16 @@ abstract final class AppStrings {
   static const String repeatScan = 'Repetir escaneo';
   static const String tryAgain = 'Intentar de nuevo';
   static const String saveProfileError = 'Error al guardar el perfil: ';
+  static const String errorCameraInit = 'Error al iniciar cámara';
+  static const String onlyOnePerson =
+      'Solo debe estar el empleado en cámara';
+  static const String bodyMustBeVisible =
+      'Asegúrate de que tu cuerpo sea visible';
+  static const String improveLighting =
+      'Mejora la iluminación o tu posición';
+  static const String correctPosition = 'Posición correcta';
+  static const String sampleCaptured = 'Buena captura ✓';
+  static const String outsideArea = 'EMPLEADO FUERA DE CÁMARA';
 
   // ─────────────────────────────────────────────────────────
   // CAMERA / OVERLAY
@@ -169,7 +246,6 @@ abstract final class AppStrings {
       'La contraseña es obligatoria para nuevos usuarios.';
   static const String passwordMinLength =
       'Debe tener al menos 6 caracteres.';
-  static const String saveChanges = 'Guardar cambios';
   static const String noEmployees = 'Sin empleados registrados';
   static const String addEmployeeHint = 'Agrega empleados con el botón +';
   static const String confirmDeleteEmployee =
@@ -242,6 +318,11 @@ abstract final class AppStrings {
   static const String noAnalyticsData = 'Sin datos de analíticas';
   static const String analyticsDescription =
       'Los datos aparecerán cuando el sistema\nregistre actividad de empleados.';
+  static const String noDataFor = 'Sin datos para';
+  static const String noEventsPeriod =
+      'No se han registrado eventos\nen el período seleccionado.';
+  static const String noAttendanceRecords =
+      'No hay registros de asistencia en el escáner.';
   static const String noDataRegistered = 'Sin datos registrados';
   static const String detail = 'Detalle';
   static const String employeeNotFound = 'Empleado no encontrado';
@@ -265,7 +346,7 @@ abstract final class AppStrings {
   // HOME EMPLOYEE
   // ─────────────────────────────────────────────────────────
   static const String myEmployeePanel = 'Mi Panel de Empleado';
-  static const String welcome = 'Bienvenido';
+  static const String welcomeGreeting = 'Bienvenido';
   static const String scheduleAndActivityHint =
       'Aquí verás tu horario y estado de actividad.';
 

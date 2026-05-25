@@ -11,6 +11,8 @@ import 'package:worksense_app/domain/entities/workstation.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/features/workstations/presentation/providers/workstations_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/utils/app_snack_bar.dart';
+import 'package:worksense_app/shared/widgets/loading_indicator.dart';
 
 enum _RoiPreset {
   centerDesk(
@@ -103,21 +105,11 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(AppStrings.locationSuccess),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        AppSnackBar.showSuccess(context, AppStrings.locationSuccess);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        AppSnackBar.showError(context, 'Error: $e');
       }
     } finally {
       if (mounted) {
@@ -129,12 +121,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedEmployeeId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debes asignar el propietario de la workstation.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      AppSnackBar.showError(context, 'Debes asignar el propietario de la workstation.');
       return;
     }
 
@@ -159,22 +146,12 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
       await ref.read(saveWorkstationUseCaseProvider)(newWorkstation);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(AppStrings.workstationSaved),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        AppSnackBar.showSuccess(context, AppStrings.workstationSaved);
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al guardar: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        AppSnackBar.showError(context, 'Error al guardar: $e');
       }
     } finally {
       if (mounted) {
@@ -232,6 +209,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
       appBar: AppBar(
         title: const Text(AppStrings.newWorkstation),
         leading: IconButton(
+          tooltip: 'Volver',
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
@@ -275,10 +253,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
               OutlinedButton.icon(
                 onPressed: _isLoadingLocation ? null : _getCurrentLocation,
                 icon: _isLoadingLocation
-                    ? const SizedBox(width: AppDimensions.iconXs,
-                        height: AppDimensions.iconXs,
-                        child: CircularProgressIndicator(strokeWidth: AppDimensions.progressStrokeWidth),
-                      )
+                    ? const AppLoadingIndicator(size: AppDimensions.iconXs, strokeWidth: AppDimensions.progressStrokeWidth)
                     : const Icon(Icons.location_on),
                 label: const Text(AppStrings.useCurrentLocation),
               ),

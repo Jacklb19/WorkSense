@@ -66,7 +66,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _buildBrand(),
-                    const SizedBox(height: 60),
+                    const SizedBox(height: AppDimensions.spacing56),
                     Form(
                       key: _formKey,
                       child: Column(
@@ -89,6 +89,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               labelText: 'CONTRASEÑA',
                               prefixIcon: const Icon(Icons.lock_outline, size: AppDimensions.iconMd),
                               suffixIcon: IconButton(
+                                tooltip: 'Mostrar contraseña',
                                 icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off, size: AppDimensions.iconSm),
                                 onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                               ),
@@ -141,7 +142,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         const SizedBox(height: AppDimensions.spacing24),
         const Text(
           'WORKSENSE',
-          style: TextStyle(color: AppColors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 4),
+          style: TextStyle(color: AppColors.white, fontSize: AppDimensions.fontDisplayXs, fontWeight: FontWeight.w900, letterSpacing: 4),
         ),
         const SizedBox(height: AppDimensions.spacingMd),
         Text(

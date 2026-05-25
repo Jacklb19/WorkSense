@@ -7,6 +7,8 @@ import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/dashboard/domain/entities/employee_analytics.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/admin_analytics_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
+import 'package:worksense_app/shared/widgets/loading_indicator.dart';
+import 'package:worksense_app/shared/widgets/styled/app_empty_state.dart';
 
 class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
   final String employeeId;
@@ -43,7 +45,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
           }
 
           if (!analytics.hasData) {
-            return _EmptyDetailView(name: analytics.employee.displayName);
+            return AppEmptyState(icon: Icons.person_search_outlined, title: 'Sin datos para ${analytics.employee.displayName}', subtitle: 'No se han registrado eventos\nen el período seleccionado.');
           }
 
           return CustomScrollView(
@@ -151,7 +153,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                     ]),
                   );
                 },
-                loading: () => const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator())),
+                loading: () => const SliverToBoxAdapter(child: Center(child: AppLoadingIndicator())),
                 error: (e, _) => SliverToBoxAdapter(child: Text('Error: $e')),
               ),
 
@@ -424,43 +426,7 @@ class _Chip extends StatelessWidget {
   }
 }
 
-// ── Empty View ───────────────────────────────────────────────────────────────
 
-class _EmptyDetailView extends StatelessWidget {
-  final String name;
-  const _EmptyDetailView({required this.name});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.person_search_outlined,
-            size: AppDimensions.iconEmptyStateLg,
-            color: AppColors.grey300,
-          ),
-          const SizedBox(height: AppDimensions.spacingXxl),
-          Text(
-            'Sin datos para $name',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.grey500,
-                ),
-          ),
-          const SizedBox(height: AppDimensions.spacingMd),
-          Text(
-            'No se han registrado eventos\nen el período seleccionado.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.grey400,
-                ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

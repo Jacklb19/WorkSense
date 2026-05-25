@@ -6,6 +6,7 @@ import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
+import 'package:worksense_app/shared/widgets/styled/app_empty_state.dart';
 
 class ShiftsListScreen extends ConsumerWidget {
   const ShiftsListScreen({super.key});
@@ -26,7 +27,7 @@ class ShiftsListScreen extends ConsumerWidget {
           error: (e, trace) => Center(child: Text('Error: $e')),
           data: (shifts) {
             if (shifts.isEmpty) {
-              return const _EmptyShiftsView();
+              return const AppEmptyState(icon: Icons.event_busy, title: 'No hay turnos registrados', subtitle: 'Crea tu primer horario laboral\npara asignarlo a tus empleados.');
             }
 
             return ListView.separated(
@@ -86,29 +87,4 @@ class ShiftsListScreen extends ConsumerWidget {
   }
 }
 
-class _EmptyShiftsView extends StatelessWidget {
-  const _EmptyShiftsView();
 
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.event_busy, size: AppDimensions.iconEmptyStateLg, color: AppColors.grey300),
-          const SizedBox(height: AppDimensions.spacingXxl),
-          Text(
-            'No hay turnos registrados',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.grey500),
-          ),
-          const SizedBox(height: AppDimensions.spacingMd),
-          Text(
-            'Crea tu primer horario laboral \npara asignarlo a tus empleados.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.grey400),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-}

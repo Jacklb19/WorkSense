@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:worksense_app/core/constants/app_constants.dart';
 import 'package:worksense_app/core/constants/ai_thresholds.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:worksense_app/shared/widgets/loading_indicator.dart';
 
 // Settings provider using shared_preferences
 final analysisIntervalProvider =
@@ -103,12 +105,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       color: AppColors.grey500,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppDimensions.spacingXxl),
                 ],
               ),
               loading: () => const Padding(
                 padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(child: AppLoadingIndicator()),
               ),
               error: (_, __) => const SizedBox.shrink(),
             ),
@@ -167,7 +169,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Divider(),
 
           // ── Logout ───────────────────────────────────────────────
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDimensions.spacingMd),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: OutlinedButton.icon(
@@ -183,7 +185,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppDimensions.spacing24),
         ],
       ),
     );
@@ -224,11 +226,11 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacingXxl, AppDimensions.spacingXxl, AppDimensions.spacingXs),
       child: Text(
         title,
         style: const TextStyle(
-          fontSize: 12,
+          fontSize: AppDimensions.fontCaption,
           fontWeight: FontWeight.w600,
           color: AppColors.primary,
           letterSpacing: 0.5,
@@ -250,12 +252,12 @@ class _ThresholdTile extends StatelessWidget {
       dense: true,
       title: Text(
         label,
-        style: const TextStyle(fontSize: 13),
+        style: const TextStyle(fontSize: AppDimensions.fontBody),
       ),
       trailing: Text(
         value,
         style: const TextStyle(
-          fontSize: 13,
+          fontSize: AppDimensions.fontBody,
           fontWeight: FontWeight.w500,
           color: AppColors.grey600,
         ),

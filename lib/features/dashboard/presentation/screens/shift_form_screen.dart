@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
+import 'package:worksense_app/shared/utils/app_snack_bar.dart';
+import 'package:worksense_app/shared/widgets/styled/app_section_header.dart';
 import 'package:uuid/uuid.dart';
 
 class ShiftFormScreen extends ConsumerStatefulWidget {
@@ -87,9 +89,7 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    AppSnackBar.showError(context, message);
   }
 
   _ShiftTimeline? _buildShiftTimeline({
@@ -174,12 +174,7 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
     ref.listen<ShiftFormState>(shiftFormNotifierProvider, (_, next) {
       if (next.saved && !_hasListened) {
         _hasListened = true;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Turno registrado exitosamente'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        AppSnackBar.showSuccess(context, 'Turno registrado exitosamente');
         context.pop();
       }
     });
@@ -196,12 +191,7 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // ── Name Section ─────────────────────────────────────
-              Text('DETALLES DEL TURNO', 
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: AppColors.primary, fontWeight: FontWeight.bold, letterSpacing: 1.2
-                )
-              ),
-              const SizedBox(height: AppDimensions.spacing20),
+              const AppSectionHeader(title: 'DETALLES DEL TURNO'),
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -214,12 +204,7 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
               
               // ── Work Hours Section ───────────────────────────────
               const SizedBox(height: AppDimensions.spacing40),
-              Text('JORNADA LABORAL', 
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: AppColors.primary, fontWeight: FontWeight.bold, letterSpacing: 1.2
-                )
-              ),
-              const SizedBox(height: AppDimensions.spacing20),
+              const AppSectionHeader(title: 'JORNADA LABORAL'),
               
               Row(
                 children: [
@@ -251,14 +236,10 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
 
               // ── Break / Lunch Section ────────────────────────────
 const SizedBox(height: AppDimensions.spacingXxl),
+                const AppSectionHeader(title: 'RECESO / ALMUERZO'),
                 SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text('RECESO / ALMUERZO', 
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: AppColors.primary, fontWeight: FontWeight.bold, letterSpacing: 1.2
-                  )
-                ),
-                subtitle: const Text('Activar si aplica hora de almuerzo'),
+                title: const Text('Activar si aplica hora de almuerzo'),
                 value: _hasBreak,
                 onChanged: (val) => setState(() => _hasBreak = val),
                 activeThumbColor: AppColors.primary,
@@ -301,7 +282,7 @@ const SizedBox(height: AppDimensions.spacingXxl),
               const SizedBox(height: AppDimensions.spacingXxl),
               FilledButton(
                 onPressed: formState.isLoading ? null : _handleSubmit,
-                style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, 60)),
+                style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, AppDimensions.buttonHeightLg)),
                 child: formState.isLoading 
                   ? const CircularProgressIndicator(color: AppColors.white, strokeWidth: AppDimensions.progressStrokeWidth) 
                   : const Text('GUARDAR TURNO'),
@@ -374,7 +355,7 @@ class _TimeCard extends StatelessWidget {
               children: [
                 Icon(Icons.access_time, size: AppDimensions.iconSm, color: color),
                 const SizedBox(width: AppDimensions.spacingMd),
-                Text(timeStr, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: AppColors.white)),
+                Text(timeStr, style: const TextStyle(fontSize: AppDimensions.fontDisplayXs, fontWeight: FontWeight.w600, color: AppColors.white)),
               ],
             ),
           ],

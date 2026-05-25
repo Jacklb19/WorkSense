@@ -7,6 +7,7 @@ import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/dashboard/domain/entities/employee_analytics.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/admin_analytics_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
+import 'package:worksense_app/shared/widgets/styled/app_empty_state.dart';
 
 class AdminAnalyticsScreen extends ConsumerWidget {
   const AdminAnalyticsScreen({super.key});
@@ -88,7 +89,7 @@ padding: const EdgeInsets.all(AppDimensions.spacing24),
               ),
               data: (analyticsList) {
                 if (analyticsList.isEmpty) {
-                  return const _EmptyView();
+                  return const AppEmptyState(icon: Icons.bar_chart_outlined, title: 'Sin datos de analíticas', subtitle: 'Los datos aparecerán cuando el sistema\nregistre actividad de empleados.');
                 }
                 return RefreshIndicator(
                   onRefresh: () async =>
@@ -96,7 +97,7 @@ padding: const EdgeInsets.all(AppDimensions.spacing24),
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(AppDimensions.spacingXxl, AppDimensions.spacingMd, AppDimensions.spacingXxl, 80),
                     itemCount: analyticsList.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    separatorBuilder: (_, __) => const SizedBox(height: AppDimensions.spacing10),
                     itemBuilder: (context, index) =>
                         _EmployeeAnalyticsCard(
                       analytics: analyticsList[index],
@@ -366,57 +367,25 @@ class _StateDot extends StatelessWidget {
   const _StateDot(this.state);
 
   @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: state.label,
-      child: Container(
-width: AppDimensions.stateBreakdownDotSize,
-                      height: AppDimensions.stateBreakdownDotSize,
-        decoration: BoxDecoration(
-          color: state.color,
-          shape: BoxShape.circle,
+Widget build(BuildContext context) {
+    return Semantics(
+      label: state.label,
+      child: Tooltip(
+        message: state.label,
+        child: Container(
+          width: AppDimensions.stateBreakdownDotSize,
+          height: AppDimensions.stateBreakdownDotSize,
+          decoration: BoxDecoration(
+            color: state.color,
+            shape: BoxShape.circle,
+          ),
         ),
       ),
     );
   }
 }
 
-// ── Empty View ───────────────────────────────────────────────────────────────
 
-class _EmptyView extends StatelessWidget {
-  const _EmptyView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.bar_chart_outlined,
-            size: AppDimensions.iconEmptyStateLg,
-            color: AppColors.grey300,
-          ),
-          const SizedBox(height: AppDimensions.spacingXxl),
-          Text(
-            'Sin datos de analíticas',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.grey500,
-                ),
-          ),
-          const SizedBox(height: AppDimensions.spacingMd),
-          Text(
-            'Los datos aparecerán cuando el sistema\nregistre actividad de empleados.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.grey400,
-                ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

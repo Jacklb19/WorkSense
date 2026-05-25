@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/core/navigation/nav_destination.dart';
 
 class AppBottomNavBar extends StatelessWidget {
@@ -24,7 +23,6 @@ class AppBottomNavBar extends StatelessWidget {
         onDestinationSelected(index);
       },
       labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-      indicatorColor: AppColors.primary.withValues(alpha: 0.25),
       destinations: destinations.map((d) {
         return NavigationDestination(
           icon: d.icon,

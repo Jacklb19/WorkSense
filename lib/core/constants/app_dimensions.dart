@@ -27,6 +27,7 @@ abstract final class AppDimensions {
   static const double spacing64 = 64.0;
   static const double spacing80 = 80.0;
   static const double spacing92 = 92.0;
+  static const double spacing100 = 100.0;
 
   // ─────────────────────────────────────────────────────────
   // BORDER RADIUS
@@ -62,6 +63,7 @@ abstract final class AppDimensions {
   static const double fontTitleLg = 18.0;
   static const double fontHeadline = 20.0;
   static const double fontHeadlineLg = 22.0;
+  static const double fontDisplayXs = 24.0;
   static const double fontDisplaySm = 28.0;
   static const double fontDisplay = 32.0;
   static const double fontDisplayLg = 48.0;
@@ -161,4 +163,17 @@ abstract final class AppDimensions {
   // State breakdown
   static const double stateBreakdownDotSize = 12.0;
   static const double stateBreakdownPercentageWidth = 80.0;
+
+  // Capture button (scan/kiosk)
+  static const double captureButtonSize = 80.0;
+  static const double captureButtonInnerSize = 60.0;
+  static const double captureButtonBorderWidth = 4.0;
+  static const double captureButtonIconSize = 32.0;
+  static const double cornerIndicatorSize = 30.0;
+  static const double cornerIndicatorWidth = 4.0;
+  static const double guideFrameRadius = 32.0;
+
+  // Button heights
+  static const double buttonHeightLg = 60.0;
+  static const double buttonHeightMd = 50.0;
 }

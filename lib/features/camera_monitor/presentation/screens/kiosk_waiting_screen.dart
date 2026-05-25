@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/dashboard_provider.dart';
+import 'package:worksense_app/shared/widgets/loading_indicator.dart';
 
 class KioskWaitingScreen extends ConsumerWidget {
   const KioskWaitingScreen({super.key});
@@ -42,20 +44,20 @@ class KioskWaitingScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppDimensions.spacing48),
               const Text(
-                'CONFIGURAR DISPOSITIVO',
+                AppStrings.configureDevice,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: AppColors.white,
-                  fontSize: 20,
+                  fontSize: AppDimensions.fontHeadline,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.5,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppDimensions.spacingXxl),
               const Text(
-                'Selecciona la función que este dispositivo cumplirá en la oficina.',
+                AppStrings.selectDeviceFunction,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.white60, fontSize: 14, height: 1.5),
+                style: TextStyle(color: AppColors.white60, fontSize: AppDimensions.fontBodyMd, height: 1.5),
               ),
               const SizedBox(height: AppDimensions.spacing48),
               
@@ -63,16 +65,16 @@ class KioskWaitingScreen extends ConsumerWidget {
               FilledButton.icon(
                 onPressed: () => context.push(AppRoutes.entrance),
                 icon: const Icon(Icons.sensor_door),
-                label: const Text('ESTABLECER COMO KIOSCO DE ENTRADA'),
+                label: const Text(AppStrings.setAsEntryKiosk),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacing20),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppDimensions.spacing24),
               
-              const Text('O asigna este dispositivo a un monitor personal:', textAlign: TextAlign.center, style: TextStyle(color: AppColors.white60)),
-              const SizedBox(height: 16),
+              const Text(AppStrings.assignMonitor, textAlign: TextAlign.center, style: TextStyle(color: AppColors.white60)),
+              const SizedBox(height: AppDimensions.spacingXxl),
               
               // Monitor de Puesto
               workstationsAsync.when(
@@ -83,7 +85,7 @@ class KioskWaitingScreen extends ConsumerWidget {
                   return Container(
                     decoration: BoxDecoration(
                       color: AppColors.cardDark,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
@@ -91,12 +93,12 @@ class KioskWaitingScreen extends ConsumerWidget {
                         dropdownColor: AppColors.cardDark,
                         hint: const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('Selecciona una cámara / puesto...', style: TextStyle(color: AppColors.white54)),
+                          child: Text(AppStrings.selectCamera, style: TextStyle(color: AppColors.white54)),
                         ),
                         items: workstations.map((ws) => DropdownMenuItem(
                           value: ws.id,
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl),
                             child: Text(ws.name, style: const TextStyle(color: AppColors.white)),
                           ),
                         )).toList(),
@@ -109,7 +111,7 @@ class KioskWaitingScreen extends ConsumerWidget {
                     ),
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: AppLoadingIndicator()),
                 error: (e, _) => Text('Error: $e', style: const TextStyle(color: AppColors.error)),
               ),
               
@@ -119,15 +121,15 @@ class KioskWaitingScreen extends ConsumerWidget {
                 child: OutlinedButton.icon(
                   onPressed: () => ref.read(loginNotifierProvider.notifier).signOut(),
                   icon: const Icon(Icons.logout),
-                  label: const Text('CERRAR SESIÓN DEL DISPOSITIVO'),
+                  label: const Text(AppStrings.logoutDevice),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.white54,
                     side: const BorderSide(color: AppColors.white12),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingXxl),
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppDimensions.spacing24),
             ],
           ),
         ),

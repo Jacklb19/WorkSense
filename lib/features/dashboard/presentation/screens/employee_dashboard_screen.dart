@@ -10,6 +10,7 @@ import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
+import 'package:worksense_app/shared/widgets/styled/app_section_header.dart';
 import 'package:worksense_app/shared/widgets/sync_indicator_widget.dart';
 
 class EmployeeDashboardScreen extends ConsumerWidget {
@@ -59,57 +60,21 @@ class EmployeeDashboardScreen extends ConsumerWidget {
               const SizedBox(height: AppDimensions.spacing24),
 
               // Section 1: Assigned Workstation
-              const Text(
-                AppStrings.assignedWorkstation,
-                style: TextStyle(
-                  fontSize: AppDimensions.fontCaption,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  color: AppColors.grey600,
-                ),
-              ),
-              const SizedBox(height: AppDimensions.spacingMd),
+              const AppSectionHeader(title: AppStrings.assignedWorkstation),
               const _AssignedWorkstationSection(),
               const SizedBox(height: AppDimensions.spacing24),
 
               // Section 2: Personal Productivity
-              const Text(
-                AppStrings.myProductivityToday,
-                style: TextStyle(
-                  fontSize: AppDimensions.fontCaption,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  color: AppColors.grey600,
-                ),
-              ),
-              const SizedBox(height: AppDimensions.spacingMd),
+              const AppSectionHeader(title: AppStrings.myProductivityToday),
               const _PersonalProductivitySection(),
               const SizedBox(height: AppDimensions.spacing24),
 
               // Section 3: Recent Activity Feed
-              const Text(
-                AppStrings.recentActivityLive,
-                style: TextStyle(
-                  fontSize: AppDimensions.fontCaption,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  color: AppColors.grey600,
-                ),
-              ),
-              const SizedBox(height: AppDimensions.spacingMd),
+              const AppSectionHeader(title: AppStrings.recentActivityLive),
               const _RecentActivitySection(),
               const SizedBox(height: AppDimensions.spacing24),
 
-              const Text(
-                'ACCESOS RAPIDOS',
-                style: TextStyle(
-                  fontSize: AppDimensions.fontCaption,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  color: AppColors.grey600,
-                ),
-              ),
-              const SizedBox(height: AppDimensions.spacingMd),
+              const AppSectionHeader(title: 'ACCESOS RAPIDOS'),
               const _QuickAccessCard(
                 icon: Icons.history,
                 title: 'Mi actividad',
@@ -233,12 +198,15 @@ class _WorkstationCard extends StatelessWidget {
                   const SizedBox(height: AppDimensions.spacingXs),
                   Row(
                     children: [
-                      Container(
-                        width: AppDimensions.stateIndicatorSize,
-                        height: AppDimensions.stateIndicatorSize,
-                        decoration: const BoxDecoration(
-                          color: AppColors.success,
-                          shape: BoxShape.circle,
+Semantics(
+                        label: 'Estado activo',
+                        child: Container(
+                          width: AppDimensions.stateIndicatorSize,
+                          height: AppDimensions.stateIndicatorSize,
+                          decoration: const BoxDecoration(
+                            color: AppColors.success,
+                            shape: BoxShape.circle,
+                          ),
                         ),
                       ),
                       const SizedBox(width: AppDimensions.spacingSm),
@@ -431,12 +399,15 @@ class _RecentActivitySection extends ConsumerWidget {
             itemBuilder: (context, index) {
               final event = events[index];
               return ListTile(
-                leading: Container(
-                  width: AppDimensions.stateBreakdownDotSize,
-                  height: AppDimensions.stateBreakdownDotSize,
-                  decoration: BoxDecoration(
-                    color: event.state.color,
-                    shape: BoxShape.circle,
+leading: Semantics(
+                  label: event.state.label,
+                  child: Container(
+                    width: AppDimensions.stateBreakdownDotSize,
+                    height: AppDimensions.stateBreakdownDotSize,
+                    decoration: BoxDecoration(
+                      color: event.state.color,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
                 title: Text(

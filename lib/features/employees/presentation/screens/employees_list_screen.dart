@@ -6,8 +6,10 @@ import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
+import 'package:worksense_app/shared/utils/app_snack_bar.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
+import 'package:worksense_app/shared/widgets/styled/app_empty_state.dart';
 import 'package:intl/intl.dart';
 
 class EmployeesListScreen extends ConsumerWidget {
@@ -31,7 +33,7 @@ class EmployeesListScreen extends ConsumerWidget {
         ),
         data: (employees) {
           if (employees.isEmpty) {
-            return const _EmptyEmployeesView();
+            return const AppEmptyState(icon: Icons.people_outline, title: AppStrings.noEmployees, subtitle: AppStrings.addEmployeeHint);
           }
 
           return ListView.separated(
@@ -163,54 +165,14 @@ class EmployeesListScreen extends ConsumerWidget {
       
       ref.invalidate(adminEmployeesProvider);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('"$name" eliminado correctamente'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        AppSnackBar.showSuccess(context, '"$name" eliminado correctamente');
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al eliminar: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        AppSnackBar.showError(context, 'Error al eliminar: $e');
       }
     }
   }
 }
 
-class _EmptyEmployeesView extends StatelessWidget {
-  const _EmptyEmployeesView();
 
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.people_outline,
-            size: AppDimensions.iconEmptyStateLg,
-            color: AppColors.grey300,
-          ),
-          const SizedBox(height: AppDimensions.spacingXxl),
-          Text(
-            AppStrings.noEmployees,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.grey500,
-                ),
-          ),
-          const SizedBox(height: AppDimensions.spacingMd),
-          const Text(
-            AppStrings.addEmployeeHint,
-            style: TextStyle(color: AppColors.grey400, fontSize: AppDimensions.fontBody),
-          ),
-        ],
-      ),
-    );
-  }
-}

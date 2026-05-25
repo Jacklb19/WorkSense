@@ -9,6 +9,7 @@ import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/admin_analytics_provider.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/widgets/state_badge_widget.dart';
+import 'package:worksense_app/shared/widgets/loading_indicator.dart';
 
 class EmployeeDashboardCard extends ConsumerWidget {
   final Employee employee;
@@ -181,11 +182,7 @@ class EmployeeDashboardCard extends ConsumerWidget {
                       );
                     },
                     loading: () => const Center(
-                      child: SizedBox(
-                        height: AppDimensions.progressIndicatorSize,
-                        width: AppDimensions.progressIndicatorSize,
-                        child: CircularProgressIndicator(strokeWidth: AppDimensions.progressStrokeWidth),
-                      ),
+                      child: AppLoadingIndicator(),
                     ),
                     error: (_, __) => Row(
                       children: [
@@ -201,7 +198,7 @@ class EmployeeDashboardCard extends ConsumerWidget {
                     ),
                   );
                 },
-                loading: () => const Center(child: SizedBox(height: AppDimensions.progressIndicatorSize, width: AppDimensions.progressIndicatorSize, child: CircularProgressIndicator(strokeWidth: AppDimensions.progressStrokeWidth))),
+                loading: () => const Center(child: AppLoadingIndicator()),
                 error: (e, _) => const Text('Error al cargar', style: TextStyle(color: AppColors.error, fontSize: AppDimensions.fontCaption)),
               ),
             ],

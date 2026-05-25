@@ -5,6 +5,7 @@ import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/widgets/loading_indicator.dart';
 
 class HomeEmployeeScreen extends ConsumerWidget {
   const HomeEmployeeScreen({super.key});
@@ -35,7 +36,7 @@ class HomeEmployeeScreen extends ConsumerWidget {
                 const Icon(Icons.person, size: AppDimensions.iconLogo, color: AppColors.primaryLight),
                 const SizedBox(height: AppDimensions.spacingXxl),
                 Text(
-                  AppStrings.welcome,
+                  AppStrings.welcomeGreeting,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 if (currentUser.user?.email != null) ...[
@@ -50,7 +51,7 @@ class HomeEmployeeScreen extends ConsumerWidget {
               ],
             );
           },
-          loading: () => const CircularProgressIndicator(),
+          loading: () => const AppLoadingIndicator(),
           error: (error, _) => Text('Error: $error'),
         ),
       ),

@@ -5,6 +5,7 @@ import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/widgets/activity_event_tile.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
+import 'package:worksense_app/shared/widgets/styled/app_empty_state.dart';
 
 class MyActivityScreen extends ConsumerWidget {
   const MyActivityScreen({super.key});
@@ -18,7 +19,7 @@ class MyActivityScreen extends ConsumerWidget {
         loading: () => const AppLoadingWidget(),
         error: (error, _) => Center(child: Text('Error: $error')),
         data: (events) {
-          if (events.isEmpty) return const _EmptyActivityView();
+          if (events.isEmpty) return const AppEmptyState(icon: Icons.history_toggle_off, title: 'SIN REGISTROS', subtitle: 'La actividad reciente aparecerá en este log.', iconColor: AppColors.white10, titleStyle: TextStyle(color: AppColors.white24, fontWeight: FontWeight.bold, letterSpacing: 2), subtitleStyle: TextStyle(color: AppColors.white12, fontSize: AppDimensions.fontCaption));
 
           return CustomScrollView(
             slivers: [
@@ -44,22 +45,3 @@ class MyActivityScreen extends ConsumerWidget {
   }
 }
 
-class _EmptyActivityView extends StatelessWidget {
-  const _EmptyActivityView();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.history_toggle_off, size: AppDimensions.iconEmptyStateLg, color: AppColors.white10),
-          SizedBox(height: AppDimensions.spacingXxl),
-          Text('SIN REGISTROS', style: TextStyle(color: AppColors.white24, fontWeight: FontWeight.bold, letterSpacing: 2)),
-          SizedBox(height: AppDimensions.spacingMd),
-          Text('La actividad reciente aparecerá en este log.', style: TextStyle(color: AppColors.white12, fontSize: AppDimensions.fontCaption)),
-        ],
-      ),
-    );
-  }
-}

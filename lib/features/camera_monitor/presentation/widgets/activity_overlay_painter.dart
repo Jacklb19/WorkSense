@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 
@@ -134,7 +135,7 @@ class ActivityOverlayPainter extends CustomPainter {
 
   void _drawOutsideAreaOverlay(Canvas canvas, Size size) {
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = AppColors.black45);
-    _drawCenteredText(canvas, 'EMPLEADO FUERA DE CÁMARA', Offset(size.width/2, size.height/2), const TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 2), size);
+    _drawCenteredText(canvas, 'EMPLEADO FUERA DE CÁMARA', Offset(size.width/2, size.height/2), const TextStyle(color: AppColors.white, fontSize: AppDimensions.fontBody, fontWeight: FontWeight.w900, letterSpacing: 2), size);
   }
 
   void _drawIdentityHUD(Canvas canvas, Size size) {
@@ -144,8 +145,8 @@ class ActivityOverlayPainter extends CustomPainter {
     final tp = TextPainter(
       text: TextSpan(
         children: [
-          TextSpan(text: '$icon $label  ', style: const TextStyle(color: AppColors.white, fontSize: 10, fontWeight: FontWeight.normal)),
-          TextSpan(text: '${(identityConfidence*100).toInt()}%', style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900)),
+          TextSpan(text: '$icon $label  ', style: const TextStyle(color: AppColors.white, fontSize: AppDimensions.fontXs, fontWeight: FontWeight.normal)),
+          TextSpan(text: '${(identityConfidence*100).toInt()}%', style: TextStyle(color: color, fontSize: AppDimensions.fontSm, fontWeight: FontWeight.w900)),
         ],
       ),
       textDirection: TextDirection.ltr,

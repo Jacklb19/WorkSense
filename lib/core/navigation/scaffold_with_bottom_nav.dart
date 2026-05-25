@@ -68,9 +68,7 @@ class ScaffoldWithBottomNav extends ConsumerWidget {
         }
       },
       child: Scaffold(
-        body: SafeArea(
-          child: navigationShell,
-        ),
+        body: navigationShell,
         bottomNavigationBar: AppBottomNavBar(
           destinations: destinations,
           currentIndex: uiCurrentIndex,

@@ -8,3 +8,5 @@ export 'section_label.dart';
 export 'kiosk_overlay_container.dart';
 export 'kiosk_top_bar.dart';
 export 'delete_confirmation_dialog.dart';
+export 'app_icon_circle.dart';
+export 'app_date_chip.dart';

@@ -7,13 +7,16 @@
   import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
   import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
   import 'package:worksense_app/core/constants/ai_thresholds.dart';
-  import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
+import 'package:worksense_app/core/theme/app_colors.dart';
   import 'package:worksense_app/domain/repositories/employee_repository.dart';
   import 'package:worksense_app/features/camera_monitor/ai/employee_profiler.dart';
   import 'package:worksense_app/features/camera_monitor/ai/face_analyzer.dart';
   import 'package:worksense_app/features/camera_monitor/ai/face_embedding_service.dart';
   import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
   import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
+import 'package:worksense_app/shared/widgets/loading_indicator.dart';
 
 
   // ── Estado del escaneo ─────────────────────────────────────────────────────────
@@ -37,7 +40,7 @@
       this.currentSampleIndex = 0,
       List<bool>? completedSamples,
       this.frameStatus = FrameStatus.searching,
-      this.feedback = 'Posiciónate frente a la cámara',
+      this.feedback = AppStrings.positionInFrontOfCamera,
       this.isCapturing = false,
       this.isComplete = false,
       this.error,
@@ -213,14 +216,14 @@
           _stableLiveFrames = 0;
           state = state.copyWith(
             frameStatus: FrameStatus.error,
-            feedback: 'Solo debe estar el empleado en cámara',
+            feedback: AppStrings.onlyOnePerson,
           );
         } else if (poses.isEmpty) {
           _resetBlinkState();
           _stableLiveFrames = 0;
           state = state.copyWith(
             frameStatus: FrameStatus.searching,
-            feedback: 'Asegúrate de que tu cuerpo sea visible',
+            feedback: AppStrings.bodyMustBeVisible,
           );
         } else {
           if (!state.isCapturing && (state.frameStatus != FrameStatus.capturing)) {
@@ -248,7 +251,7 @@
                       if (!_disposed) {
                         state = state.copyWith(
                           frameStatus: FrameStatus.error,
-                          feedback: 'Mejora la iluminación o tu posición',
+                          feedback: AppStrings.improveLighting,
                         );
                       }
                       _isCheckingQuality = false;
@@ -284,7 +287,7 @@
               }
               state = state.copyWith(
                 frameStatus: FrameStatus.detected,
-                feedback: 'Posición correcta',
+                feedback: AppStrings.correctPosition,
               );
             } else {
               if (_requiresBlinkChallenge) {
@@ -305,15 +308,15 @@
 
     String _getGuidanceMessage(int index) {
       switch (index) {
-        case 0: return 'Mira directo a la cámara';
-        case 1: return 'Gira levemente la cabeza hacia tu izquierda';
-        case 2: return 'Gira levemente la cabeza hacia tu derecha';
-        case 3: return 'Levanta levemente la cabeza';
-        case 4: return 'Inclina levemente la cabeza hacia abajo';
-        case 5: return 'De frente otra vez para confirmar';
-        case 6: return 'Gira de nuevo levemente a la izquierda';
-        case 7: return 'Gira de nuevo levemente a la derecha';
-        default: return 'Ajusta tu posición';
+        case 0: return AppStrings.lookStraight;
+        case 1: return AppStrings.turnLeft;
+        case 2: return AppStrings.turnRight;
+        case 3: return AppStrings.lookUp;
+        case 4: return AppStrings.lookDown;
+        case 5: return AppStrings.lookFrontAgain;
+        case 6: return AppStrings.turnLeftAgain;
+        case 7: return AppStrings.turnRightAgain;
+        default: return AppStrings.adjustPosition;
       }
     }
 
@@ -691,7 +694,7 @@
                 child: CameraPreview(controller),
               )
             else
-              const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+              const Center(child: AppLoadingIndicator()),
 
             if (scanState.isIlluminating) const _ScreenFlashOverlay(),
 
@@ -784,7 +787,7 @@
     @override
     Widget build(BuildContext context) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing24, vertical: AppDimensions.spacingXxl),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -797,19 +800,20 @@
           child: Row(
             children: [
               IconButton(
+                tooltip: 'Cerrar',
                 onPressed: () => Navigator.of(context).pop(),
                 icon: const Icon(Icons.close, color: AppColors.white),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppDimensions.spacingXxl),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    'ENROLAMIENTO BIOMÉTRICO',
+                    AppStrings.biometricEnrollment,
                     style: TextStyle(
                       color: AppColors.primaryLight,
-                      fontSize: 12,
+                      fontSize: AppDimensions.fontCaption,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 2.0,
                     ),
@@ -818,7 +822,7 @@
                     'Progreso: $current / $total muestras',
                     style: const TextStyle(
                       color: AppColors.white70,
-                      fontSize: 14,
+                      fontSize: AppDimensions.fontBodyMd,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -856,7 +860,7 @@
           height: frameH,
           decoration: BoxDecoration(
             border: Border.all(color: _color.withValues(alpha: 0.5), width: 1),
-            borderRadius: BorderRadius.circular(32),
+            borderRadius: BorderRadius.circular(AppDimensions.guideFrameRadius),
           ),
           child: Stack(
             children: [
@@ -867,7 +871,7 @@
               
               if (status == FrameStatus.capturing)
                 const Center(
-                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryLight),
+                  child: AppLoadingIndicator(color: AppColors.primaryLight, size: AppDimensions.iconMd),
                 ),
             ],
           ),
@@ -885,15 +889,15 @@
     Widget build(BuildContext context) {
       return Positioned(
         top: top, bottom: bottom, left: left, right: right,
-        child: Container(
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(
-            border: Border(
-              top: top != null ? BorderSide(color: color, width: 4) : BorderSide.none,
-              bottom: bottom != null ? BorderSide(color: color, width: 4) : BorderSide.none,
-              left: left != null ? BorderSide(color: color, width: 4) : BorderSide.none,
-              right: right != null ? BorderSide(color: color, width: 4) : BorderSide.none,
+child: Container(
+           width: AppDimensions.cornerIndicatorSize,
+           height: AppDimensions.cornerIndicatorSize,
+           decoration: BoxDecoration(
+             border: Border(
+               top: top != null ? BorderSide(color: color, width: AppDimensions.cornerIndicatorWidth) : BorderSide.none,
+               bottom: bottom != null ? BorderSide(color: color, width: AppDimensions.cornerIndicatorWidth) : BorderSide.none,
+               left: left != null ? BorderSide(color: color, width: AppDimensions.cornerIndicatorWidth) : BorderSide.none,
+               right: right != null ? BorderSide(color: color, width: AppDimensions.cornerIndicatorWidth) : BorderSide.none,
             ),
           ),
         ),
@@ -912,7 +916,7 @@
       final bool canCapture = state.frameStatus == FrameStatus.detected && !state.isCapturing;
 
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing32, vertical: AppDimensions.spacing32),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.bottomCenter,
@@ -931,75 +935,80 @@
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: _getStatusColor(state.frameStatus),
-                  fontSize: 13,
+                  fontSize: AppDimensions.fontBody,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.5,
                 ),
               ),
               if (state.isCapturing) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: AppDimensions.spacingMd),
                 Text(
                   'RAFAGA ${state.burstProgress}/${state.burstTotal}',
                   style: const TextStyle(
                     color: AppColors.white70,
-                    fontSize: 11,
+                    fontSize: AppDimensions.fontXs,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.2,
                   ),
                 ),
               ],
-              const SizedBox(height: 24),
+              const SizedBox(height: AppDimensions.spacingXxl),
 
               // Capture Button
               if (!state.isComplete)
-                GestureDetector(
-                  onTap: canCapture ? onCapture : null,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    height: 80,
-                    width: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: canCapture ? AppColors.white : AppColors.white24,
-                        width: 4,
-                      ),
-                      color: canCapture
-                          ? AppColors.primary.withValues(alpha: 0.2)
-                          : AppColors.transparent,
-                    ),
-                    child: Center(
-                      child: Container(
-                        height: 60,
-                        width: 60,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: canCapture ? AppColors.white : AppColors.white10,
+                Semantics(
+                  button: true,
+                  label: canCapture ? AppStrings.captureSample : AppStrings.captureUnavailable,
+                  enabled: canCapture,
+                  child: GestureDetector(
+                    onTap: canCapture ? onCapture : null,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      height: AppDimensions.captureButtonSize,
+                      width: AppDimensions.captureButtonSize,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: canCapture ? AppColors.white : AppColors.white24,
+                          width: AppDimensions.captureButtonBorderWidth,
                         ),
-                        child: state.isCapturing 
-                          ? const Padding(
-                              padding: EdgeInsets.all(16.0),
-                              child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.primary),
-                            )
-                          : Icon(
-                              Icons.fingerprint, 
-                              color: canCapture ? AppColors.primary : AppColors.white24, 
-                              size: 32
-                            ),
+                        color: canCapture
+                            ? AppColors.primary.withValues(alpha: 0.2)
+                            : AppColors.transparent,
+                      ),
+                      child: Center(
+                        child: Container(
+                          height: AppDimensions.captureButtonInnerSize,
+                          width: AppDimensions.captureButtonInnerSize,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: canCapture ? AppColors.white : AppColors.white10,
+                          ),
+                          child: state.isCapturing 
+                              ? const Padding(
+                                  padding: EdgeInsets.all(AppDimensions.spacingXxl),
+                                  child: CircularProgressIndicator(strokeWidth: AppDimensions.progressStrokeWidth, color: AppColors.primary),
+                                )
+                              : Icon(
+                                  Icons.fingerprint, 
+                                  color: canCapture ? AppColors.primary : AppColors.white24, 
+                                  size: AppDimensions.captureButtonIconSize
+                                ),
+                        ),
                       ),
                     ),
                   ),
                 )
               else
-                const Icon(Icons.check_circle, color: AppColors.success, size: 80),
+                const Icon(Icons.check_circle, color: AppColors.success, size: AppDimensions.captureButtonSize),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: AppDimensions.spacingXxl),
               // Progreso textual en vez de puntos
               Text(
                 '${state.capturedCount} / ${EmployeeProfiler.samplesRequired} muestras',
                 style: const TextStyle(
                   color: AppColors.white,
-                  fontSize: 16,
+                  fontSize: AppDimensions.fontTitle,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
                 ),

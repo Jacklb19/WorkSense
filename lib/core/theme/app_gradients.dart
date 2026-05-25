@@ -4,6 +4,7 @@ import 'app_colors.dart';
 abstract final class AppGradients {
   AppGradients._();
 
+  // ── Dark theme gradients ──────────────────────────────────
   static const LinearGradient background = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
@@ -22,7 +23,7 @@ abstract final class AppGradients {
     colors: [AppColors.primary, AppColors.secondary],
   );
 
-  static final LinearGradient accentGlow = LinearGradient(
+  static const LinearGradient accentGlow = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [AppColors.primary10, AppColors.background],
@@ -51,5 +52,43 @@ abstract final class AppGradients {
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
     colors: [AppColors.successDark, AppColors.success],
+  );
+
+  // ── Light theme gradients ─────────────────────────────────
+  static const LinearGradient lightBackground = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [AppColors.lightBackground, AppColors.lightSurface],
+  );
+
+  static const LinearGradient lightCard = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [AppColors.lightCard, AppColors.lightSurfaceContainer],
+  );
+
+  static const LinearGradient lightPrimaryButton = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [AppColors.primaryDark, AppColors.primary],
+  );
+
+  static const LinearGradient lightAccentGlow = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [AppColors.primary5, AppColors.lightBackground],
+  );
+
+  static const LinearGradient lightShimmer = LinearGradient(
+    begin: Alignment(-1.0, 0.0),
+    end: Alignment(1.0, 0.0),
+    colors: [AppColors.lightSurface, AppColors.lightSurfaceContainerHigh, AppColors.lightSurface],
+    stops: [0.0, 0.5, 1.0],
+  );
+
+  static const LinearGradient lightGlassCard = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [AppColors.white, AppColors.grey100],
   );
 }

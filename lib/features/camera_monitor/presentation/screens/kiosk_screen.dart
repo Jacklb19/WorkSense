@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart';
@@ -55,7 +56,7 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
     final status = await [Permission.camera, Permission.locationWhenInUse].request();
 
     if (status[Permission.camera] != PermissionStatus.granted) {
-      if (mounted) ref.read(kioskProvider.notifier).setError('Permiso de cámara denegado.');
+      if (mounted) ref.read(kioskProvider.notifier).setError(AppStrings.cameraPermissionDenied);
       return;
     }
 
@@ -120,37 +121,40 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
               const _LoadingView(),
 
             if (kioskState.cameraInitialized)
-              CustomPaint(
-                painter: ActivityOverlayPainter(
-                  state: kioskState.currentState,
-                  confidence: kioskState.confidence,
-                  poses: kioskState.poses,
-                  faces: kioskState.faces,
-                  imageSize: kioskState.imageSize,
-                  identificationMethod: kioskState.identificationMethod,
-                  identityConfidence: kioskState.identityConfidence,
+              Semantics(
+                label: 'Superposición de estado: ${kioskState.currentState.label}',
+                child: CustomPaint(
+                  painter: ActivityOverlayPainter(
+                    state: kioskState.currentState,
+                    confidence: kioskState.confidence,
+                    poses: kioskState.poses,
+                    faces: kioskState.faces,
+                    imageSize: kioskState.imageSize,
+                    identificationMethod: kioskState.identificationMethod,
+                    identityConfidence: kioskState.identityConfidence,
+                  ),
+                  child: const SizedBox.expand(),
                 ),
-                child: const SizedBox.expand(),
               ),
 
             // OVERLAYS
             if (kioskState.sessionStatus == SessionStatus.entryPending)
               _SessionActionOverlay(
-                title: 'BIENVENIDO',
+                title: AppStrings.welcome,
                 subtitle: 'Rostro reconocido con éxito',
                 icon: Icons.face_retouching_natural,
                 color: AppColors.primary,
-                actionLabel: 'INICIAR SESIÓN',
+                actionLabel: AppStrings.signIn,
                 onConfirm: ref.read(kioskProvider.notifier).approveEntry,
                 onCancel: ref.read(kioskProvider.notifier).cancelApproval,
               )
             else if (kioskState.sessionStatus == SessionStatus.exitPending)
               _SessionActionOverlay(
-                title: '¿FINALIZAR?',
+                title: AppStrings.finishQuestion,
                 subtitle: 'Confirmar cierre de jornada',
                 icon: Icons.logout,
                 color: AppColors.warning,
-                actionLabel: 'CERRAR SESIÓN',
+                actionLabel: AppStrings.clockOut,
                 onConfirm: ref.read(kioskProvider.notifier).approveExit,
                 onCancel: ref.read(kioskProvider.notifier).cancelApproval,
               )
@@ -209,17 +213,20 @@ class _IdentifyingHUD extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (isProcessing) ...[
-               const SizedBox(
-                 width: AppDimensions.spacingXl,
-                 height: AppDimensions.spacingXl,
-                 child: CircularProgressIndicator(
-                   strokeWidth: AppDimensions.progressStrokeWidth,
-                   color: AppColors.primaryLight,
-                 ),
-               ),
-               const SizedBox(width: AppDimensions.spacingLg),
-            ],
+if (isProcessing) ...[
+                Semantics(
+                  label: 'Procesando identificación',
+                  child: const SizedBox(
+                    width: AppDimensions.spacingXl,
+                    height: AppDimensions.spacingXl,
+                    child: CircularProgressIndicator(
+                      strokeWidth: AppDimensions.progressStrokeWidth,
+                      color: AppColors.primaryLight,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppDimensions.spacingLg),
+             ],
             const Text(
               'SCANNER ACTIVO',
               style: TextStyle(
@@ -257,7 +264,7 @@ class _KioskBottomHUD extends StatelessWidget {
             StateBadgeWidget(state: state, confidence: confidence, showConfidence: true),
             const SizedBox(height: AppDimensions.spacingLg),
             Semantics(
-              label: 'Salir del monitor',
+              label: AppStrings.closeMonitor,
               button: true,
               child: SizedBox(
                 width: double.infinity,
@@ -355,7 +362,7 @@ class _SessionActionOverlay extends StatelessWidget {
               const SizedBox(height: AppDimensions.spacingXxl),
               TextButton(
                 onPressed: onCancel,
-                child: const Text('CANCELAR', style: TextStyle(color: AppColors.white38)),
+                child: const Text(AppStrings.cancel, style: TextStyle(color: AppColors.white38)),
               ),
             ],
           ),
@@ -368,9 +375,12 @@ class _SessionActionOverlay extends StatelessWidget {
 class _LoadingView extends StatelessWidget {
   const _LoadingView();
   @override
-  Widget build(BuildContext context) => Container(
-    color: AppColors.black,
-    child: const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+  Widget build(BuildContext context) => Semantics(
+    label: AppStrings.startingMonitoring,
+    child: Container(
+      color: AppColors.black,
+      child: const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+    ),
   );
 }
 
@@ -422,11 +432,11 @@ class _NoProfileView extends StatelessWidget {
             const SizedBox(height: AppDimensions.spacing48),
             if (hasEmployee)
               Semantics(
-                label: 'Empezar captura facial del empleado',
+                label: AppStrings.facialCapture,
                 button: true,
                 child: FilledButton.icon(
                   icon: const Icon(Icons.camera_alt),
-                  label: const Text('EMPEZAR CAPTURA'),
+                  label: const Text(AppStrings.facialCapture),
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -453,11 +463,11 @@ Future<bool> _showExitConfirmation(BuildContext context) async {
   return await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('SALIR DEL SISTEMA'),
-      content: const Text('¿Está seguro que desea cerrar la sesión del monitor?'),
+      title: const Text(AppStrings.exitKioskTitle),
+      content: const Text(AppStrings.confirmExitQuestion),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCELAR')),
-        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('SALIR')),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text(AppStrings.cancel)),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text(AppStrings.exitButton)),
       ],
     ),
   ) ?? false;
@@ -472,7 +482,7 @@ class _WaitingStandbyView extends StatelessWidget {
   Widget build(BuildContext context) {
     bool isBreak = status == 'BREAK';
     return Semantics(
-      label: isBreak ? 'Monitor en pausa por descanso' : 'Monitor en espera de escaneo',
+      label: isBreak ? AppStrings.pauseByBreak : AppStrings.waitingForScan,
       child: Container(
         color: AppColors.black,
         child: Center(
@@ -486,7 +496,7 @@ class _WaitingStandbyView extends StatelessWidget {
               ),
               const SizedBox(height: AppDimensions.spacing32),
               Text(
-                isBreak ? 'EN PAUSA' : 'EN ESPERA',
+                isBreak ? AppStrings.pauseLabel : AppStrings.waitingLabel,
                 style: const TextStyle(
                   color: AppColors.white, 
                   fontSize: AppDimensions.fontDisplay, 
@@ -497,8 +507,8 @@ class _WaitingStandbyView extends StatelessWidget {
               const SizedBox(height: AppDimensions.spacingXxl),
               Text(
                 isBreak 
-                  ? 'El monitoreo está pausado por descanso.' 
-                  : 'Esperando escaneo en el Kiosco de Entrada...',
+                  ? AppStrings.pauseByBreak
+                  : AppStrings.waitingForScan,
                 style: const TextStyle(
                   color: AppColors.white70,
                   fontSize: AppDimensions.fontTitle,

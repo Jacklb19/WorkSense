@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/admin_dashboard_screen.dart';
 import 'package:worksense_app/features/dashboard/presentation/screens/employee_dashboard_screen.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/widgets/loading_indicator.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -23,7 +24,7 @@ class DashboardScreen extends ConsumerWidget {
         }
       },
       loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: AppLoadingIndicator()),
       ),
       error: (error, _) => Scaffold(
         body: Center(child: Text('Error: $error')),

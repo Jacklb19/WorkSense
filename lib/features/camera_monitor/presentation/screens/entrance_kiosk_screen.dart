@@ -4,8 +4,10 @@ import 'package:camera/camera.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/entrance_kiosk_provider.dart';
+import 'package:worksense_app/shared/widgets/loading_indicator.dart';
 
 class EntranceKioskScreen extends ConsumerStatefulWidget {
   const EntranceKioskScreen({super.key});
@@ -137,8 +139,9 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
             animation: _pulseAnimation,
             builder: (context, child) {
               return Container(
-                width: 250,
-                height: 350,
+                width: MediaQuery.of(context).size.width * 0.65,
+                height: MediaQuery.of(context).size.height * 0.45,
+                constraints: const BoxConstraints(maxWidth: 280, maxHeight: 400),
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: borderColor.withValues(alpha: _pulseAnimation.value),
@@ -157,16 +160,14 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                 ),
                 child: state.phase == KioskPhase.cooldown
                     ? const Center(
-                        child: CircularProgressIndicator(
+                        child: AppLoadingIndicator(
                           color: AppColors.warning,
-                          strokeWidth: 3,
                         ),
                       )
                     : isVerifying
                         ? const Center(
-                            child: CircularProgressIndicator(
+                            child: AppLoadingIndicator(
                               color: AppColors.feedbackCapturing,
-                              strokeWidth: 3,
                             ),
                           )
                         : null,
@@ -201,7 +202,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                 if (isVerifying)
                   const SizedBox(
                     width: AppDimensions.spacing24, height: AppDimensions.spacing24,
-                    child: CircularProgressIndicator(
+                    child: AppLoadingIndicator(
                       strokeWidth: 3,
                       color: AppColors.feedbackCapturing,
                     ),
@@ -248,9 +249,9 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Success check icon
-                  Container(
-                    width: 120,
-                    height: 120,
+Container(
+                     width: AppDimensions.iconEmptyStateLg,
+                     height: AppDimensions.iconEmptyStateLg,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: const LinearGradient(
@@ -279,8 +280,8 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                   const SizedBox(height: AppDimensions.spacing32),
                   
                   // Welcome text
-                  const Text(
-                    '¡ÉXITO!',
+const Text(
+                     AppStrings.success,
                     style: TextStyle(
                       color: AppColors.white,
                       fontSize: AppDimensions.fontTitle,
@@ -335,8 +336,8 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'ESTACIÓN DE TRABAJO',
+const Text(
+                               AppStrings.workstation,
                               style: TextStyle(
                                 color: AppColors.white54,
                                 fontSize: AppDimensions.fontSm,
@@ -406,6 +407,7 @@ class _TopBar extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
+            tooltip: 'Volver',
             icon: const Icon(Icons.arrow_back, color: AppColors.white),
             onPressed: () => context.pop(),
           ),
@@ -414,7 +416,7 @@ class _TopBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('WORKSENSE', style: TextStyle(color: AppColors.white, fontSize: AppDimensions.fontDisplay, fontWeight: FontWeight.w900, letterSpacing: 2)),
-              Text('Kiosco de Acceso Frontal', style: TextStyle(color: AppColors.white70, fontSize: 14)),
+              Text(AppStrings.kioskAccessFrontal, style: TextStyle(color: AppColors.white70, fontSize: AppDimensions.fontBodyMd)),
             ],
           )
         ],

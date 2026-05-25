@@ -27,13 +27,16 @@ class ActivityEventTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(AppDimensions.spacingMd),
-              decoration: BoxDecoration(
-                color: event.state.color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+            Semantics(
+              label: event.state.label,
+              child: Container(
+                padding: const EdgeInsets.all(AppDimensions.spacingMd),
+                decoration: BoxDecoration(
+                  color: event.state.color.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(event.state.emoji, style: const TextStyle(fontSize: AppDimensions.fontTitle)),
               ),
-              child: Text(event.state.emoji, style: const TextStyle(fontSize: AppDimensions.fontTitle)),
             ),
             const SizedBox(width: AppDimensions.spacingXxl),
             Expanded(
@@ -66,7 +69,7 @@ class ActivityEventTile extends StatelessWidget {
                   const SizedBox(height: AppDimensions.spacingXs),
                   Text(
                     'CONFIANZA: ${(event.confidence * 100).round()}%',
-                    style: const TextStyle(color: AppColors.white24, fontSize: 9, fontWeight: FontWeight.bold),
+                    style: const TextStyle(color: AppColors.white24, fontSize: AppDimensions.fontXxs, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),

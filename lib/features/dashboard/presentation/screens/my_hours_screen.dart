@@ -146,12 +146,15 @@ class MyHoursScreen extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: AppDimensions.spacing10,
-                    height: AppDimensions.spacing10,
-                    decoration: BoxDecoration(
-                      color: state.color,
-                      shape: BoxShape.circle,
+Semantics(
+                    label: state.label,
+                    child: Container(
+                      width: AppDimensions.spacing10,
+                      height: AppDimensions.spacing10,
+                      decoration: BoxDecoration(
+                        color: state.color,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ),
                   const SizedBox(width: AppDimensions.spacing10),
@@ -228,16 +231,7 @@ class _SummaryHeroCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'RESUMEN DE LA JORNADA',
-            style: TextStyle(
-              color: AppColors.white70,
-              fontSize: AppDimensions.fontSm,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: AppDimensions.spacingLg),
+          const AppSectionHeader(title: 'RESUMEN DE LA JORNADA'),
           Text(
             '${HoursFormatters.formatMinutes(worked)} trabajados',
             style: const TextStyle(

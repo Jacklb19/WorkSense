@@ -10,19 +10,22 @@ class AppLoadingWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CircularProgressIndicator(color: AppColors.primary),
-          if (message != null) ...[
-            const SizedBox(height: AppDimensions.spacingXxl),
-            Text(
-              message!,
-              style: const TextStyle(color: AppColors.grey500, fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
+      child: Semantics(
+        label: message ?? 'Cargando',
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: AppColors.primary),
+            if (message != null) ...[
+              const SizedBox(height: AppDimensions.spacingXxl),
+              Text(
+                message!,
+                style: const TextStyle(color: AppColors.grey500, fontSize: AppDimensions.fontBodyMd),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -40,12 +43,15 @@ class InlineLoadingWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CircularProgressIndicator(
-        strokeWidth: AppDimensions.progressStrokeWidth,
-        color: color ?? AppColors.primary,
+    return Semantics(
+      label: 'Cargando',
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: CircularProgressIndicator(
+          strokeWidth: AppDimensions.progressStrokeWidth,
+          color: color ?? AppColors.primary,
+        ),
       ),
     );
   }

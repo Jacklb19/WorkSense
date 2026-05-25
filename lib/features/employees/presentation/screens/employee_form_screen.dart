@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/app_role.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
+import 'package:worksense_app/shared/utils/app_snack_bar.dart';
+import 'package:worksense_app/shared/widgets/styled/app_section_header.dart';
+import 'package:worksense_app/shared/widgets/loading_indicator.dart';
 
 class EmployeeFormScreen extends ConsumerStatefulWidget {
   final String? employeeId;
@@ -89,20 +93,17 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
     final confirm = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Eliminar colaborador'),
-            content: const Text(
-              '¿Estás seguro de que deseas eliminar permanentemente este colaborador? '
-              'Esta acción eliminará su acceso y todos sus datos de asistencia.',
-            ),
+            title: const Text(AppStrings.deleteEmployeeTitle),
+            content: const Text(AppStrings.deleteEmployeeConfirm),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancelar'),
+                child: const Text(AppStrings.cancel),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 child: const Text(
-                  'Eliminar',
+                  AppStrings.delete,
                   style: TextStyle(color: AppColors.error),
                 ),
               ),
@@ -118,12 +119,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
         .deleteEmployee(widget.employeeId!);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Colaborador eliminado'),
-          backgroundColor: AppColors.success,
-        ),
-      );
+      AppSnackBar.showSuccess(context, AppStrings.employeeDeleted);
       context.pop();
     }
   }
@@ -136,16 +132,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
     ref.listen<EmployeeFormState>(employeeFormNotifierProvider, (_, next) {
       if (next.saved && !_hasListened) {
         _hasListened = true;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isEditing
-                  ? 'Colaborador actualizado'
-                  : 'Colaborador registrado',
-            ),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        AppSnackBar.showSuccess(context, _isEditing ? AppStrings.employeeUpdated : AppStrings.employeeAdded);
         context.pop();
       }
     });
@@ -165,15 +152,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      'IDENTIDAD',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
-                    ),
-                    const SizedBox(height: AppDimensions.spacing20),
+                    const AppSectionHeader(title: 'IDENTIDAD'),
                     TextFormField(
                       controller: _nameController,
                       decoration: const InputDecoration(
@@ -194,15 +173,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                           (v == null || v.isEmpty) ? 'Campo requerido' : null,
                     ),
                     const SizedBox(height: AppDimensions.spacing40),
-                    Text(
-                      'CREDENCIALES',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
-                    ),
-                    const SizedBox(height: AppDimensions.spacing20),
+                    const AppSectionHeader(title: 'CREDENCIALES'),
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
@@ -212,7 +183,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                       ),
                       validator: (v) =>
                           (v == null || !v.contains('@'))
-                              ? 'Email inválido'
+                              ? AppStrings.emailInvalid2
                               : null,
                     ),
                     if (!_isEditing) ...[
@@ -221,12 +192,12 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                         controller: _passwordController,
                         obscureText: true,
                         decoration: const InputDecoration(
-                          labelText: 'Contraseña Temporal',
+                          labelText: AppStrings.passwordTempLabel,
                           prefixIcon: Icon(Icons.lock_outline),
                         ),
                         validator: (v) =>
                             (v == null || v.length < 6)
-                                ? 'Mínimo 6 caracteres'
+                                ? AppStrings.passwordMinLength
                                 : null,
                       ),
                     ],
@@ -234,17 +205,17 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                     DropdownButtonFormField<AppRole>(
                       initialValue: _selectedRole,
                       decoration: const InputDecoration(
-                        labelText: 'Rol',
+                        labelText: AppStrings.roleLabel,
                         prefixIcon: Icon(Icons.security_outlined),
                       ),
                       items: const [
                         DropdownMenuItem(
                           value: AppRole.employee,
-                          child: Text('Empleado'),
+                          child: Text(AppStrings.roleEmployee),
                         ),
                         DropdownMenuItem(
                           value: AppRole.admin,
-                          child: Text('Administrador'),
+                          child: Text(AppStrings.roleAdmin),
                         ),
                         DropdownMenuItem(
                           value: AppRole.cameraMonitor,
@@ -283,29 +254,29 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                               setState(() => _selectedShiftId = val),
                         );
                       },
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
+loading: () =>
+                           const Center(child: AppLoadingIndicator()),
                       error: (e, _) => Text(
                         'Error cargando turnos: $e',
                         style: const TextStyle(color: AppColors.error),
                       ),
                     ),
-                    const SizedBox(height: 56),
+                    const SizedBox(height: AppDimensions.spacing56),
                     FilledButton(
                       onPressed: formState.isLoading ? null : _handleSubmit,
                       style: FilledButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 60),
+                        minimumSize: const Size(double.infinity, AppDimensions.buttonHeightLg),
                       ),
                       child: formState.isLoading
                           ? const CircularProgressIndicator(
                               color: AppColors.white,
                               strokeWidth: AppDimensions.progressStrokeWidth,
                             )
-                          : Text(
-                              _isEditing
-                                  ? 'GUARDAR CAMBIOS'
-                                  : 'REGISTRAR EMPLEADO',
-                            ),
+: Text(
+                            _isEditing
+                                ? AppStrings.saveChanges
+                                : AppStrings.registerEmployee,
+                          ),
                     ),
                     if (formState.errorMessage != null) ...[
                       const SizedBox(height: AppDimensions.spacingXxl),
@@ -331,7 +302,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                           style: TextStyle(color: AppColors.error),
                         ),
                         style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 50),
+                          minimumSize: const Size(double.infinity, AppDimensions.buttonHeightMd),
                           side: const BorderSide(color: AppColors.error),
                         ),
                       ),

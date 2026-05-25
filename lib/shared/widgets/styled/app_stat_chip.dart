@@ -18,26 +18,29 @@ class AppStatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: AppDimensions.statChipIconSize, color: iconColor ?? AppColors.primary),
-        const SizedBox(height: AppDimensions.spacingXs),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: AppDimensions.fontHeadlineLg, fontWeight: FontWeight.w800, color: AppColors.textPrimary,
+    return Semantics(
+      label: '$label: $value',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: AppDimensions.statChipIconSize, color: iconColor ?? AppColors.primary),
+          const SizedBox(height: AppDimensions.spacingXs),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: AppDimensions.fontHeadlineLg, fontWeight: FontWeight.w800, color: AppColors.textPrimary,
+            ),
           ),
-        ),
-        const SizedBox(height: AppDimensions.spacingXxs),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: AppDimensions.fontSm, fontWeight: FontWeight.w500, color: AppColors.textSecondary,
+          const SizedBox(height: AppDimensions.spacingXxs),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: AppDimensions.fontSm, fontWeight: FontWeight.w500, color: AppColors.textSecondary,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

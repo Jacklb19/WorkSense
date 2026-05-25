@@ -12,7 +12,7 @@ abstract final class AppColors {
   static const Color secondaryDark = Color(0xFF7C3AED);
   static const Color secondaryLight = Color(0xFFA78BFA);
 
-  // ── Background & Surfaces (Dark-first) ────────────────────
+  // ── Dark Background & Surfaces ────────────────────────────
   static const Color background = Color(0xFF0A0E17);
   static const Color surface = Color(0xFF111827);
   static const Color card = Color(0xFF1E293B);
@@ -20,24 +20,38 @@ abstract final class AppColors {
   static const Color surfaceContainerHigh = Color(0xFF253247);
   static const Color surfaceContainerHighest = Color(0xFF334155);
 
+  // ── Light Background & Surfaces ───────────────────────────
+  static const Color lightBackground = Color(0xFFF8F9FD);
+  static const Color lightSurface = Color(0xFFFFFFFF);
+  static const Color lightCard = Color(0xFFFFFFFF);
+  static const Color lightSurfaceContainer = Color(0xFFF1F5F9);
+  static const Color lightSurfaceContainerHigh = Color(0xFFE2E8F0);
+  static const Color lightSurfaceContainerHighest = Color(0xFFCBD5E1);
+
   // ── Legacy alias (backward-compat) ────────────────────────
   static const Color backgroundDark = background;
   static const Color surfaceDark = surface;
   static const Color cardDark = card;
-  static const Color backgroundLight = Color(0xFFF8F9FD);
-  static const Color surfaceLight = Color(0xFFFFFFFF);
-  static const Color cardLight = Color(0xFFFFFFFF);
+  static const Color backgroundLight = lightBackground;
+  static const Color surfaceLight = lightSurface;
+  static const Color cardLight = lightCard;
 
-  // ── Text ──────────────────────────────────────────────────
+  // ── Dark Text ──────────────────────────────────────────────
   static const Color textPrimary = Color(0xFFF1F5F9);
   static const Color textSecondary = Color(0xFF94A3B8);
   static const Color textDisabled = Color(0xFF64748B);
   static const Color textHint = Color(0xFF475569);
 
+  // ── Light Text ──────────────────────────────────────────────
+  static const Color lightTextPrimary = Color(0xFF1A1C1E);
+  static const Color lightTextSecondary = Color(0xFF42474E);
+  static const Color lightTextDisabled = Color(0xFF72777F);
+  static const Color lightTextHint = Color(0xFF8E9198);
+
   // ── Legacy text alias (backward-compat) ────────────────────
-  static const Color textPrimaryLight = Color(0xFF1A1C1E);
-  static const Color textSecondaryLight = Color(0xFF42474E);
-  static const Color textDisabledLight = Color(0xFF72777F);
+  static const Color textPrimaryLight = lightTextPrimary;
+  static const Color textSecondaryLight = lightTextSecondary;
+  static const Color textDisabledLight = lightTextDisabled;
   static const Color textPrimaryDark = textPrimary;
   static const Color textSecondaryDark = textSecondary;
   static const Color textDisabledDark = textDisabled;
@@ -64,6 +78,8 @@ abstract final class AppColors {
   static const Color white70 = Color(0xB3FFFFFF);
 
   // Black opacity variants (for overlays on light backgrounds)
+  static const Color black5 = Color(0x0D000000);
+  static const Color black8 = Color(0x14000000);
   static const Color black12 = Color(0x1F000000);
   static const Color black26 = Color(0x42000000);
   static const Color black38 = Color(0x61000000);
@@ -107,11 +123,20 @@ abstract final class AppColors {
   static const Color errorSoft = Color(0x26EF4444);
   static const Color infoSoft = Color(0x263B82F6);
 
+  // ── Light theme feedback ───────────────────────────────────
+  static const Color lightSuccessSoft = Color(0x1922C55E);
+  static const Color lightWarningSoft = Color(0x19F59E0B);
+  static const Color lightErrorSoft = Color(0x19EF4444);
+  static const Color lightInfoSoft = Color(0x193B82F6);
+
   // ── Glassmorphism & Overlays ──────────────────────────────
   static const Color glassWhite = Color(0x1AFFFFFF);
   static const Color glassBlack = Color(0x66000000);
   static const Color overlayBadgeBg = Color(0xCC111827);
   static const Color glassBorder = Color(0x33FFFFFF);
+
+  // ── Light theme glassmorphism ─────────────────────────────
+  static const Color lightGlassBorder = Color(0x1A000000);
 
   // ── Scan Feedback ─────────────────────────────────────────
   static const Color feedbackDetected = Color(0xFF22C55E);
@@ -141,6 +166,7 @@ abstract final class AppColors {
 
   // ── Error Background ──────────────────────────────────────
   static const Color errorBg = Color(0x1AEF4444);
+  static const Color lightErrorBg = Color(0x19EF4444);
 
   // ── Alert Colors ──────────────────────────────────────────
   static const Color alertAbsent = Color(0xFFEF4444);
