@@ -352,7 +352,7 @@ class _EmptyEvals extends StatelessWidget {
                 border: Border.all(
                     color: AppColors.accent.withValues(alpha: 0.2)),
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.star_rounded,
                 size: 32,
                 color: AppColors.accent,

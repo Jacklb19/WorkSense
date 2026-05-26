@@ -50,6 +50,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final msgsAsync = ref.watch(conversationProvider(widget.otherId));
     final myId =
         ref.watch(currentUserProvider).valueOrNull?.user?.id ?? '';
@@ -75,7 +76,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 widget.otherName.isNotEmpty
                     ? widget.otherName[0].toUpperCase()
                     : '?',
-                style: TextStyle(
+                style: const TextStyle(
                   color: AppColors.primary,
                   fontWeight: FontWeight.bold,
                   fontSize: AppDimensions.fontSubtitle,
@@ -107,10 +108,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     const SizedBox(width: AppDimensions.spacingXs),
                     Text(
                       'En línea',
-                      style: TextStyle(
-                        color: AppColors.success,
-                        fontSize: AppDimensions.fontSm,
-                      ),
+                      style: theme.textTheme.labelSmall?.copyWith(color: AppColors.success),
                     ),
                   ],
                 ),
@@ -133,7 +131,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               error: (_, __) => Center(
                 child: Text(
                   'Error cargando mensajes',
-                  style: TextStyle(color: context.appOnSurfaceSecondary),
+                  style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary),
                 ),
               ),
               data: (msgs) {
@@ -204,6 +202,7 @@ class _DateDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final now = DateTime.now();
     final isToday = date.year == now.year &&
         date.month == now.month &&
@@ -230,11 +229,7 @@ class _DateDivider extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingLg),
             child: Text(
               label,
-              style: TextStyle(
-                color: context.appOnSurfaceSecondary,
-                fontSize: AppDimensions.fontSm,
-                fontWeight: FontWeight.w500,
-              ),
+              style: theme.textTheme.labelSmall?.copyWith(color: context.appOnSurfaceSecondary),
             ),
           ),
           Expanded(child: Divider(color: context.appGlassBorder)),
@@ -254,6 +249,7 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -295,10 +291,9 @@ class _MessageBubble extends StatelessWidget {
           children: [
             Text(
               message.content,
-              style: TextStyle(
+              style: theme.textTheme.bodyMedium?.copyWith(
                 color:
                     isMe ? AppColors.white : context.appOnSurface,
-                fontSize: AppDimensions.fontBodyMd,
                 height: 1.4,
               ),
             ),
@@ -308,11 +303,10 @@ class _MessageBubble extends StatelessWidget {
               children: [
                 Text(
                   _fmtTime(message.createdAt),
-                  style: TextStyle(
+                  style: theme.textTheme.labelSmall?.copyWith(
                     color: isMe
                         ? AppColors.white70
                         : context.appOnSurfaceSecondary,
-                    fontSize: AppDimensions.fontXs,
                   ),
                 ),
                 if (isMe) ...[
@@ -355,6 +349,7 @@ class _ChatInputBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     return AnimatedPadding(
       duration: const Duration(milliseconds: 150),
@@ -371,15 +366,13 @@ class _ChatInputBar extends StatelessWidget {
               ),
               child: TextField(
                 controller: controller,
-                style: TextStyle(
-                    color: context.appOnSurface, fontSize: AppDimensions.fontBodyMd),
+                style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurface),
                 maxLines: 5,
                 minLines: 1,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
                   hintText: 'Escribe un mensaje…',
-                  hintStyle: TextStyle(
-                      color: context.appOnSurfaceSecondary, fontSize: AppDimensions.fontBodyMd),
+                  hintStyle: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary),
                   border: InputBorder.none,
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacingLg),
@@ -445,6 +438,7 @@ class _EmptyChat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -456,7 +450,7 @@ class _EmptyChat extends StatelessWidget {
               color: AppColors.primary.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
-            child: Icon(
+            child: const Icon(
               Icons.chat_bubble_outline_rounded,
               size: 36,
               color: AppColors.primary,
@@ -465,18 +459,16 @@ class _EmptyChat extends StatelessWidget {
           const SizedBox(height: AppDimensions.spacingXxl),
           Text(
             'Sin mensajes aún',
-            style: TextStyle(
+            style: theme.textTheme.titleMedium?.copyWith(
               color: context.appOnSurface,
-              fontSize: AppDimensions.fontTitle,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: AppDimensions.spacingSm),
           Text(
             'Empieza la conversación',
-            style: TextStyle(
+            style: theme.textTheme.bodyMedium?.copyWith(
               color: context.appOnSurfaceSecondary,
-              fontSize: AppDimensions.fontBody,
             ),
           ),
         ],

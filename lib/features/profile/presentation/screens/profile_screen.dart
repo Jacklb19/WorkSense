@@ -51,9 +51,9 @@ class ProfileScreen extends ConsumerWidget {
                 role: currentUser?.role.metadataValue ?? 'EMPLOYEE',
               ),
             ),
-            title: Text(
+            title: const Text(
               AppStrings.myProfile,
-              style: const TextStyle(
+              style: TextStyle(
                   color: AppColors.white, fontWeight: FontWeight.bold),
             ),
           ),
@@ -258,7 +258,7 @@ class _ProfileHero extends StatelessWidget {
               backgroundColor: AppColors.primary.withValues(alpha: 0.3),
               child: Text(
                 initials,
-                style: TextStyle(
+                style: const TextStyle(
                   color: AppColors.white,
                   fontSize: AppDimensions.fontDisplaySm,
                   fontWeight: FontWeight.bold,
@@ -268,7 +268,7 @@ class _ProfileHero extends StatelessWidget {
             const SizedBox(height: AppDimensions.spacingLg),
             Text(
               name,
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppColors.white,
                 fontSize: AppDimensions.fontHeadline,
                 fontWeight: FontWeight.bold,

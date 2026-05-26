@@ -252,12 +252,12 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                         border: Border.all(
                             color: AppColors.white30, width: 1),
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.flash_on_rounded,
+                          Icon(Icons.flash_on_rounded,
                               color: AppColors.white70, size: AppDimensions.iconSm),
-                          const SizedBox(width: AppDimensions.spacingSm),
+                          SizedBox(width: AppDimensions.spacingSm),
                           Text(
                             'Iluminación activa',
                             style: TextStyle(
@@ -365,7 +365,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                         ),
                       ],
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.check_rounded,
                       color: AppColors.white,
                       size: AppDimensions.iconEmptyStateLg,
@@ -374,9 +374,9 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
 
                   const SizedBox(height: AppDimensions.spacing32),
 
-                  Text(
+                  const Text(
                     AppStrings.success,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.white,
                       fontSize: AppDimensions.fontTitle,
                       fontWeight: FontWeight.w600,
@@ -419,7 +419,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                                 AppColors.success.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
                           ),
-                          child: Icon(
+                          child: const Icon(
                             Icons.desktop_mac_rounded,
                             color: AppColors.success,
                             size: AppDimensions.iconLg,
@@ -429,9 +429,9 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            const Text(
                               AppStrings.workstation,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.white54,
                                 fontSize: AppDimensions.fontSm,
                                 fontWeight: FontWeight.w600,
@@ -462,7 +462,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                       color: AppColors.success.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(AppDimensions.radiusContainer),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
@@ -470,7 +470,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                           color: AppColors.success,
                           size: AppDimensions.iconSm,
                         ),
-                        const SizedBox(width: AppDimensions.spacingMd),
+                        SizedBox(width: AppDimensions.spacingMd),
                         Text(
                           'Acceso Autorizado · Puedes pasar',
                           style: TextStyle(
@@ -508,12 +508,12 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppDimensions.spacingXxl),
-          Column(
+          const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 AppStrings.worksenseBrand,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.white,
                   fontSize: AppDimensions.fontDisplayXs,
                   fontWeight: FontWeight.w900,
@@ -522,7 +522,7 @@ class _TopBar extends StatelessWidget {
               ),
               Text(
                 AppStrings.kioskAccessFrontal,
-                style: const TextStyle(color: AppColors.white70, fontSize: AppDimensions.fontBodyMd),
+                style: TextStyle(color: AppColors.white70, fontSize: AppDimensions.fontBodyMd),
               ),
             ],
           ),

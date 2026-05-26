@@ -117,7 +117,7 @@ class _AdminTasksList extends ConsumerWidget {
     return tasksAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(
-        child: Text('Error: $e', style: TextStyle(color: AppColors.error)),
+        child: Text('Error: $e', style: const TextStyle(color: AppColors.error)),
       ),
       data: (tasks) {
         final filtered = filterStatus != null
@@ -181,7 +181,7 @@ class _EmployeeTasksList extends ConsumerWidget {
     return tasksAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(
-        child: Text('Error: $e', style: TextStyle(color: AppColors.error)),
+        child: Text('Error: $e', style: const TextStyle(color: AppColors.error)),
       ),
       data: (tasks) {
         final filtered = filterStatus != null

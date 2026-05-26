@@ -100,7 +100,7 @@ class CameraErrorWidget extends StatelessWidget {
               const SizedBox(height: AppDimensions.spacingXxl),
               Text(
                 message,
-style: TextStyle(
+style: const TextStyle(
                   color: AppColors.white,
                   fontSize: AppDimensions.fontBodyMd,
                 ),

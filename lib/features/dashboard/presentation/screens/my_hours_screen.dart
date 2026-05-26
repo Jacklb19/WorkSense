@@ -21,6 +21,7 @@ class MyHoursScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final analyticsAsync = ref.watch(employeeTodayAnalyticsProvider);
     final summaryAsync = ref.watch(employeeTodaySummaryProvider);
     final summariesAsync = ref.watch(employeeDailySummariesProvider);
@@ -29,7 +30,7 @@ class MyHoursScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           _screenTitle,
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.6),
+          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 0.6),
         ),
         centerTitle: false,
       ),
@@ -296,6 +297,7 @@ class _SummaryHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final worked = summary?.workedMinutes ?? 0;
     final expected = summary?.expectedMinutes ?? 0;
     final ratio = summary?.completionRatio ?? 0;
@@ -323,11 +325,10 @@ class _SummaryHeroCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'RESUMEN DE LA JORNADA',
-            style: TextStyle(
+            style: theme.textTheme.labelSmall?.copyWith(
               color: AppColors.white70,
-              fontSize: AppDimensions.fontSm,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.2,
             ),
@@ -335,9 +336,8 @@ class _SummaryHeroCard extends StatelessWidget {
           const SizedBox(height: AppDimensions.spacingLg),
           Text(
             '${HoursFormatters.formatMinutes(worked)} trabajados',
-            style: const TextStyle(
+            style: theme.textTheme.headlineMedium?.copyWith(
               color: AppColors.white,
-              fontSize: 28,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -346,7 +346,7 @@ class _SummaryHeroCard extends StatelessWidget {
             expected > 0
                 ? 'Meta del día: ${HoursFormatters.formatMinutes(expected)}'
                 : 'Aún no hay una meta de turno configurada',
-            style: const TextStyle(color: AppColors.white70, height: 1.35),
+            style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.white70, height: 1.35),
           ),
           const SizedBox(height: AppDimensions.spacingLg),
           ClipRRect(
@@ -398,9 +398,8 @@ class _HeroChip extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: theme.textTheme.labelSmall?.copyWith(
               color: AppColors.white70,
-              fontSize: AppDimensions.fontXs,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -598,7 +597,7 @@ class _HistoryCard extends StatelessWidget {
               color: AppColors.primary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
             ),
-            child: Icon(Icons.calendar_today_rounded, color: AppColors.primaryLight, size: AppDimensions.iconSm),
+            child: const Icon(Icons.calendar_today_rounded, color: AppColors.primaryLight, size: AppDimensions.iconSm),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -672,9 +671,8 @@ class _ActivityPill extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(
+          style: theme.textTheme.labelSmall?.copyWith(
             color: context.appOnSurfaceSecondary,
-            fontSize: AppDimensions.fontXs,
             fontWeight: FontWeight.w800,
           ),
         ),

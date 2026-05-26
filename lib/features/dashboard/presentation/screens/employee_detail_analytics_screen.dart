@@ -41,7 +41,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
         error: (e, _) => Center(
           child: Text(
             'Error: $e',
-            style: const TextStyle(color: AppColors.error),
+            style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.error),
           ),
         ),
         data: (EmployeeAnalytics? analytics) {
@@ -197,6 +197,7 @@ child: Text(
     BuildContext context,
     EmployeeAnalytics analytics,
   ) {
+    final theme = Theme.of(context);
     final statesWithData = <ActivityState, Duration>{};
     for (final state in ActivityState.values) {
       statesWithData[state] =
@@ -388,12 +389,13 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return ChoiceChip(
       label: Text(label),
       selected: selected,
       onSelected: (_) => onTap(),
       selectedColor: AppColors.primary.withAlpha(38),
-      labelStyle: TextStyle(
+      labelStyle: theme.textTheme.labelLarge?.copyWith(
         color: selected ? AppColors.primary : context.appOnSurfaceSecondary,
         fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
       ),

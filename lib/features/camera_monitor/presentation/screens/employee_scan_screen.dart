@@ -870,9 +870,9 @@ import 'dart:io' show Platform;
                     ),
                   ),
                   const SizedBox(width: AppDimensions.spacingMd),
-                  Text(
+                  const Text(
                     AppStrings.biometricEnrollment,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.primaryLight,
                       fontSize: AppDimensions.fontCaption,
                       fontWeight: FontWeight.w800,
@@ -1127,7 +1127,7 @@ import 'dart:io' show Platform;
                           color: canCapture ? AppColors.white : AppColors.white10,
                         ),
                         child: state.isCapturing 
-                          ? Padding(
+                          ? const Padding(
                               padding: EdgeInsets.all(AppDimensions.spacingXxl),
                               child: CircularProgressIndicator(strokeWidth: AppDimensions.progressStrokeWidth, color: AppColors.primary),
                             )
@@ -1141,7 +1141,7 @@ import 'dart:io' show Platform;
                   ),
                 )
               else
-                Icon(Icons.check_circle, color: AppColors.success, size: AppDimensions.iconEmptyStateLg),
+                const Icon(Icons.check_circle, color: AppColors.success, size: AppDimensions.iconEmptyStateLg),
 
               const SizedBox(height: AppDimensions.spacingXxl),
             ],

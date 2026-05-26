@@ -234,16 +234,20 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
     // 3. Si no hay nada local, descargar directo de Supabase (fallback para CAMERA_MONITOR)
     if (count == 0) {
       if (companyId == null || companyId.isEmpty) {
-        debugPrint(
-          '[ENTRANCE] Sin company_id valido. Se omite descarga remota.',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            '[ENTRANCE] Sin company_id valido. Se omite descarga remota.',
+          );
+        }
         state = state.copyWith(
           statusMessage: 'Sin compania configurada para cargar perfiles.',
         );
       } else {
-        debugPrint(
-          '[ENTRANCE] BD local vacía. Descargando workstations de Supabase...',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            '[ENTRANCE] BD local vacía. Descargando workstations de Supabase...',
+          );
+        }
         state = state.copyWith(
           statusMessage: 'Descargando perfiles de la nube...',
         );
@@ -255,9 +259,11 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
               .eq('company_id', companyId);
           final remoteWorkstations = List<Map<String, dynamic>>.from(response);
 
-          debugPrint(
-            '[ENTRANCE] Recibidos ${remoteWorkstations.length} workstations de Supabase.',
-          );
+          if (kDebugMode) {
+            debugPrint(
+              '[ENTRANCE] Recibidos ${remoteWorkstations.length} workstations de Supabase.',
+            );
+          }
 
           for (final w in remoteWorkstations) {
             // Guardar en BD local para futuras consultas
@@ -300,7 +306,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
                   count++;
                 }
               } catch (e) {
-                debugPrint('[ENTRANCE] Error decoding remote embedding: $e');
+                if (kDebugMode) debugPrint('[ENTRANCE] Error decoding remote embedding: $e');
               }
             }
           }
@@ -323,11 +329,11 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
                     fullName.isNotEmpty ? fullName : 'Empleado';
               }
             } catch (e) {
-              debugPrint('[ENTRANCE] Error downloading employee names: $e');
+              if (kDebugMode) debugPrint('[ENTRANCE] Error downloading employee names: $e');
             }
           }
         } catch (e) {
-          debugPrint('[ENTRANCE] Error descargando de Supabase: $e');
+          if (kDebugMode) debugPrint('[ENTRANCE] Error descargando de Supabase: $e');
         }
       }
     }
@@ -342,7 +348,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
         statusMessage: 'Recepción activa ($count perfiles cargados).',
       );
     }
-    debugPrint('[ENTRANCE] Cargados $count perfiles faciales en memoria.');
+    if (kDebugMode) debugPrint('[ENTRANCE] Cargados $count perfiles faciales en memoria.');
   }
 
   Future<void> _loadEmployeeNames({String? companyId}) async {
@@ -357,7 +363,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
         _employeeNames[emp.id] = fullName.isNotEmpty ? fullName : emp.name;
       }
     } catch (e) {
-      debugPrint('[ENTRANCE] Error loading employee names: $e');
+      if (kDebugMode) debugPrint('[ENTRANCE] Error loading employee names: $e');
     }
   }
 
@@ -381,9 +387,11 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
             count++;
           }
         } catch (e) {
-          debugPrint(
-            '[ENTRANCE] Error decoding embedding for ${w.assignedEmployeeId}: $e',
-          );
+          if (kDebugMode) {
+            debugPrint(
+              '[ENTRANCE] Error decoding embedding for ${w.assignedEmployeeId}: $e',
+            );
+          }
         }
       }
     }
@@ -411,7 +419,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
       _processFrame(image).then((_) {
         _isAnalyzing = false;
       }).catchError((e) {
-        debugPrint('[ENTRANCE] Frame Error: $e');
+        if (kDebugMode) debugPrint('[ENTRANCE] Frame Error: $e');
         _isAnalyzing = false;
       });
     });
@@ -553,11 +561,13 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
       }
 
       _evidenceFrameCount++;
-      debugPrint(
-        '[ENTRANCE] Frame $_evidenceFrameCount/${AiThresholds.entranceEvidenceWindowSize} — '
-        'best: ${frameBestSim.toStringAsFixed(3)} (${frameBestId ?? "?"}) | '
-        'confirmations: $_evidenceConfirmations',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          '[ENTRANCE] Frame $_evidenceFrameCount/${AiThresholds.entranceEvidenceWindowSize} — '
+          'best: ${frameBestSim.toStringAsFixed(3)} (${frameBestId ?? "?"}) | '
+          'confirmations: $_evidenceConfirmations',
+        );
+      }
 
       // Check if any employee reached required confirmations AND best-score floor.
       // Both conditions must be met to prevent low-but-repeated scores from
@@ -567,20 +577,24 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
         if (entry.value >= AiThresholds.entranceRequiredConfirmations) {
           final bestScore = _evidenceBestScores[entry.key] ?? 0.0;
           if (bestScore >= AiThresholds.entranceMinBestScore) {
-            debugPrint(
-              '[ENTRANCE] ✅ Match confirmed for ${entry.key} '
-              'with ${entry.value} confirmations, best=${bestScore.toStringAsFixed(3)}',
-            );
+            if (kDebugMode) {
+              debugPrint(
+                '[ENTRANCE] ✅ Match confirmed for ${entry.key} '
+                'with ${entry.value} confirmations, best=${bestScore.toStringAsFixed(3)}',
+              );
+            }
             _resetEvidence();
             await _triggerEntrance(entry.key);
             return;
           } else {
             // Enough frames but peak not high enough — keep sampling.
-            debugPrint(
-              '[ENTRANCE] ⚠️ ${entry.key} reached ${entry.value} confirmations '
-              'but best score ${bestScore.toStringAsFixed(3)} < '
-              '${AiThresholds.entranceMinBestScore} — continuing...',
-            );
+            if (kDebugMode) {
+              debugPrint(
+                '[ENTRANCE] ⚠️ ${entry.key} reached ${entry.value} confirmations '
+                'but best score ${bestScore.toStringAsFixed(3)} < '
+                '${AiThresholds.entranceMinBestScore} — continuing...',
+              );
+            }
           }
         }
       }
@@ -615,18 +629,22 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
           _nearMatchRetries++;
           _evidenceFrameCount =
               0; // Reset frame counter for a clean extra window
-          debugPrint(
-            '[ENTRANCE] Near-match retry #$_nearMatchRetries for ${topEmployee.key} '
-            '(best=${topEmployee.value.toStringAsFixed(3)})',
-          );
+          if (kDebugMode) {
+            debugPrint(
+              '[ENTRANCE] Near-match retry #$_nearMatchRetries for ${topEmployee.key} '
+              '(best=${topEmployee.value.toStringAsFixed(3)})',
+            );
+          }
           return;
         }
 
         // No match found
-        debugPrint(
-          '[ENTRANCE] âŒ No match after ${AiThresholds.entranceEvidenceWindowSize} frames. '
-          'Best: ${topEmployee?.value.toStringAsFixed(3)} for ${topEmployee?.key}',
-        );
+if (kDebugMode) {
+          debugPrint(
+            '[ENTRANCE] âŒ No match after ${AiThresholds.entranceEvidenceWindowSize} frames. '
+            'Best: ${topEmployee?.value.toStringAsFixed(3)} for ${topEmployee?.key}',
+          );
+        }
         _resetEvidence();
         _hasBlinked = false;
         state = state.copyWith(
@@ -635,7 +653,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
         );
       }
     } catch (e) {
-      debugPrint('[ENTRANCE] Error: $e');
+      if (kDebugMode) debugPrint('[ENTRANCE] Error: $e');
     }
   }
 
@@ -696,9 +714,11 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
           statusMessage:
               '¡Hasta luego $employeeName! Sesión cerrada a las $hour:$min.',
         );
-        debugPrint(
-          '[ENTRANCE] ✅ Clock-OUT y estación apagada para $employeeName',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            '[ENTRANCE] ✅ Clock-OUT y estación apagada para $employeeName',
+          );
+        }
       } else {
         // No tiene sesión -> CLOCK IN
         await _attendanceRepo.clockIn(
@@ -729,12 +749,14 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
         }
 
         state = state.copyWith(statusMessage: welcomeMsg);
-        debugPrint(
-          '[ENTRANCE] ✅ Clock-IN y estación activada para $employeeName',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            '[ENTRANCE] ✅ Clock-IN y estación activada para $employeeName',
+          );
+        }
       }
     } catch (e) {
-      debugPrint('[ENTRANCE] Supabase trigger / Asistencia error: $e');
+      if (kDebugMode) debugPrint('[ENTRANCE] Supabase trigger / Asistencia error: $e');
       state = state.copyWith(
         statusMessage: 'Reconocido, pero hubo un error de red.',
       );

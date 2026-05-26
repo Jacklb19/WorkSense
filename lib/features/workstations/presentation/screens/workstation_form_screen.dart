@@ -225,11 +225,11 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
     return employeesAsync.when(
       data: (employees) {
         if (employees.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingMd),
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppDimensions.spacingMd),
             child: Text(
               AppStrings.noEmployeesRegistered,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.orangeWarning,
                 fontWeight: FontWeight.bold,
               ),

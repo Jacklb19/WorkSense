@@ -57,14 +57,14 @@ class AdminDashboardScreen extends ConsumerWidget {
               child: _KpiPanel(ref: ref),
             ),
 
-            AppSliverContentConstrainer(
+            const AppSliverContentConstrainer(
               width: AppContentWidth.dashboard,
-              child: const _QuickActionsRow(),
+              child: _QuickActionsRow(),
             ),
 
-            AppSliverContentConstrainer(
+            const AppSliverContentConstrainer(
               width: AppContentWidth.dashboard,
-              child: const _QuickActionsRow2(),
+              child: _QuickActionsRow2(),
             ),
 
             employeesAsync.when(
@@ -355,9 +355,8 @@ class _ActionChip extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   label,
-                  style: TextStyle(
+                  style: theme.textTheme.labelSmall?.copyWith(
                     color: color,
-                    fontSize: AppDimensions.fontXs,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.5,
                   ),
@@ -467,7 +466,6 @@ class _KpiTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final color = colors.first;
     return Semantics(
       button: true,

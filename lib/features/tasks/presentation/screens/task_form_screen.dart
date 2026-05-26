@@ -282,7 +282,7 @@ Icon(Icons.event_outlined,
                         )
                       : Text(
                           widget.taskId != null ? 'Guardar cambios' : 'Crear tarea',
-                          style: TextStyle(
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: AppDimensions.fontSubtitle),
                         ),
                 ),

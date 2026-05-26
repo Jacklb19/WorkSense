@@ -61,7 +61,7 @@ class _LeavesListScreenState extends ConsumerState<LeavesListScreen>
           indicatorColor: AppColors.primary,
           labelColor: AppColors.primary,
           unselectedLabelColor: context.tabUnselectedLabelColor(),
-          labelStyle: const TextStyle(fontSize: AppDimensions.fontCaption, fontWeight: FontWeight.w600),
+          labelStyle: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
           tabs: const [
             Tab(text: 'Todos'),
             Tab(text: 'Pendientes'),
@@ -233,7 +233,7 @@ class _AdminLeavesList extends ConsumerWidget {
               maxLines: 2,
               decoration: InputDecoration(
                 hintText: 'Escribe una nota…',
-                hintStyle: TextStyle(color: context.appOnSurfaceDisabled),
+                hintStyle: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceDisabled),
                 filled: true,
                 fillColor: context.appBackground,
                 border: OutlineInputBorder(
@@ -314,7 +314,7 @@ class _StatChip extends StatelessWidget {
             const SizedBox(height: AppDimensions.spacingXxs),
             Text(
               label,
-              style: TextStyle(color: AppColors.grey400, fontSize: AppDimensions.fontXs),
+              style: theme.textTheme.labelSmall?.copyWith(color: AppColors.grey400),
               textAlign: TextAlign.center,
             ),
           ],
@@ -368,6 +368,7 @@ class _EmployeeLeavesList extends ConsumerWidget {
 
   Future<void> _delete(
       BuildContext context, WidgetRef ref, String requestId) async {
+    final theme = Theme.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(

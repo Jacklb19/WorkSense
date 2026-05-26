@@ -44,10 +44,10 @@ class KioskWaitingScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: AppDimensions.spacing48),
-              Text(
+              const Text(
                 AppStrings.configureDevice,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.white,
                   fontSize: AppDimensions.fontHeadline,
                   fontWeight: FontWeight.w900,
@@ -55,10 +55,10 @@ class KioskWaitingScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: AppDimensions.spacingXxl),
-              Text(
+              const Text(
                 AppStrings.selectDeviceFunction,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.white60, fontSize: AppDimensions.fontBodyMd, height: 1.5),
+                style: TextStyle(color: AppColors.white60, fontSize: AppDimensions.fontBodyMd, height: 1.5),
               ),
               const SizedBox(height: AppDimensions.spacing48),
               
@@ -66,7 +66,7 @@ class KioskWaitingScreen extends ConsumerWidget {
               FilledButton.icon(
                 onPressed: () => context.push(AppRoutes.entrance),
                 icon: const Icon(Icons.sensor_door),
-                label: Text(AppStrings.setAsEntryKiosk),
+                label: const Text(AppStrings.setAsEntryKiosk),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacing20),
@@ -74,14 +74,14 @@ class KioskWaitingScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppDimensions.spacing24),
               
-              Text(AppStrings.assignMonitor, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.white60)),
+              const Text(AppStrings.assignMonitor, textAlign: TextAlign.center, style: TextStyle(color: AppColors.white60)),
               const SizedBox(height: AppDimensions.spacingXxl),
               
               // Monitor de Puesto
               workstationsAsync.when(
                 data: (workstations) {
                   if (workstations.isEmpty) {
-                     return Text(AppStrings.noWorkstationsRegistered, style: const TextStyle(color: AppColors.error), textAlign: TextAlign.center);
+                     return const Text(AppStrings.noWorkstationsRegistered, style: TextStyle(color: AppColors.error), textAlign: TextAlign.center);
                   }
                   return Container(
                     decoration: BoxDecoration(
@@ -92,9 +92,9 @@ class KioskWaitingScreen extends ConsumerWidget {
                       child: DropdownButton<String>(
                         isExpanded: true,
                         dropdownColor: context.appCard,
-                        hint: Padding(
+                        hint: const Padding(
                           padding: EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl),
-                          child: Text(AppStrings.selectCamera, style: const TextStyle(color: AppColors.white54)),
+                          child: Text(AppStrings.selectCamera, style: TextStyle(color: AppColors.white54)),
                         ),
                         items: workstations.map((ws) => DropdownMenuItem(
                           value: ws.id,
@@ -122,7 +122,7 @@ class KioskWaitingScreen extends ConsumerWidget {
                 child: OutlinedButton.icon(
                   onPressed: () => ref.read(loginNotifierProvider.notifier).signOut(),
                   icon: const Icon(Icons.logout),
-                  label: Text(AppStrings.logoutDevice),
+                  label: const Text(AppStrings.logoutDevice),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.white54,
                     side: const BorderSide(color: AppColors.white12),

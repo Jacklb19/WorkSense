@@ -40,7 +40,7 @@ class _LeaveRequestFormScreenState
       backgroundColor: context.appBackground,
       appBar: AppBar(
         backgroundColor: context.appSurface,
-        title: Text(
+        title: const Text(
           'SOLICITAR PERMISO',
           style: TextStyle(
             color: AppColors.white,
@@ -88,10 +88,10 @@ class _LeaveRequestFormScreenState
         borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
         border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
       ),
-      child: Row(
+      child: const Row(
         children: [
           Icon(Icons.info_outline, color: AppColors.info, size: 18),
-          const SizedBox(width: AppDimensions.spacingXl),
+          SizedBox(width: AppDimensions.spacingXl),
           Expanded(
             child: Text(
               'Tu solicitud será revisada por un administrador.',
@@ -146,7 +146,7 @@ class _LeaveRequestFormScreenState
           const SizedBox(height: AppDimensions.spacingMd),
           Text(
             '${_endDate!.difference(_startDate!).inDays + 1} día(s) de permiso',
-            style: TextStyle(
+            style: const TextStyle(
                 color: AppColors.primary, fontSize: AppDimensions.fontCaption),
           ),
         ],
@@ -207,7 +207,7 @@ class _LeaveRequestFormScreenState
                 child: CircularProgressIndicator(
                     strokeWidth: 2, color: AppColors.white),
               )
-            : Text(
+            : const Text(
                 'Enviar solicitud',
                 style: TextStyle(
                     fontWeight: FontWeight.bold, fontSize: AppDimensions.fontSubtitle),
@@ -311,7 +311,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: TextStyle(
+      style: const TextStyle(
         color: AppColors.white70,
         fontSize: AppDimensions.fontCaption,
         fontWeight: FontWeight.w600,
@@ -413,7 +413,7 @@ class _DatePickerField extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: TextStyle(color: AppColors.white38, fontSize: AppDimensions.fontXs),
+                style: const TextStyle(color: AppColors.white38, fontSize: AppDimensions.fontXs),
               ),
               const SizedBox(height: AppDimensions.spacingXs),
               Text(

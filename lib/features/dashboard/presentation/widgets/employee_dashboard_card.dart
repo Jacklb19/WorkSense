@@ -282,7 +282,7 @@ class _NoDataRow extends StatelessWidget {
     return Row(
       children: [
         Icon(Icons.show_chart_rounded, size: AppDimensions.fontCaption, color: onSurfaceSecondary),
-        SizedBox(width: AppDimensions.spacingXs),
+        const SizedBox(width: AppDimensions.spacingXs),
         Text(
           AppStrings.noRegisteredToday,
           style: TextStyle(color: onSurfaceSecondary, fontSize: AppDimensions.fontSm),

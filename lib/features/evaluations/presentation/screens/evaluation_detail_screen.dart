@@ -33,7 +33,7 @@ class EvaluationDetailScreen extends ConsumerWidget {
         backgroundColor: context.appBackground,
         body: Center(
           child: Text('Error: $e',
-              style: TextStyle(color: AppColors.error)),
+              style: const TextStyle(color: AppColors.error)),
         ),
       ),
       data: (eval) {

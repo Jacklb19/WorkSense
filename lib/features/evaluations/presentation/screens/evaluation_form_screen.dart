@@ -96,7 +96,7 @@ class _EvaluationFormScreenState
               const _SectionHeader(title: 'Empleado'),
               const SizedBox(height: AppDimensions.spacingMd),
               DropdownButtonFormField<String>(
-                value: _selectedEmployeeId,
+                initialValue: _selectedEmployeeId,
                 dropdownColor: context.appSurface,
                 decoration: _inputDeco(context, 'Seleccionar empleado'),
                 style: TextStyle(color: context.appOnSurface),

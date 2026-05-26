@@ -460,8 +460,8 @@ class _EntryCard extends StatelessWidget {
                   child: InkWell(
                     onTap: onEditDeductions,
                     borderRadius: BorderRadius.circular(AppDimensions.spacingXs),
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: AppDimensions.spacingXs),
+                    child: const Padding(
+                      padding: EdgeInsets.only(top: AppDimensions.spacingXs),
                       child: Text(
                         'Editar ded.',
                         style: TextStyle(

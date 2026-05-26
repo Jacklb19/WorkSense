@@ -19,6 +19,7 @@ class EmployeesListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final employeesAsync = ref.watch(adminEmployeesProvider);
 
     return Scaffold(
@@ -47,7 +48,7 @@ class EmployeesListScreen extends ConsumerWidget {
                     employee.displayName.isNotEmpty
                         ? employee.displayName[0].toUpperCase()
                         : '?',
-                    style: const TextStyle(
+                    style: theme.textTheme.bodyMedium?.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.bold,
                     ),
@@ -56,8 +57,7 @@ class EmployeesListScreen extends ConsumerWidget {
                 title: Text(employee.displayName),
                 subtitle: Text(
                   'Registrado el ${DateFormat('dd/MM/yyyy').format(employee.createdAt)}',
-                  style: TextStyle(
-                    fontSize: AppDimensions.fontCaption,
+                  style: theme.textTheme.bodySmall?.copyWith(
                     color: context.appOnSurfaceSecondary,
                   ),
                 ),
@@ -87,16 +87,16 @@ class EmployeesListScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete_outline,
+                          const Icon(Icons.delete_outline,
                               color: AppColors.error, size: AppDimensions.iconSm),
-                          SizedBox(width: AppDimensions.spacingMd),
+                          const SizedBox(width: AppDimensions.spacingMd),
                           Text(
                             AppStrings.delete,
-                            style: TextStyle(color: AppColors.error),
+                            style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.error),
                           ),
                         ],
                       ),

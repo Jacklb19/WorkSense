@@ -318,7 +318,7 @@ class _ReportCard extends StatelessWidget {
                     child: FilledButton.icon(
                       onPressed: onGenerate,
                       icon: const Icon(Icons.picture_as_pdf, size: 16),
-                      label: Text(
+                      label: const Text(
                         'Generar PDF',
                         style: TextStyle(fontSize: AppDimensions.fontBody),
                       ),

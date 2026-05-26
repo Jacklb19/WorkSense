@@ -359,9 +359,8 @@ class _ConversationTileState extends State<_ConversationTile> {
                         alignment: Alignment.center,
                         child: Text(
                           _unread > 9 ? '9+' : '$_unread',
-                          style: TextStyle(
+                          style: theme.textTheme.labelSmall?.copyWith(
                             color: AppColors.white,
-                            fontSize: AppDimensions.fontXs,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -392,11 +391,10 @@ child: Text(
                         if (_lastMsg != null)
                           Text(
                             _fmtDate(_lastMsg!.createdAt),
-                            style: TextStyle(
+                            style: theme.textTheme.labelSmall?.copyWith(
                               color: _unread > 0
                                   ? AppColors.primary
                                   : AppColors.grey400,
-                              fontSize: AppDimensions.fontSm,
                             ),
                           ),
                       ],
@@ -412,7 +410,7 @@ child: Text(
                 ),
               ),
               const SizedBox(width: AppDimensions.spacingMd),
-              Icon(Icons.chevron_right_rounded,
+              const Icon(Icons.chevron_right_rounded,
                   color: AppColors.grey400, size: 18),
             ],
           ),
@@ -454,7 +452,7 @@ class _EmptyChatList extends StatelessWidget {
                 color: AppColors.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.forum_outlined,
                 size: 36,
                 color: AppColors.primary,

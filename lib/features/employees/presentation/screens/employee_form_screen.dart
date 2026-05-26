@@ -104,7 +104,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                 onPressed: () => Navigator.pop(ctx, true),
                 child: const Text(
                   'Eliminar',
-                  style: const TextStyle(color: AppColors.error),
+                  style: TextStyle(color: AppColors.error),
                 ),
               ),
             ],
@@ -363,7 +363,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
           ),
           label: const Text(
             'ELIMINAR EMPLEADO',
-            style: const TextStyle(color: AppColors.error),
+            style: TextStyle(color: AppColors.error),
           ),
           style: OutlinedButton.styleFrom(
             minimumSize: const Size(double.infinity, 50),

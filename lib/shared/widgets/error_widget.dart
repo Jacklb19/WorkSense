@@ -86,7 +86,7 @@ class ErrorBannerWidget extends StatelessWidget {
             if (onDismiss != null)
               IconButton(
                 tooltip: 'Cerrar',
-                icon: Icon(Icons.close, size: AppDimensions.iconMd),
+                icon: const Icon(Icons.close, size: AppDimensions.iconMd),
                 color: errorColor,
                 onPressed: onDismiss,
                 padding: const EdgeInsets.all(AppDimensions.spacingXs),

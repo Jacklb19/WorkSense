@@ -225,12 +225,12 @@ String? get currentCompanyId {
     if (user == null) return null;
     final meta = user.appMetadata;
     final userMeta = user.userMetadata;
-    debugPrint('[SupabaseDataSource] appMetadata: $meta');
-    debugPrint('[SupabaseDataSource] userMetadata: $userMeta');
+    if (kDebugMode) debugPrint('[SupabaseDataSource] appMetadata: $meta');
+    if (kDebugMode) debugPrint('[SupabaseDataSource] userMetadata: $userMeta');
     final companyId =
         _getMetadataKey(meta, 'company_id') ??
         _getMetadataKey(userMeta, 'company_id');
-    debugPrint('[SupabaseDataSource] _getMetadataKey result: $companyId');
+    if (kDebugMode) debugPrint('[SupabaseDataSource] _getMetadataKey result: $companyId');
     if (companyId == null || companyId.isEmpty || companyId == AppConstants.defaultCompanyId) {
       return null;
     }
@@ -311,10 +311,10 @@ String? get currentCompanyId {
       return List<Map<String, dynamic>>.from(response);
     } on PostgrestException catch (e) {
       // Table may not exist in remote yet — return empty gracefully
-      debugPrint('[SupabaseDataSource] fetchByCompany($table): ${e.message}');
+      if (kDebugMode) debugPrint('[SupabaseDataSource] fetchByCompany($table): ${e.message}');
       return [];
     } catch (e) {
-      debugPrint('[SupabaseDataSource] fetchByCompany($table) unexpected: $e');
+      if (kDebugMode) debugPrint('[SupabaseDataSource] fetchByCompany($table) unexpected: $e');
       return [];
     }
   }

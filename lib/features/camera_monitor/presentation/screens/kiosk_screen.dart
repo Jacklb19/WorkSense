@@ -218,7 +218,7 @@ class _IdentifyingHUD extends StatelessWidget {
             Semantics(
               liveRegion: true,
               label: AppStrings.scannerActive,
-              child: Text(AppStrings.scannerActive, style: const TextStyle(color: AppColors.white, fontSize: AppDimensions.fontSm, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+              child: const Text(AppStrings.scannerActive, style: TextStyle(color: AppColors.white, fontSize: AppDimensions.fontSm, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
             ),
           ],
         ),
@@ -251,7 +251,7 @@ class _KioskTopHUD extends StatelessWidget {
               child: IconButton(onPressed: onBack, icon: const Icon(Icons.close, color: AppColors.white70)),
             ),
             const SizedBox(width: AppDimensions.spacingMd),
-            Text(AppStrings.worksenseBrand, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w900, fontSize: AppDimensions.fontTitle, letterSpacing: 1.0)),
+            const Text(AppStrings.worksenseBrand, style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w900, fontSize: AppDimensions.fontTitle, letterSpacing: 1.0)),
             const Spacer(),
             Flexible(
               child: Container(
@@ -304,7 +304,7 @@ class _KioskBottomHUD extends StatelessWidget {
                     backgroundColor: AppColors.white10,
                   ),
                   icon: const Icon(Icons.power_settings_new, size: AppDimensions.iconSm),
-                  label: Text(AppStrings.exitButton, style: const TextStyle(fontSize: AppDimensions.fontCaption, fontWeight: FontWeight.w700)),
+                  label: const Text(AppStrings.exitButton, style: TextStyle(fontSize: AppDimensions.fontCaption, fontWeight: FontWeight.w700)),
                 ),
               ),
             ),
@@ -362,7 +362,7 @@ class _SessionActionOverlay extends StatelessWidget {
               Semantics(
                 button: true,
                 label: AppStrings.cancel,
-                child: TextButton(onPressed: onCancel, child: Text(AppStrings.cancel, style: const TextStyle(color: AppColors.white38))),
+                child: TextButton(onPressed: onCancel, child: const Text(AppStrings.cancel, style: TextStyle(color: AppColors.white38))),
               ),
             ],
           ),
@@ -404,7 +404,7 @@ class _NoProfileView extends StatelessWidget {
             if (hasEmployee)
               FilledButton.icon(
                 icon: const Icon(Icons.camera_alt),
-                label: Text(AppStrings.facialCapture),
+                label: const Text(AppStrings.facialCapture),
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -427,11 +427,11 @@ Future<bool> _showExitConfirmation(BuildContext context) async {
   return await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text(AppStrings.exitKioskTitle),
-      content: Text(AppStrings.exitKioskMessage),
+      title: const Text(AppStrings.exitKioskTitle),
+      content: const Text(AppStrings.exitKioskMessage),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppStrings.cancel)),
-        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppStrings.exitButton)),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text(AppStrings.cancel)),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text(AppStrings.exitButton)),
       ],
     ),
   ) ?? false;

@@ -162,7 +162,7 @@ abstract final class AppTheme {
       foregroundColor: AppColors.primaryLight,
       minimumSize: const Size(double.infinity, AppDimensions.buttonMinHeight),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusRound)),
-      side: BorderSide(color: AppColors.primary20, width: 1.5),
+      side: const BorderSide(color: AppColors.primary20, width: 1.5),
       textStyle: const TextStyle(fontSize: AppDimensions.fontTitle, fontWeight: FontWeight.w700),
     ),
   );
@@ -219,7 +219,7 @@ abstract final class AppTheme {
     backgroundColor: AppColors.surface,
     indicatorColor: AppColors.primary10,
     labelTextStyle: WidgetStateProperty.resolveWith((states) {
-      final style = TextStyle(fontSize: AppDimensions.fontSm, fontWeight: FontWeight.w600);
+      const style = TextStyle(fontSize: AppDimensions.fontSm, fontWeight: FontWeight.w600);
       if (states.contains(WidgetState.selected)) {
         return style.copyWith(color: AppColors.primary);
       }
@@ -369,7 +369,7 @@ abstract final class AppTheme {
     backgroundColor: AppColors.lightSurface,
     indicatorColor: AppColors.primary5,
     labelTextStyle: WidgetStateProperty.resolveWith((states) {
-      final style = TextStyle(fontSize: AppDimensions.fontSm, fontWeight: FontWeight.w600);
+      const style = TextStyle(fontSize: AppDimensions.fontSm, fontWeight: FontWeight.w600);
       if (states.contains(WidgetState.selected)) {
         return style.copyWith(color: AppColors.primary);
       }

@@ -332,7 +332,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
       if (profile != null) {
         _finder = EmployeeFinder(profile);
-        debugPrint('[MONITOR] Perfil cargado para ${profile.employeeId}.');
+        if (kDebugMode) debugPrint('[MONITOR] Perfil cargado para ${profile.employeeId}.');
         state = state.copyWith(
           isEmployeeScanned: true,
           employeeProfile: profile,
@@ -372,7 +372,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
       try {
         return EmployeeProfile.fromJsonString(snapshot);
       } catch (e) {
-        debugPrint('[MONITOR] Error parsing snapshot, fallback legacy: $e');
+        if (kDebugMode) debugPrint('[MONITOR] Error parsing snapshot, fallback legacy: $e');
       }
     }
 
@@ -414,20 +414,20 @@ class KioskNotifier extends StateNotifier<KioskState> {
       // (b) draw pose/face landmarks over the enrollment text, and
       // (c) conflict with the enrollment camera for the physical camera resource.
       if (status == 'ACTIVE' && !isRunning && state.isEmployeeScanned) {
-        debugPrint('[REALTIME] Activating camera for $workstationId');
+        if (kDebugMode) debugPrint('[REALTIME] Activating camera for $workstationId');
         final cameras = await availableCameras();
         await initializeCamera(cameras);
       } else if (status == 'IDLE' && isRunning) {
-        debugPrint('[REALTIME] Deactivating camera for $workstationId');
+        if (kDebugMode) debugPrint('[REALTIME] Deactivating camera for $workstationId');
         await stopCamera();
       } else if (status == 'BREAK' && isRunning) {
-        debugPrint('[REALTIME] Pausing camera for break');
+        if (kDebugMode) debugPrint('[REALTIME] Pausing camera for break');
         await stopCamera();
       }
       
       if (!_disposed) state = state.copyWith(workstationStatus: status);
     }, onError: (e) {
-      debugPrint('[REALTIME Error] $e');
+      if (kDebugMode) debugPrint('[REALTIME Error] $e');
     });
   }
 
@@ -482,7 +482,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
     _analyzeFrame(image, now).then((_) {
       _isAnalyzing = false;
     }).catchError((e) {
-      debugPrint('[MONITOR] Error en frame: $e');
+      if (kDebugMode) debugPrint('[MONITOR] Error en frame: $e');
       _isAnalyzing = false;
       state = state.copyWith(isProcessing: false);
     });
@@ -561,7 +561,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
       
       if (allFaces.isNotEmpty && shouldGenerateEmbeddings) {
         if (hasIntruder) {
-          debugPrint('[MONITOR] Intruder detection! Force validating all ${allFaces.length} faces.');
+          if (kDebugMode) debugPrint('[MONITOR] Intruder detection! Force validating all ${allFaces.length} faces.');
         }
         for (final face in allFaces) {
           final cropped = await _faceAnalyzer.cropFaceFromCameraImageAsync(image, face);
@@ -677,7 +677,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
           break;
       }
     } catch (e) {
-      debugPrint('[MONITOR] Error frame analysis: $e');
+      if (kDebugMode) debugPrint('[MONITOR] Error frame analysis: $e');
       state = state.copyWith(isProcessing: false);
     }
   }
@@ -705,7 +705,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
         state.sessionStatus == SessionStatus.exitPending) &&
         _consecutiveAbsentFrames >= _absentFramesToCancel) {
       nextStatus = SessionStatus.idle;
-      debugPrint('[MONITOR] Cancelled pending after $_consecutiveAbsentFrames absent frames.');
+      if (kDebugMode) debugPrint('[MONITOR] Cancelled pending after $_consecutiveAbsentFrames absent frames.');
     }
 
     // Progressive confidence degradation instead of immediate zero
@@ -826,7 +826,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
       identificationMethod: 'FACE_EMBEDDING',
     );
     
-    debugPrint('[SESSION] Entrada aprobada para ${state.assignedEmployeeId}');
+    if (kDebugMode) debugPrint('[SESSION] Entrada aprobada para ${state.assignedEmployeeId}');
   }
 
   Future<void> requestExit() async {
@@ -859,7 +859,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
     _finder?.reset();
     _requiresFreshIdentityCheck = true;
     
-    debugPrint('[SESSION] Salida aprobada. Sesión cerrada.');
+    if (kDebugMode) debugPrint('[SESSION] Salida aprobada. Sesión cerrada.');
   }
 
   void cancelApproval() {
@@ -993,7 +993,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
       await _saveEventUseCase(event);
       if (!_disposed) state = state.copyWith(lastEventTime: timestamp);
     } catch (e) {
-      debugPrint('[MONITOR] Error guardando evento: $e');
+      if (kDebugMode) debugPrint('[MONITOR] Error guardando evento: $e');
     }
   }
 

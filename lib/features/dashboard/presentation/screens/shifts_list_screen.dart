@@ -114,6 +114,7 @@ class ShiftsListScreen extends ConsumerWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref, Shift shift) async {
+    final theme = Theme.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -126,7 +127,7 @@ class ShiftsListScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar', style: TextStyle(color: AppColors.error)),
+            child: Text('Eliminar', style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.error)),
           ),
         ],
       ),

@@ -19,6 +19,7 @@ class AlertLogScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final logsAsync = ref.watch(alertLogsProvider);
     final employeesAsync = ref.watch(employeesProvider);
     final unread = ref.watch(unacknowledgedAlertCountProvider);
@@ -65,7 +66,7 @@ class AlertLogScreen extends ConsumerWidget {
               icon: const Icon(Icons.done_all, color: AppColors.primary, size: 16),
               label: Text(
                 'Marcar todas',
-                style: const TextStyle(color: AppColors.primary, fontSize: AppDimensions.fontCaption),
+                style: theme.textTheme.bodySmall?.copyWith(color: AppColors.primary),
               ),
             ),
         ],
@@ -73,7 +74,7 @@ class AlertLogScreen extends ConsumerWidget {
       body: logsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
-          child: Text('$e', style: const TextStyle(color: AppColors.error)),
+          child: Text('$e', style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.error)),
         ),
         data: (logs) {
           if (logs.isEmpty) {
@@ -89,9 +90,8 @@ class AlertLogScreen extends ConsumerWidget {
                   const SizedBox(height: AppDimensions.spacingXxl),
                   Text(
                     'No hay alertas registradas',
-                    style: TextStyle(
+                    style: theme.textTheme.bodyMedium?.copyWith(
                       color: context.appOnSurfaceDisabled,
-                      fontSize: AppDimensions.fontBodyMd,
                     ),
                   ),
                 ],
@@ -158,6 +158,7 @@ class _AlertLogCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final alertType = AlertType.fromRaw(log.alertType);
     final fmt = DateFormat('dd/MM HH:mm');
 
@@ -217,7 +218,7 @@ class _AlertLogCard extends StatelessWidget {
             if (employee != null)
               Text(
                 employee!.displayName,
-                style: TextStyle(color: AppColors.white54, fontSize: AppDimensions.fontCaption),
+                style: theme.textTheme.bodySmall?.copyWith(color: AppColors.white54),
               ),
             const SizedBox(height: 2),
             Row(

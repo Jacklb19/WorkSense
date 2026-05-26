@@ -220,6 +220,7 @@ class _BrandSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Column(
+      children: [
         Container(
           width: AppDimensions.loginLogoSize,
           height: AppDimensions.loginLogoSize,
@@ -439,6 +440,7 @@ child: Text(
     required String label,
     required IconData prefixIcon,
   }) {
+    final theme = Theme.of(context);
     return InputDecoration(
       hintText: hint,
       labelText: label,
@@ -449,12 +451,9 @@ child: Text(
       prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
       filled: true,
       fillColor: context.appBackground.withValues(alpha: 0.5),
-      hintStyle: TextStyle(
-          color: context.appOnSurfaceDisabled, fontSize: AppDimensions.fontBodyMd),
-      labelStyle: TextStyle(
-          color: context.appOnSurfaceSecondary, fontSize: AppDimensions.fontCaption),
-      floatingLabelStyle: const TextStyle(
-          color: AppColors.primary, fontSize: AppDimensions.fontCaption, fontWeight: FontWeight.w600),
+      hintStyle: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceDisabled),
+      labelStyle: theme.textTheme.bodySmall?.copyWith(color: context.appOnSurfaceSecondary),
+      floatingLabelStyle: theme.textTheme.labelMedium?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppDimensions.radiusCardLg),
         borderSide: BorderSide(color: context.appDivider, width: 1),
