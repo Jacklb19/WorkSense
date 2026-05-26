@@ -21,6 +21,7 @@ class AsyncValueWidget<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return value.when(
+      skipLoadingOnRefresh: true,
       data: builder,
       loading: () => loadingWidget ?? const AppLoadingWidget(),
       error: (error, stack) {

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/domain/entities/task_item.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/features/tasks/presentation/providers/tasks_provider.dart';
@@ -41,14 +43,14 @@ class _TasksListScreenState extends ConsumerState<TasksListScreen>
         userState?.role == AppRole.superAdmin;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text(
+        backgroundColor: context.appSurface,
+        title: Text(
           'TAREAS',
           style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
+            color: context.appOnSurface,
+            fontSize: AppDimensions.fontTitle,
             fontWeight: FontWeight.w900,
             letterSpacing: 1,
           ),
@@ -59,8 +61,8 @@ class _TasksListScreenState extends ConsumerState<TasksListScreen>
           tabAlignment: TabAlignment.start,
           indicatorColor: AppColors.primary,
           labelColor: AppColors.primary,
-          unselectedLabelColor: Colors.white38,
-          labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          unselectedLabelColor: context.tabUnselectedLabelColor(),
+          labelStyle: const TextStyle(fontSize: AppDimensions.fontCaption, fontWeight: FontWeight.w600),
           tabs: const [
             Tab(text: 'Todas'),
             Tab(text: 'Pendientes'),
@@ -81,7 +83,7 @@ class _TasksListScreenState extends ConsumerState<TasksListScreen>
         actions: [
           if (isAdmin)
             IconButton(
-              icon: const Icon(Icons.add, color: Colors.white),
+              icon: Icon(Icons.add, color: context.appOnSurface),
               onPressed: () => context.push(AppRoutes.taskNew),
             ),
         ],
@@ -129,7 +131,7 @@ class _AdminTasksList extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () => ref.read(syncNotifierProvider.notifier).sync(),
             color: AppColors.primary,
-            backgroundColor: AppColors.surfaceDark,
+            backgroundColor: context.appSurface,
             child: ListView(
               children: [_EmptyState(filterStatus: filterStatus, isAdmin: true)],
             ),
@@ -139,9 +141,9 @@ class _AdminTasksList extends ConsumerWidget {
         return RefreshIndicator(
           onRefresh: () => ref.read(syncNotifierProvider.notifier).sync(),
           color: AppColors.primary,
-          backgroundColor: AppColors.surfaceDark,
+          backgroundColor: context.appSurface,
           child: ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppDimensions.spacingXxl),
             itemCount: filtered.length,
             itemBuilder: (context, i) {
               final task = filtered[i];
@@ -190,7 +192,7 @@ class _EmployeeTasksList extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () => _doRefresh(ref),
             color: AppColors.primary,
-            backgroundColor: AppColors.surfaceDark,
+            backgroundColor: context.appSurface,
             child: ListView(
               children: [_EmptyState(filterStatus: filterStatus, isAdmin: false)],
             ),
@@ -200,9 +202,9 @@ class _EmployeeTasksList extends ConsumerWidget {
         return RefreshIndicator(
           onRefresh: () => _doRefresh(ref),
           color: AppColors.primary,
-          backgroundColor: AppColors.surfaceDark,
+          backgroundColor: context.appSurface,
           child: ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppDimensions.spacingXxl),
             itemCount: filtered.length,
             itemBuilder: (context, i) {
               final task = filtered[i];
@@ -261,18 +263,18 @@ class _EmptyState extends StatelessWidget {
           Icon(
             Icons.task_outlined,
             size: 64,
-            color: Colors.white.withValues(alpha: 0.2),
+            color: context.appOnSurfaceDisabled,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDimensions.spacingXxl),
           Text(
             message,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.4),
-              fontSize: 14,
+              color: context.appOnSurfaceSecondary,
+              fontSize: AppDimensions.fontBodyMd,
             ),
           ),
           if (isAdmin && filterStatus == null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: AppDimensions.spacingLg),
             TextButton.icon(
               onPressed: () => context.push(AppRoutes.taskNew),
               icon: const Icon(Icons.add, color: AppColors.primary),

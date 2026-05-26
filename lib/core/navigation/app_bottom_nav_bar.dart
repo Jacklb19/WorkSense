@@ -1,9 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-
-import '../../core/theme/app_animations.dart';
+import '../../core/constants/app_dimensions.dart';
 import '../../core/theme/app_colors.dart';
 import 'nav_destination.dart';
 
@@ -32,7 +30,7 @@ class _AppBottomNavBarState extends State<AppBottomNavBar>
   void initState() {
     super.initState();
     _pillController = AnimationController(
-      duration: const Duration(milliseconds: 260),
+      duration: AppDimensions.animNormal,
       vsync: this,
     );
     _pillAnimation = CurvedAnimation(
@@ -61,7 +59,7 @@ class _AppBottomNavBarState extends State<AppBottomNavBar>
       count: count,
       backgroundColor: AppColors.error,
       textColor: AppColors.white,
-      textStyle: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
+      textStyle: const TextStyle(fontSize: AppDimensions.fontXxs, fontWeight: FontWeight.bold),
       child: child,
     );
   }
@@ -69,19 +67,22 @@ class _AppBottomNavBarState extends State<AppBottomNavBar>
   @override
   Widget build(BuildContext context) {
     final n = widget.destinations.length;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark
+        ? AppColors.backgroundDark.withValues(alpha: 0.88)
+        : AppColors.lightSurface.withValues(alpha: 0.92);
+    final borderColor = isDark ? AppColors.glassBorder : AppColors.lightGlassBorder;
+    final unselectedColor = isDark ? AppColors.textDisabled : AppColors.lightTextDisabled;
 
     return ClipRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        filter: ImageFilter.blur(sigmaX: AppDimensions.glassBlur * 2.4, sigmaY: AppDimensions.glassBlur * 2.4),
         child: Container(
-          height: 72 + MediaQuery.of(context).padding.bottom,
+          height: AppDimensions.bottomNavHeight + MediaQuery.of(context).padding.bottom,
           decoration: BoxDecoration(
-            color: AppColors.backgroundDark.withValues(alpha: 0.88),
-            border: const Border(
-              top: BorderSide(
-                color: AppColors.glassBorder,
-                width: 0.6,
-              ),
+            color: bgColor,
+            border: Border(
+              top: BorderSide(color: borderColor, width: AppDimensions.glassBorderWidth * 0.6),
             ),
           ),
           child: Padding(
@@ -97,6 +98,8 @@ class _AppBottomNavBarState extends State<AppBottomNavBar>
                   child: _NavItem(
                     destination: dest,
                     isSelected: isSelected,
+                    isDark: isDark,
+                    unselectedColor: unselectedColor,
                     animation: i == widget.currentIndex
                         ? _pillAnimation
                         : const AlwaysStoppedAnimation(0.0),
@@ -119,6 +122,8 @@ class _AppBottomNavBarState extends State<AppBottomNavBar>
 class _NavItem extends StatelessWidget {
   final NavDestination destination;
   final bool isSelected;
+  final bool isDark;
+  final Color unselectedColor;
   final Animation<double> animation;
   final Widget Function(Widget, int) badgeWidget;
   final VoidCallback onTap;
@@ -126,6 +131,8 @@ class _NavItem extends StatelessWidget {
   const _NavItem({
     required this.destination,
     required this.isSelected,
+    required this.isDark,
+    required this.unselectedColor,
     required this.animation,
     required this.badgeWidget,
     required this.onTap,
@@ -133,66 +140,69 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        height: 72,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedBuilder(
-              animation: animation,
-              builder: (context, child) {
-                return Container(
-                  width: isSelected ? 52 : 40,
-                  height: 32,
-                  decoration: isSelected
-                      ? BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(10),
-                        )
-                      : null,
-                  child: Center(
-                    child: badgeWidget(
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: isSelected
-                            ? IconTheme(
-                                data: const IconThemeData(
-                                  color: AppColors.primary,
-                                  size: 22,
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: destination.label,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          height: AppDimensions.bottomNavHeight,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedBuilder(
+                animation: animation,
+                builder: (context, child) {
+                  return Container(
+                    width: isSelected ? AppDimensions.iconContainerSm : AppDimensions.iconDefault + AppDimensions.spacingXxl,
+                    height: AppDimensions.iconDefault + AppDimensions.spacingMd,
+                    decoration: isSelected
+                        ? BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
+                          )
+                        : null,
+                    child: Center(
+                      child: badgeWidget(
+                        AnimatedSwitcher(
+duration: AppDimensions.animFast,
+                      child: isSelected
+                              ? IconTheme(
+                                  data: const IconThemeData(
+                                    color: AppColors.primary,
+                                    size: AppDimensions.iconDefault,
+                                  ),
+                                  child: destination.selectedIcon,
+                                )
+                              : IconTheme(
+                                  data: IconThemeData(
+                                    color: unselectedColor,
+                                    size: AppDimensions.iconMd,
+                                  ),
+                                  child: destination.icon,
                                 ),
-                                child: destination.selectedIcon,
-                              )
-                            : IconTheme(
-                                data: const IconThemeData(
-                                  color: AppColors.textDisabledDark,
-                                  size: 20,
-                                ),
-                                child: destination.icon,
-                              ),
+                        ),
+                        destination.badgeCount,
                       ),
-                      destination.badgeCount,
                     ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 4),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected
-                    ? AppColors.primary
-                    : AppColors.textDisabledDark,
-                letterSpacing: 0.2,
+                  );
+                },
               ),
-              child: Text(destination.label, maxLines: 1),
-            ),
-          ],
+              const SizedBox(height: AppDimensions.spacingXs),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: TextStyle(
+                  fontSize: AppDimensions.fontXs,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? AppColors.primary : unselectedColor,
+                  letterSpacing: 0.2,
+                ),
+                child: Text(destination.label, maxLines: 1),
+              ),
+            ],
+          ),
         ),
       ),
     );

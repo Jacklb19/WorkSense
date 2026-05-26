@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/domain/entities/evaluation.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/features/evaluations/presentation/providers/evaluations_provider.dart';
+import 'package:worksense_app/shared/widgets/styled/app_content_constrainer.dart';
 
 class EvaluationDetailScreen extends ConsumerWidget {
   final String evalId;
@@ -21,13 +24,13 @@ class EvaluationDetailScreen extends ConsumerWidget {
     };
 
     return evalAsync.when(
-      loading: () => const Scaffold(
-        backgroundColor: AppColors.backgroundDark,
-        body: Center(
+      loading: () => Scaffold(
+        backgroundColor: context.appBackground,
+        body: const Center(
             child: CircularProgressIndicator(color: AppColors.primary)),
       ),
       error: (e, _) => Scaffold(
-        backgroundColor: AppColors.backgroundDark,
+        backgroundColor: context.appBackground,
         body: Center(
           child: Text('Error: $e',
               style: const TextStyle(color: AppColors.error)),
@@ -36,14 +39,14 @@ class EvaluationDetailScreen extends ConsumerWidget {
       data: (eval) {
         if (eval == null) {
           return Scaffold(
-            backgroundColor: AppColors.backgroundDark,
+            backgroundColor: context.appBackground,
             appBar: AppBar(
-              backgroundColor: AppColors.surfaceDark,
+              backgroundColor: context.appSurface,
               title: const Text('Evaluación'),
             ),
-            body: const Center(
+            body: Center(
               child: Text('Evaluación no encontrada',
-                  style: TextStyle(color: AppColors.textSecondaryDark)),
+                  style: TextStyle(color: context.appOnSurfaceSecondary)),
             ),
           );
         }
@@ -53,82 +56,81 @@ class EvaluationDetailScreen extends ConsumerWidget {
         final dateFmt = DateFormat('dd MMMM yyyy', 'es');
 
         return Scaffold(
-          backgroundColor: AppColors.backgroundDark,
+          backgroundColor: context.appBackground,
           appBar: AppBar(
-            backgroundColor: AppColors.surfaceDark,
+            backgroundColor: context.appSurface,
             title: Text(
               'Evaluación – ${eval.period}',
-              style: const TextStyle(
-                color: AppColors.textPrimaryDark,
+              style: TextStyle(
+                color: context.appOnSurface,
                 fontWeight: FontWeight.w700,
-                fontSize: 16,
+                fontSize: AppDimensions.fontTitle,
               ),
             ),
           ),
           body: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Grade card ────────────────────────────────────
-                _GradeHero(eval: eval, employeeName: employeeName),
-                const SizedBox(height: 24),
+            padding: const EdgeInsets.fromLTRB(16, AppDimensions.spacing20, 16, 40),
+            child: AppContentConstrainer(
+              width: AppContentWidth.form,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _GradeHero(eval: eval, employeeName: employeeName),
+                  const SizedBox(height: AppDimensions.spacingXxl),
 
-                // ── Meta ──────────────────────────────────────────
-                _MetaRow(
-                    icon: Icons.person_rounded,
-                    label: 'Empleado',
-                    value: employeeName),
-                const SizedBox(height: 8),
-                _MetaRow(
-                    icon: Icons.calendar_month_rounded,
-                    label: 'Fecha',
-                    value: dateFmt.format(eval.createdAt)),
-                const SizedBox(height: 8),
-                _MetaRow(
-                    icon: Icons.date_range_rounded,
-                    label: 'Período',
-                    value: eval.period),
-                const SizedBox(height: 24),
+                  _MetaRow(
+                      icon: Icons.person_rounded,
+                      label: 'Empleado',
+                      value: employeeName),
+                  const SizedBox(height: AppDimensions.spacingMd),
+                  _MetaRow(
+                      icon: Icons.calendar_month_rounded,
+                      label: 'Fecha',
+                      value: dateFmt.format(eval.createdAt)),
+                  const SizedBox(height: AppDimensions.spacingMd),
+                  _MetaRow(
+                      icon: Icons.date_range_rounded,
+                      label: 'Período',
+                      value: eval.period),
+                  const SizedBox(height: AppDimensions.spacingXxl),
 
-                // ── Criteria breakdown ────────────────────────────
-                const _SectionTitle(title: 'DESGLOSE POR CRITERIO'),
-                const SizedBox(height: 12),
-                ...eval.criteria.map((c) {
-                  final score = eval.scores[c.name] ?? 0;
-                  final pct =
-                      c.maxScore > 0 ? score / c.maxScore : 0.0;
-                  return _CriterionRow(
-                    criterion: c,
-                    score: score,
-                    pct: pct,
-                  );
-                }),
+                  const _SectionTitle(title: 'DESGLOSE POR CRITERIO'),
+                  const SizedBox(height: AppDimensions.spacingLg),
+                  ...eval.criteria.map((c) {
+                    final score = eval.scores[c.name] ?? 0;
+                    final pct =
+                        c.maxScore > 0 ? score / c.maxScore : 0.0;
+                    return _CriterionRow(
+                      criterion: c,
+                      score: score,
+                      pct: pct,
+                    );
+                  }),
 
-                // ── Notes ─────────────────────────────────────────
-                if (eval.notes != null && eval.notes!.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  const _SectionTitle(title: 'NOTAS DEL EVALUADOR'),
-                  const SizedBox(height: 10),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceDark,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.glassBorder),
-                    ),
-                    child: Text(
-                      eval.notes!,
-                      style: const TextStyle(
-                        color: AppColors.textSecondaryDark,
-                        fontSize: 13,
-                        height: 1.5,
+                  if (eval.notes != null && eval.notes!.isNotEmpty) ...[
+                    const SizedBox(height: AppDimensions.spacingXxl),
+                    const _SectionTitle(title: 'NOTAS DEL EVALUADOR'),
+                    const SizedBox(height: AppDimensions.spacingXl),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppDimensions.spacingXl),
+                      decoration: BoxDecoration(
+                        color: context.appSurface,
+                        borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+                        border: Border.all(color: context.appGlassBorder),
+                      ),
+                      child: Text(
+                        eval.notes!,
+                        style: TextStyle(
+                          color: context.appOnSurfaceSecondary,
+                          fontSize: AppDimensions.fontBody,
+                          height: 1.5,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         );
@@ -150,17 +152,17 @@ class _GradeHero extends StatelessWidget {
     final color = eval.gradeColor;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppDimensions.spacing20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
             color.withValues(alpha: 0.15),
-            AppColors.surfaceDark,
+            context.appSurface,
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
@@ -170,7 +172,7 @@ class _GradeHero extends StatelessWidget {
             height: 72,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(AppDimensions.radiusCardLg),
               border: Border.all(color: color.withValues(alpha: 0.4)),
             ),
             child: Center(
@@ -178,13 +180,13 @@ class _GradeHero extends StatelessWidget {
                 eval.grade,
                 style: TextStyle(
                   color: color,
-                  fontSize: 32,
+                  fontSize: AppDimensions.fontDisplay,
                   fontWeight: FontWeight.w900,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppDimensions.spacingXxl),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,21 +195,21 @@ class _GradeHero extends StatelessWidget {
                   eval.gradeLabel,
                   style: TextStyle(
                     color: color,
-                    fontSize: 18,
+                    fontSize: AppDimensions.fontTitleLg,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppDimensions.spacingXs),
                 Text(
                   '${eval.percentage.toStringAsFixed(1)}% de desempeño',
-                  style: const TextStyle(
-                    color: AppColors.textSecondaryDark,
-                    fontSize: 13,
+                  style: TextStyle(
+                    color: context.appOnSurfaceSecondary,
+                    fontSize: AppDimensions.fontBody,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppDimensions.spacingMd),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
                   child: LinearProgressIndicator(
                     value: eval.percentage / 100,
                     backgroundColor: color.withValues(alpha: 0.15),
@@ -215,12 +217,12 @@ class _GradeHero extends StatelessWidget {
                     minHeight: 6,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppDimensions.spacingXs),
                 Text(
                   '${eval.totalScore.toStringAsFixed(0)} / ${eval.maxScore.toStringAsFixed(0)} puntos',
-                  style: const TextStyle(
-                    color: AppColors.textSecondaryDark,
-                    fontSize: 11,
+                  style: TextStyle(
+                    color: context.appOnSurfaceSecondary,
+                    fontSize: AppDimensions.fontSm,
                   ),
                 ),
               ],
@@ -256,7 +258,7 @@ class _CriterionRow extends StatelessWidget {
                 : AppColors.error;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: AppDimensions.spacingXl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -265,9 +267,9 @@ class _CriterionRow extends StatelessWidget {
             children: [
               Text(
                 criterion.name,
-                style: const TextStyle(
-                  color: AppColors.textPrimaryDark,
-                  fontSize: 13,
+                style: TextStyle(
+                  color: context.appOnSurface,
+                  fontSize: AppDimensions.fontBody,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -275,15 +277,15 @@ class _CriterionRow extends StatelessWidget {
                 '${score.toStringAsFixed(0)} / ${criterion.maxScore.toStringAsFixed(0)}',
                 style: TextStyle(
                   color: color,
-                  fontSize: 12,
+                  fontSize: AppDimensions.fontCaption,
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppDimensions.spacingSm),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
             child: LinearProgressIndicator(
               value: pct,
               backgroundColor: color.withValues(alpha: 0.12),
@@ -314,20 +316,20 @@ class _MetaRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppColors.textSecondaryDark),
-        const SizedBox(width: 8),
+        Icon(icon, size: AppDimensions.spacingXxl, color: context.appOnSurfaceSecondary),
+        const SizedBox(width: AppDimensions.spacingMd),
         Text(
           '$label: ',
-          style: const TextStyle(
-            color: AppColors.textSecondaryDark,
-            fontSize: 13,
+          style: TextStyle(
+            color: context.appOnSurfaceSecondary,
+            fontSize: AppDimensions.fontBody,
           ),
         ),
         Text(
           value,
-          style: const TextStyle(
-            color: AppColors.textPrimaryDark,
-            fontSize: 13,
+          style: TextStyle(
+            color: context.appOnSurface,
+            fontSize: AppDimensions.fontBody,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -347,9 +349,9 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(
-        color: AppColors.textSecondaryDark,
-        fontSize: 11,
+      style: TextStyle(
+        color: context.appOnSurfaceSecondary,
+        fontSize: AppDimensions.fontSm,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.2,
       ),

@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/domain/entities/task_item.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
-// adminEmployeesProvider hace merge local + remoto Supabase, por lo que
-// incluye empleados recién creados aunque aún no hayan sincronizado a Drift.
 import 'package:worksense_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/widgets/styled/app_content_constrainer.dart';
 
 class TaskFormScreen extends ConsumerStatefulWidget {
-  /// Si se pasa [taskId], se edita la tarea existente; si no, se crea una nueva.
   final String? taskId;
 
   const TaskFormScreen({super.key, this.taskId});
@@ -67,27 +67,24 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // adminEmployeesProvider = merge local Drift + Supabase remoto.
-    // Garantiza que los empleados recién creados aparezcan aunque aún
-    // no hayan sincronizado a la DB local.
     final employeesAsync = ref.watch(adminEmployeesProvider);
     final isEdit = widget.taskId != null;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.appSurface,
         title: Text(
           isEdit ? 'EDITAR TAREA' : 'NUEVA TAREA',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 15,
+          style: TextStyle(
+            color: context.appOnSurface,
+            fontSize: AppDimensions.fontSubtitle,
             fontWeight: FontWeight.w900,
             letterSpacing: 0.8,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
+          icon: Icon(Icons.close, color: context.appOnSurface),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -102,31 +99,31 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppDimensions.spacingXxl),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.group_off_outlined,
                     color: AppColors.error, size: 40),
-                const SizedBox(height: 12),
-                const Text(
+                const SizedBox(height: AppDimensions.spacingLg),
+                Text(
                   'No se pudo cargar la lista de empleados.',
                   style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
+                      color: context.appOnSurface,
+                      fontSize: AppDimensions.fontSubtitle,
                       fontWeight: FontWeight.w600),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 6),
-                const Text(
+                const SizedBox(height: AppDimensions.spacingSm),
+                Text(
                   'Verifica tu conexión e intenta de nuevo.',
-                  style: TextStyle(color: Colors.white54, fontSize: 13),
+                  style: TextStyle(color: context.appOnSurfaceSecondary, fontSize: AppDimensions.fontBody),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: AppDimensions.spacing20),
                 FilledButton.icon(
                   onPressed: () => ref.invalidate(adminEmployeesProvider),
-                  icon: const Icon(Icons.refresh, size: 16),
+                  icon: const Icon(Icons.refresh, size: AppDimensions.spacingXxl),
                   label: const Text('Reintentar'),
                   style: FilledButton.styleFrom(
                       backgroundColor: AppColors.primary),
@@ -142,151 +139,156 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
 
   Widget _buildForm(BuildContext context, List<Employee> employees) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Título ────────────────────────────────────────────────────
-            const _SectionLabel('Título'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _titleController,
-              style: const TextStyle(color: Colors.white),
-              decoration: _inputDecoration('¿Qué debe hacerse?'),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Ingresa un título' : null,
-              maxLength: 120,
-            ),
+      padding: const EdgeInsets.all(AppDimensions.spacing20),
+      child: AppContentConstrainer(
+        width: AppContentWidth.form,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _SectionLabel('Título'),
+              const SizedBox(height: AppDimensions.spacingMd),
+              TextFormField(
+                controller: _titleController,
+                style: TextStyle(color: context.appOnSurface),
+                decoration: _inputDecoration(context, '¿Qué debe hacerse?'),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Ingresa un título' : null,
+                maxLength: 120,
+              ),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: AppDimensions.spacing20),
 
-            // ── Descripción ───────────────────────────────────────────────
-            const _SectionLabel('Descripción (opcional)'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _descController,
-              style: const TextStyle(color: Colors.white),
-              decoration: _inputDecoration('Detalles adicionales…'),
-              maxLines: 3,
-              maxLength: 400,
-            ),
+              const _SectionLabel('Descripción (opcional)'),
+              const SizedBox(height: AppDimensions.spacingMd),
+              TextFormField(
+                controller: _descController,
+                style: TextStyle(color: context.appOnSurface),
+                decoration: _inputDecoration(context, 'Detalles adicionales…'),
+                maxLines: 3,
+                maxLength: 400,
+              ),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: AppDimensions.spacing20),
 
-            // ── Asignar empleado ──────────────────────────────────────────
-            const _SectionLabel('Asignar a'),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              initialValue: _assignedToId,
-              dropdownColor: AppColors.surfaceDark,
-              style: const TextStyle(color: Colors.white),
-              decoration: _inputDecoration('Selecciona un empleado'),
-              items: employees.map((e) {
-                return DropdownMenuItem(
-                  value: e.id,
-                  child: Text(e.displayName),
-                );
-              }).toList(),
-              validator: (v) =>
-                  v == null ? 'Selecciona un empleado' : null,
-              onChanged: (v) => setState(() => _assignedToId = v),
-            ),
+              const _SectionLabel('Asignar a'),
+              const SizedBox(height: AppDimensions.spacingMd),
+              DropdownButtonFormField<String>(
+                initialValue: _assignedToId,
+                dropdownColor: context.appSurface,
+                style: TextStyle(color: context.appOnSurface),
+                decoration: _inputDecoration(context, 'Selecciona un empleado'),
+                items: employees.map((e) {
+                  return DropdownMenuItem(
+                    value: e.id,
+                    child: Text(e.displayName),
+                  );
+                }).toList(),
+                validator: (v) =>
+                    v == null ? 'Selecciona un empleado' : null,
+                onChanged: (v) => setState(() => _assignedToId = v),
+              ),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: AppDimensions.spacing20),
 
-            // ── Prioridad ─────────────────────────────────────────────────
-            const _SectionLabel('Prioridad'),
-            const SizedBox(height: 8),
-            _PrioritySelector(
-              selected: _priority,
-              onChanged: (p) => setState(() => _priority = p),
-            ),
+              const _SectionLabel('Prioridad'),
+              const SizedBox(height: AppDimensions.spacingMd),
+              _PrioritySelector(
+                selected: _priority,
+                onChanged: (p) => setState(() => _priority = p),
+              ),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: AppDimensions.spacing20),
 
-            // ── Fecha límite ──────────────────────────────────────────────
-            const _SectionLabel('Fecha límite (opcional)'),
-            const SizedBox(height: 8),
-            InkWell(
-              onTap: () => _pickDueDate(context),
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.glassBorder),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.event_outlined,
-                        color: Colors.white54, size: 18),
-                    const SizedBox(width: 10),
-                    Text(
-                      _dueDate != null
-                          ? DateFormat('dd/MM/yyyy').format(_dueDate!)
-                          : 'Sin fecha límite',
-                      style: TextStyle(
-                        color:
-                            _dueDate != null ? Colors.white : Colors.white38,
-                        fontSize: 14,
-                      ),
+              const _SectionLabel('Fecha límite (opcional)'),
+              const SizedBox(height: AppDimensions.spacingMd),
+              Semantics(
+                button: true,
+                label: 'Seleccionar fecha límite',
+                child: InkWell(
+                  onTap: () => _pickDueDate(context),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXl, vertical: AppDimensions.spacingXl),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: context.appGlassBorder),
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
                     ),
-                    const Spacer(),
-                    if (_dueDate != null)
-                      GestureDetector(
-                        onTap: () => setState(() => _dueDate = null),
-                        child: const Icon(Icons.close,
-                            color: Colors.white38, size: 16),
-                      ),
-                  ],
+                    child: Row(
+                      children: [
+Icon(Icons.event_outlined,
+                            color: context.appOnSurfaceSecondary, size: 18),
+                         const SizedBox(width: AppDimensions.spacingXl),
+                         Text(
+                           _dueDate != null
+                               ? DateFormat('dd/MM/yyyy').format(_dueDate!)
+                               : 'Sin fecha límite',
+                           style: TextStyle(
+                             color:
+                                 _dueDate != null ? context.appOnSurface : context.appOnSurfaceDisabled,
+                            fontSize: AppDimensions.fontBodyMd,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (_dueDate != null)
+                          Semantics(
+                            button: true,
+                            label: 'Limpiar fecha',
+                            child: InkWell(
+                              onTap: () => setState(() => _dueDate = null),
+                              borderRadius: BorderRadius.circular(AppDimensions.spacingXs),
+                              child: Icon(Icons.close,
+                                  color: context.appOnSurfaceDisabled, size: 16),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
 
-            // ── Status (edit only) ────────────────────────────────────────
-            if (widget.taskId != null) ...[
-              const SizedBox(height: 20),
-              const _SectionLabel('Estado'),
-              const SizedBox(height: 8),
-              _StatusSelector(
-                selected: _status,
-                onChanged: (s) => setState(() => _status = s),
+              if (widget.taskId != null) ...[
+                const SizedBox(height: AppDimensions.spacing20),
+                const _SectionLabel('Estado'),
+                const SizedBox(height: AppDimensions.spacingMd),
+                _StatusSelector(
+                  selected: _status,
+                  onChanged: (s) => setState(() => _status = s),
+                ),
+              ],
+
+              const SizedBox(height: AppDimensions.spacing32),
+
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _loading ? null : () => _submit(context),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingXxl),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppDimensions.radiusXxl)),
+                  ),
+                  child: _loading
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.white,
+                          ),
+                        )
+                      : Text(
+                          widget.taskId != null ? 'Guardar cambios' : 'Crear tarea',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: AppDimensions.fontSubtitle),
+                        ),
+                ),
               ),
             ],
-
-            const SizedBox(height: 32),
-
-            // ── Submit ────────────────────────────────────────────────────
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _loading ? null : () => _submit(context),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-                child: _loading
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(
-                        widget.taskId != null ? 'Guardar cambios' : 'Crear tarea',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -356,11 +358,11 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text('Eliminar tarea',
-            style: TextStyle(color: Colors.white)),
-        content: const Text('¿Seguro que quieres eliminar esta tarea?',
-            style: TextStyle(color: Colors.white70)),
+        backgroundColor: context.appSurface,
+        title: Text('Eliminar tarea',
+            style: TextStyle(color: context.appOnSurface)),
+        content: Text('¿Seguro que quieres eliminar esta tarea?',
+            style: TextStyle(color: context.appOnSurfaceSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -384,25 +386,25 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     }
   }
 
-  InputDecoration _inputDecoration(String hint) => InputDecoration(
+  InputDecoration _inputDecoration(BuildContext context, String hint) => InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white38),
+        hintStyle: TextStyle(color: context.appOnSurfaceDisabled),
         filled: true,
-        fillColor: AppColors.surfaceDark,
+        fillColor: context.appSurface,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.glassBorder),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+          borderSide: BorderSide(color: context.appGlassBorder),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.glassBorder),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+          borderSide: BorderSide(color: context.appGlassBorder),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
           borderSide:
               const BorderSide(color: AppColors.primary, width: 1.5),
         ),
-        counterStyle: const TextStyle(color: Colors.white38),
+        counterStyle: TextStyle(color: context.appOnSurfaceDisabled),
       );
 }
 
@@ -416,9 +418,9 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: const TextStyle(
-        color: Colors.white70,
-        fontSize: 12,
+      style: TextStyle(
+        color: context.appOnSurfaceSecondary,
+        fontSize: AppDimensions.fontCaption,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.4,
       ),
@@ -439,38 +441,43 @@ class _PrioritySelector extends StatelessWidget {
       children: TaskPriority.values.map((p) {
         final isSelected = p == selected;
         return Expanded(
-          child: GestureDetector(
-            onTap: () => onChanged(p),
-            child: Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? p.color.withValues(alpha: 0.2)
-                    : AppColors.surfaceDark,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
+          child: Semantics(
+            button: true,
+            label: p.label,
+            child: InkWell(
+              onTap: () => onChanged(p),
+              borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
+              child: Container(
+                margin: const EdgeInsets.only(right: AppDimensions.spacingMd),
+                padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingXl),
+                decoration: BoxDecoration(
                   color: isSelected
-                      ? p.color
-                      : AppColors.glassBorder,
-                  width: isSelected ? 1.5 : 1,
-                ),
-              ),
-              child: Column(
-                children: [
-                  Icon(p.icon,
-                      size: 16,
-                      color: isSelected ? p.color : Colors.white38),
-                  const SizedBox(height: 4),
-                  Text(
-                    p.label,
-                    style: TextStyle(
-                      color: isSelected ? p.color : Colors.white38,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
+                      ? p.color.withValues(alpha: 0.2)
+                      : context.appSurface,
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
+                  border: Border.all(
+                    color: isSelected
+                        ? p.color
+                        : context.appGlassBorder,
+                    width: isSelected ? 1.5 : 1,
                   ),
-                ],
+                ),
+                child: Column(
+                  children: [
+                    Icon(p.icon,
+                        size: AppDimensions.spacingXxl,
+                        color: isSelected ? p.color : context.appOnSurfaceDisabled),
+                    const SizedBox(height: AppDimensions.spacingXs),
+                    Text(
+                      p.label,
+                      style: TextStyle(
+                        color: isSelected ? p.color : context.appOnSurfaceDisabled,
+                        fontSize: AppDimensions.spacing10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -496,30 +503,35 @@ class _StatusSelector extends StatelessWidget {
       TaskStatus.cancelled,
     ];
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: AppDimensions.spacingMd,
+      runSpacing: AppDimensions.spacingMd,
       children: statuses.map((s) {
         final isSelected = s == selected;
-        return GestureDetector(
-          onTap: () => onChanged(s),
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? s.color.withValues(alpha: 0.2)
-                  : AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isSelected ? s.color : AppColors.glassBorder,
+        return Semantics(
+          button: true,
+          label: s.label,
+          child: InkWell(
+            onTap: () => onChanged(s),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXl, vertical: AppDimensions.spacingMd),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? s.color.withValues(alpha: 0.2)
+                    : context.appSurface,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
+                border: Border.all(
+                  color: isSelected ? s.color : context.appGlassBorder,
+                ),
               ),
-            ),
-            child: Text(
-              s.label,
-              style: TextStyle(
-                color: isSelected ? s.color : Colors.white38,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+              child: Text(
+                s.label,
+                style: TextStyle(
+                  color: isSelected ? s.color : context.appOnSurfaceDisabled,
+                  fontSize: AppDimensions.fontCaption,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),

@@ -1,56 +1,54 @@
 import 'package:flutter/material.dart';
-
-import '../../../core/constants/app_dimensions.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/constants/app_dimensions.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 
 class AppStatChip extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color? accentColor;
-
   const AppStatChip({
     super.key,
+    required this.icon,
     required this.label,
     required this.value,
-    required this.icon,
-    this.accentColor,
+    this.iconColor,
   });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = accentColor ?? AppColors.primary;
+    final onSurface = context.appOnSurface;
+    final onSurfaceSecondary = context.appOnSurfaceSecondary;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(AppDimensions.spacingLg),
-          decoration: BoxDecoration(
-            color: color.withAlpha(25),
-            borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
-            border: Border.all(color: color.withAlpha(50)),
+    return Semantics(
+      label: '$label: $value',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: AppDimensions.statChipIconSize, color: iconColor ?? AppColors.primary),
+          const SizedBox(height: AppDimensions.spacingXs),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: AppDimensions.fontHeadlineLg,
+              fontWeight: FontWeight.w800,
+              color: onSurface,
+            ),
           ),
-          child: Icon(icon, size: AppDimensions.statChipIconSize, color: color),
-        ),
-        const SizedBox(height: AppDimensions.spacingMd),
-        Text(
-          value,
-          style: theme.textTheme.headlineMedium?.copyWith(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w800,
+          const SizedBox(height: AppDimensions.spacingXxs),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: AppDimensions.fontSm,
+              fontWeight: FontWeight.w500,
+              color: onSurfaceSecondary,
+            ),
           ),
-        ),
-        const SizedBox(height: AppDimensions.spacingXxs),
-        Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: AppColors.textSecondary,
-            letterSpacing: 0.8,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

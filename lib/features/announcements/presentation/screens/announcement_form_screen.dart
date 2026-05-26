@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/domain/entities/announcement.dart';
 import 'package:worksense_app/features/announcements/presentation/providers/announcements_provider.dart';
+import 'package:worksense_app/shared/widgets/styled/app_content_constrainer.dart';
 
 class AnnouncementFormScreen extends ConsumerStatefulWidget {
   const AnnouncementFormScreen({super.key});
@@ -83,25 +86,28 @@ class _AnnouncementFormScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.backgroundDark,
-        title: const Text(
+        backgroundColor: context.appBackground,
+        title: Text(
           'Nuevo comunicado',
-          style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: context.appOnSurface, fontWeight: FontWeight.bold),
         ),
         leading: BackButton(
-          color: AppColors.white,
+          color: context.appOnSurface,
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            _buildForm(),
-          ],
+      body: AppContentConstrainer(
+        width: AppContentWidth.form,
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(AppDimensions.spacing20),
+            children: [
+              _buildForm(),
+            ],
+          ),
         ),
       ),
     );
@@ -111,88 +117,92 @@ class _AnnouncementFormScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Title ──────────────────────────────────────────────────────────
         const _SectionLabel('Título'),
-        const SizedBox(height: 6),
+        const SizedBox(height: AppDimensions.spacingSm),
         TextFormField(
           controller: _titleCtrl,
           maxLength: 100,
-          style: const TextStyle(color: AppColors.white),
+          style: TextStyle(color: context.appOnSurface),
           decoration: _inputDecoration('Ej: Reunión obligatoria mañana'),
           validator: (v) =>
               (v == null || v.trim().isEmpty) ? 'Requerido' : null,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppDimensions.spacingXxl),
 
-        // ── Content ────────────────────────────────────────────────────────
         const _SectionLabel('Contenido'),
-        const SizedBox(height: 6),
+        const SizedBox(height: AppDimensions.spacingSm),
         TextFormField(
           controller: _contentCtrl,
           maxLines: 5,
           maxLength: 1000,
-          style: const TextStyle(color: AppColors.white),
+          style: TextStyle(color: context.appOnSurface),
           decoration: _inputDecoration('Detalle del comunicado...'),
           validator: (v) =>
               (v == null || v.trim().isEmpty) ? 'Requerido' : null,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppDimensions.spacingXxl),
 
-        // ── Priority ───────────────────────────────────────────────────────
         const _SectionLabel('Prioridad'),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppDimensions.spacingMd),
         _PrioritySelector(
           selected: _priority,
           onChanged: (p) => setState(() => _priority = p),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: AppDimensions.spacing20),
 
-        // ── Expiry ─────────────────────────────────────────────────────────
         const _SectionLabel('Fecha de vencimiento (opcional)'),
-        const SizedBox(height: 6),
-        InkWell(
-          onTap: _pickExpiry,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.glassBorder),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.calendar_today,
-                    color: AppColors.primary, size: 18),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    _expiresAt == null
-                        ? 'Sin vencimiento'
-                        : '${_expiresAt!.day.toString().padLeft(2, '0')}/'
-                            '${_expiresAt!.month.toString().padLeft(2, '0')}/'
-                            '${_expiresAt!.year}',
-                    style: TextStyle(
-                      color: _expiresAt == null
-                          ? AppColors.grey400
-                          : AppColors.white,
+        const SizedBox(height: AppDimensions.spacingSm),
+        Semantics(
+          button: true,
+          label: 'Seleccionar fecha de vencimiento',
+          child: InkWell(
+            onTap: _pickExpiry,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              decoration: BoxDecoration(
+                color: context.appSurface,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+                border: Border.all(color: context.appGlassBorder),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today,
+                      color: AppColors.primary, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _expiresAt == null
+                          ? 'Sin vencimiento'
+                          : '${_expiresAt!.day.toString().padLeft(2, '0')}/'
+                              '${_expiresAt!.month.toString().padLeft(2, '0')}/'
+                              '${_expiresAt!.year}',
+                      style: TextStyle(
+                        color: _expiresAt == null
+                            ? context.appOnSurfaceDisabled
+                            : context.appOnSurface,
+                      ),
                     ),
                   ),
-                ),
-                if (_expiresAt != null)
-                  GestureDetector(
-                    onTap: () => setState(() => _expiresAt = null),
-                    child: const Icon(Icons.clear,
-                        color: AppColors.grey400, size: 18),
-                  ),
-              ],
+                  if (_expiresAt != null)
+                    Semantics(
+                      button: true,
+                      label: 'Limpiar fecha de vencimiento',
+                      child: InkWell(
+                        onTap: () => setState(() => _expiresAt = null),
+                        borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                        child: const Icon(Icons.clear,
+                            color: AppColors.grey400, size: 18),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: AppDimensions.spacing32),
 
-        // ── Submit ─────────────────────────────────────────────────────────
         SizedBox(
           width: double.infinity,
           height: 52,
@@ -201,7 +211,7 @@ class _AnnouncementFormScreenState
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
               ),
             ),
             child: _submitting
@@ -213,12 +223,12 @@ class _AnnouncementFormScreenState
                       color: AppColors.white,
                     ),
                   )
-                : const Text(
+                : Text(
                     'Publicar comunicado',
                     style: TextStyle(
-                      color: AppColors.white,
+                      color: context.appOnSurface,
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: AppDimensions.fontTitle,
                     ),
                   ),
           ),
@@ -229,27 +239,25 @@ class _AnnouncementFormScreenState
 
   InputDecoration _inputDecoration(String hint) => InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: AppColors.grey400),
+        hintStyle: TextStyle(color: context.appOnSurfaceDisabled),
         filled: true,
-        fillColor: AppColors.surfaceDark,
+        fillColor: context.appSurface,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.glassBorder),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+          borderSide: BorderSide(color: context.appGlassBorder),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.glassBorder),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+          borderSide: BorderSide(color: context.appGlassBorder),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
           borderSide:
               const BorderSide(color: AppColors.primary, width: 1.5),
         ),
-        counterStyle: const TextStyle(color: AppColors.grey400),
+        counterStyle: TextStyle(color: context.appOnSurfaceDisabled),
       );
 }
-
-// ── Priority selector ─────────────────────────────────────────────────────────
 
 class _PrioritySelector extends StatelessWidget {
   const _PrioritySelector({
@@ -263,44 +271,49 @@ class _PrioritySelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: AppDimensions.spacingMd,
+      runSpacing: AppDimensions.spacingMd,
       children: AnnouncementPriority.values.map((p) {
         final isSelected = p == selected;
-        return GestureDetector(
-          onTap: () => onChanged(p),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? p.color.withValues(alpha: 0.2)
-                  : AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isSelected ? p.color : AppColors.glassBorder,
-                width: isSelected ? 1.5 : 1,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(p.icon,
-                    color: isSelected ? p.color : AppColors.grey400,
-                    size: 16),
-                const SizedBox(width: 6),
-                Text(
-                  p.label,
-                  style: TextStyle(
-                    color: isSelected ? p.color : AppColors.grey400,
-                    fontWeight: isSelected
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                    fontSize: 13,
-                  ),
+        return Semantics(
+          button: true,
+          label: 'Prioridad: ${p.label}',
+          child: InkWell(
+            onTap: () => onChanged(p),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? p.color.withValues(alpha: 0.2)
+                    : context.appSurface,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
+                border: Border.all(
+                  color: isSelected ? p.color : context.appGlassBorder,
+                  width: isSelected ? 1.5 : 1,
                 ),
-              ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(p.icon,
+                      color: isSelected ? p.color : context.appOnSurfaceDisabled,
+                      size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    p.label,
+                    style: TextStyle(
+                      color: isSelected ? p.color : context.appOnSurfaceDisabled,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      fontSize: AppDimensions.fontBody,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -308,8 +321,6 @@ class _PrioritySelector extends StatelessWidget {
     );
   }
 }
-
-// ── Helper ────────────────────────────────────────────────────────────────────
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel(this.text);
@@ -319,10 +330,10 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
-        color: AppColors.white,
+      style: TextStyle(
+        color: context.appOnSurface,
         fontWeight: FontWeight.w600,
-        fontSize: 14,
+        fontSize: AppDimensions.fontBodyMd,
       ),
     );
   }

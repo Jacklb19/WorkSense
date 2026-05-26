@@ -69,7 +69,7 @@ dependencies:
   # ── Animaciones y diseno ─────────────────────────────────────
   flutter_animate: ^4.5.0
   rive: ^0.14.0
-  google_fonts: ^6.2.1
+  google_fonts: ^6.3.3
 
   # ── Utilidades generales ─────────────────────────────────────
   intl: ^0.20.2
@@ -112,6 +112,7 @@ flutter:
     - assets/icons/
     - assets/fonts/
     - assets/models/
+    - assets/rive/
     - .env
 
   # fonts:

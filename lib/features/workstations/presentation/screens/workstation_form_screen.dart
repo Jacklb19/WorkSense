@@ -5,11 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import 'package:worksense_app/core/constants/app_constants.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/domain/entities/workstation.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/features/workstations/presentation/providers/workstations_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/widgets/styled/app_content_constrainer.dart';
 
 enum _RoiPreset {
   centerDesk(
@@ -36,10 +39,8 @@ enum _RoiPreset {
 }
 
 class WorkstationFormScreen extends ConsumerStatefulWidget {
-  /// Pass [workstationId] to open in edit mode, omit for create mode.
-  const WorkstationFormScreen({super.key, this.workstationId});
-
   final String? workstationId;
+  const WorkstationFormScreen({super.key, this.workstationId});
 
   @override
   ConsumerState<WorkstationFormScreen> createState() =>
@@ -59,7 +60,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
   bool _isLoadingData = false;
   String? _selectedEmployeeId;
   _RoiPreset _selectedRoiPreset = _RoiPreset.centerDesk;
-  String? _editingId; // original ID when editing
+  String? _editingId;
 
   bool get _isEditing => widget.workstationId != null;
 
@@ -87,7 +88,6 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
           _longitude = ws.longitude;
           _geofenceRadius = ws.geofenceRadius ?? 100.0;
           _selectedEmployeeId = ws.assignedEmployeeId;
-          // Map existing ROI to closest preset
           if (ws.roi != null) {
             _selectedRoiPreset = _RoiPreset.values.firstWhere(
               (p) => p.roi.x == ws.roi!.x && p.roi.y == ws.roi!.y,
@@ -226,7 +226,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
       data: (employees) {
         if (employees.isEmpty) {
           return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.0),
+            padding: EdgeInsets.symmetric(vertical: AppDimensions.spacingMd),
             child: Text(
               AppStrings.noEmployeesRegistered,
               style: TextStyle(
@@ -280,143 +280,178 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: AppStrings.workstationNameLabel,
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? AppStrings.workstationNameRequired
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _deviceIdController,
-                decoration: const InputDecoration(
-                  labelText: AppStrings.deviceIdLabel,
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? AppStrings.deviceIdRequired
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              _buildEmployeeSelector(),
-              const SizedBox(height: 24),
-              const Text(
-                AppStrings.geolocation,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: _isLoadingLocation ? null : _getCurrentLocation,
-                icon: _isLoadingLocation
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.location_on),
-                label: const Text(AppStrings.useCurrentLocation),
-              ),
-              if (_latitude != null && _longitude != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Ubicacion: $_latitude, $_longitude',
-                  style: const TextStyle(color: AppColors.success),
-                ),
-              ],
-              const SizedBox(height: 24),
-              Text(
-                'Radio de geovalla: ${_geofenceRadius.toInt()} m',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Slider(
-                value: _geofenceRadius,
-                min: 50.0,
-                max: 500.0,
-                divisions: 9,
-                activeColor: AppColors.primary,
-                label: '${_geofenceRadius.toInt()}m',
-                onChanged: (value) {
-                  setState(() => _geofenceRadius = value);
-                },
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Zona de deteccion del puesto',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _selectedRoiPreset.description,
-                style: const TextStyle(color: Colors.black54),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<_RoiPreset>(
-                initialValue: _selectedRoiPreset,
-                decoration: const InputDecoration(
-                  labelText: 'Preset de encuadre',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.crop_free),
-                ),
-                items: _RoiPreset.values
-                    .map(
-                      (preset) => DropdownMenuItem<_RoiPreset>(
-                        value: preset,
-                        child: Text(preset.label),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value == null) return;
-                  setState(() => _selectedRoiPreset = value);
-                },
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.15),
+        padding: const EdgeInsets.all(AppDimensions.spacingXxl),
+        child: AppContentConstrainer(
+          width: AppContentWidth.form,
+          center: false,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: AppStrings.workstationNameLabel,
+                    border: OutlineInputBorder(),
                   ),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? AppStrings.workstationNameRequired
+                      : null,
                 ),
-                child: Text(
-                  'Se aplicara automaticamente el preset "${_selectedRoiPreset.label}" '
-                  'para concentrar la deteccion continua en la zona util del puesto.',
+                const SizedBox(height: AppDimensions.spacingXxl),
+                TextFormField(
+                  controller: _deviceIdController,
+                  decoration: const InputDecoration(
+                    labelText: AppStrings.deviceIdLabel,
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? AppStrings.deviceIdRequired
+                      : null,
                 ),
-              ),
-              const SizedBox(height: 32),
-              FilledButton(
-                onPressed: _isSaving ? null : _submit,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: _isSaving
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(color: AppColors.white),
-                      )
-                    : Text(
-                        _isEditing ? 'Actualizar estación' : AppStrings.saveWorkstation,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-              ),
-            ],
+                const SizedBox(height: AppDimensions.spacingXxl),
+                _buildEmployeeSelector(),
+                const SizedBox(height: AppDimensions.spacing24),
+                _buildGeolocationSection(),
+                const SizedBox(height: AppDimensions.spacing24),
+                _buildGeofenceSection(),
+                const SizedBox(height: AppDimensions.spacing24),
+                _buildRoiSection(),
+                const SizedBox(height: AppDimensions.spacing32),
+                _buildSubmitButton(),
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildGeolocationSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          AppStrings.geolocation,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppDimensions.fontTitle),
+        ),
+        const SizedBox(height: AppDimensions.spacingMd),
+        OutlinedButton.icon(
+          onPressed: _isLoadingLocation ? null : _getCurrentLocation,
+          icon: _isLoadingLocation
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.location_on),
+          label: const Text(AppStrings.useCurrentLocation),
+        ),
+        if (_latitude != null && _longitude != null) ...[
+          const SizedBox(height: AppDimensions.spacingMd),
+          Text(
+            'Ubicacion: $_latitude, $_longitude',
+            style: const TextStyle(color: AppColors.success),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildGeofenceSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Radio de geovalla: ${_geofenceRadius.toInt()} m',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        Slider(
+          value: _geofenceRadius,
+          min: 50.0,
+          max: 500.0,
+          divisions: 9,
+          activeColor: AppColors.primary,
+          label: '${_geofenceRadius.toInt()}m',
+          onChanged: (value) {
+            setState(() => _geofenceRadius = value);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRoiSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Zona de deteccion del puesto',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: AppDimensions.fontTitle),
+        ),
+        const SizedBox(height: AppDimensions.spacingMd),
+        Text(
+          _selectedRoiPreset.description,
+          style: TextStyle(color: context.appOnSurfaceSecondary),
+        ),
+        const SizedBox(height: AppDimensions.spacingLg),
+        DropdownButtonFormField<_RoiPreset>(
+          initialValue: _selectedRoiPreset,
+          decoration: const InputDecoration(
+            labelText: 'Preset de encuadre',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.crop_free),
+          ),
+          items: _RoiPreset.values
+              .map(
+                (preset) => DropdownMenuItem<_RoiPreset>(
+                  value: preset,
+                  child: Text(preset.label),
+                ),
+              )
+              .toList(),
+          onChanged: (value) {
+            if (value == null) return;
+            setState(() => _selectedRoiPreset = value);
+          },
+        ),
+        const SizedBox(height: AppDimensions.spacingLg),
+        Container(
+          padding: const EdgeInsets.all(AppDimensions.spacingLg),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.15),
+            ),
+          ),
+          child: Text(
+            'Se aplicara automaticamente el preset "${_selectedRoiPreset.label}" '
+            'para concentrar la deteccion continua en la zona util del puesto.',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return FilledButton(
+      onPressed: _isSaving ? null : _submit,
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.primary,
+        padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingXxl),
+      ),
+      child: _isSaving
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(color: AppColors.white),
+            )
+          : const Text(
+              'Guardar estación',
+              style: TextStyle(fontSize: AppDimensions.fontTitle),
+            ),
     );
   }
 }

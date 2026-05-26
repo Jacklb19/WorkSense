@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/domain/entities/leave_request.dart';
 import 'package:worksense_app/features/leaves/presentation/providers/leaves_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/widgets/styled/app_content_constrainer.dart';
 
 class LeaveRequestFormScreen extends ConsumerStatefulWidget {
   const LeaveRequestFormScreen({super.key});
@@ -34,163 +37,181 @@ class _LeaveRequestFormScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.appSurface,
         title: const Text(
           'SOLICITAR PERMISO',
           style: TextStyle(
-            color: Colors.white,
-            fontSize: 15,
+            color: AppColors.white,
+            fontSize: AppDimensions.fontSubtitle,
             fontWeight: FontWeight.w900,
             letterSpacing: 0.8,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
+          icon: const Icon(Icons.close, color: AppColors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Info banner ────────────────────────────────────────────
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.info.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: AppColors.info.withValues(alpha: 0.3)),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.info_outline,
-                        color: AppColors.info, size: 18),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Tu solicitud será revisada por un administrador.',
-                        style:
-                            TextStyle(color: AppColors.info, fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // ── Tipo ───────────────────────────────────────────────────
-              const _SectionLabel('Tipo de permiso'),
-              const SizedBox(height: 10),
-              _TypeSelector(
-                selected: _type,
-                onChanged: (t) => setState(() => _type = t),
-              ),
-
-              const SizedBox(height: 24),
-
-              // ── Fechas ─────────────────────────────────────────────────
-              const _SectionLabel('Período de ausencia'),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: _DatePickerField(
-                      label: 'Desde',
-                      value: _startDate,
-                      onTap: () => _pickDate(context, isStart: true),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _DatePickerField(
-                      label: 'Hasta',
-                      value: _endDate,
-                      onTap: () => _pickDate(context, isStart: false),
-                    ),
-                  ),
-                ],
-              ),
-              if (_startDate != null && _endDate != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  '${_endDate!.difference(_startDate!).inDays + 1} día(s) de permiso',
-                  style: const TextStyle(
-                      color: AppColors.primary, fontSize: 12),
-                ),
+        padding: const EdgeInsets.all(AppDimensions.spacing20),
+        child: AppContentConstrainer(
+          width: AppContentWidth.form,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildInfoBanner(),
+                const SizedBox(height: AppDimensions.spacingXxl),
+                _buildTypeSelector(),
+                const SizedBox(height: AppDimensions.spacingXxl),
+                _buildDatePeriodSection(),
+                const SizedBox(height: AppDimensions.spacingXxl),
+                _buildReasonField(),
+                const SizedBox(height: AppDimensions.spacing32),
+                _buildSubmitButton(),
               ],
-
-              const SizedBox(height: 24),
-
-              // ── Motivo ─────────────────────────────────────────────────
-              const _SectionLabel('Motivo (opcional)'),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _reasonController,
-                style: const TextStyle(color: Colors.white),
-                maxLines: 3,
-                maxLength: 300,
-                decoration: InputDecoration(
-                  hintText: 'Explica brevemente el motivo…',
-                  hintStyle: const TextStyle(color: Colors.white38),
-                  filled: true,
-                  fillColor: AppColors.surfaceDark,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: AppColors.glassBorder),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: AppColors.glassBorder),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                        color: AppColors.primary, width: 1.5),
-                  ),
-                  counterStyle:
-                      const TextStyle(color: Colors.white38),
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // ── Submit ─────────────────────────────────────────────────
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _loading ? null : () => _submit(context),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: _loading
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text(
-                          'Enviar solicitud',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 15),
-                        ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoBanner() {
+    return Container(
+      padding: const EdgeInsets.all(AppDimensions.spacingXl),
+      decoration: BoxDecoration(
+        color: AppColors.info.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+        border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.info_outline, color: AppColors.info, size: 18),
+          SizedBox(width: AppDimensions.spacingXl),
+          Expanded(
+            child: Text(
+              'Tu solicitud será revisada por un administrador.',
+              style: TextStyle(color: AppColors.info, fontSize: AppDimensions.fontCaption),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTypeSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionLabel('Tipo de permiso'),
+        const SizedBox(height: AppDimensions.spacingXl),
+        _TypeSelector(
+          selected: _type,
+          onChanged: (t) => setState(() => _type = t),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDatePeriodSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionLabel('Período de ausencia'),
+        const SizedBox(height: AppDimensions.spacingXl),
+        Row(
+          children: [
+            Expanded(
+              child: _DatePickerField(
+                label: 'Desde',
+                value: _startDate,
+                onTap: () => _pickDate(context, isStart: true),
+              ),
+            ),
+            const SizedBox(width: AppDimensions.spacingLg),
+            Expanded(
+              child: _DatePickerField(
+                label: 'Hasta',
+                value: _endDate,
+                onTap: () => _pickDate(context, isStart: false),
+              ),
+            ),
+          ],
+        ),
+        if (_startDate != null && _endDate != null) ...[
+          const SizedBox(height: AppDimensions.spacingMd),
+          Text(
+            '${_endDate!.difference(_startDate!).inDays + 1} día(s) de permiso',
+            style: const TextStyle(
+                color: AppColors.primary, fontSize: AppDimensions.fontCaption),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildReasonField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionLabel('Motivo (opcional)'),
+        const SizedBox(height: AppDimensions.spacingMd),
+        TextFormField(
+          controller: _reasonController,
+          style: const TextStyle(color: AppColors.white),
+          maxLines: 3,
+          maxLength: 300,
+          decoration: InputDecoration(
+            hintText: 'Explica brevemente el motivo…',
+            hintStyle: const TextStyle(color: AppColors.white38),
+            filled: true,
+            fillColor: context.appSurface,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+              borderSide: BorderSide(color: context.appGlassBorder),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+              borderSide: BorderSide(color: context.appGlassBorder),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+            ),
+            counterStyle: const TextStyle(color: AppColors.white38),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton(
+        onPressed: _loading ? null : () => _submit(context),
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingXxl),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusXxl)),
+        ),
+        child: _loading
+            ? const SizedBox(
+                height: 18,
+                width: 18,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: AppColors.white),
+              )
+            : const Text(
+                'Enviar solicitud',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: AppDimensions.fontSubtitle),
+              ),
       ),
     );
   }
@@ -291,8 +312,8 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       label,
       style: const TextStyle(
-        color: Colors.white70,
-        fontSize: 12,
+        color: AppColors.white70,
+        fontSize: AppDimensions.fontCaption,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.4,
       ),
@@ -312,40 +333,45 @@ class _TypeSelector extends StatelessWidget {
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
+      crossAxisSpacing: AppDimensions.spacingXl,
+      mainAxisSpacing: AppDimensions.spacingXl,
       childAspectRatio: 3,
       children: LeaveType.values.map((t) {
         final isSelected = t == selected;
-        return GestureDetector(
-          onTap: () => onChanged(t),
-          child: Container(
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? AppColors.primary.withValues(alpha: 0.2)
-                  : AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isSelected ? AppColors.primary : AppColors.glassBorder,
-                width: isSelected ? 1.5 : 1,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(t.icon,
-                    size: 16,
-                    color: isSelected ? AppColors.primary : Colors.white38),
-                const SizedBox(width: 8),
-                Text(
-                  t.label,
-                  style: TextStyle(
-                    color: isSelected ? AppColors.primary : Colors.white54,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
+        return Semantics(
+          button: true,
+          label: t.label,
+          child: InkWell(
+            onTap: () => onChanged(t),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+            child: Container(
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.primary.withValues(alpha: 0.2)
+                    : context.appSurface,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+                border: Border.all(
+                  color: isSelected ? AppColors.primary : context.appGlassBorder,
+                  width: isSelected ? 1.5 : 1,
                 ),
-              ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(t.icon,
+                      size: AppDimensions.spacingXxl,
+                      color: isSelected ? AppColors.primary : AppColors.white38),
+                  const SizedBox(width: AppDimensions.spacingMd),
+                  Text(
+                    t.label,
+                    style: TextStyle(
+                      color: isSelected ? AppColors.primary : AppColors.white54,
+                      fontWeight: FontWeight.w600,
+                      fontSize: AppDimensions.fontBody,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -367,36 +393,41 @@ class _DatePickerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: value != null ? AppColors.primary : AppColors.glassBorder,
+    return Semantics(
+      button: true,
+      label: 'Seleccionar fecha $label',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+        child: Container(
+          padding: const EdgeInsets.all(AppDimensions.spacingLg),
+          decoration: BoxDecoration(
+            color: context.appSurface,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+            border: Border.all(
+              color: value != null ? AppColors.primary : context.appGlassBorder,
+            ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(color: Colors.white38, fontSize: 10),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value != null
-                  ? DateFormat('dd/MM/yyyy').format(value!)
-                  : 'Seleccionar',
-              style: TextStyle(
-                color: value != null ? Colors.white : Colors.white38,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(color: AppColors.white38, fontSize: AppDimensions.fontXs),
               ),
-            ),
-          ],
+              const SizedBox(height: AppDimensions.spacingXs),
+              Text(
+                value != null
+                    ? DateFormat('dd/MM/yyyy').format(value!)
+                    : 'Seleccionar',
+                style: TextStyle(
+                  color: value != null ? AppColors.white : AppColors.white38,
+                  fontSize: AppDimensions.fontBody,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

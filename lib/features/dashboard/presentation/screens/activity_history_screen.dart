@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/dashboard_provider.dart';
@@ -8,6 +9,9 @@ import 'package:worksense_app/features/dashboard/presentation/widgets/activity_e
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/shared/widgets/error_widget.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/shared/widgets/styled/app_content_constrainer.dart';
+import 'package:worksense_app/shared/widgets/styled/app_empty_state.dart';
 
 class ActivityHistoryScreen extends ConsumerStatefulWidget {
   const ActivityHistoryScreen({super.key});
@@ -69,7 +73,9 @@ class _ActivityHistoryScreenState
             );
           }
 
-          return Column(
+          return AppContentConstrainer(
+            width: AppContentWidth.list,
+            child: Column(
             children: [
               if (_filterState != null)
                 Container(
@@ -95,8 +101,8 @@ class _ActivityHistoryScreenState
                       const SizedBox(width: AppDimensions.spacingMd),
                       Text(
                         '${filtered.length} eventos',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: context.appOnSurfaceSecondary,
                           fontSize: AppDimensions.fontCaption,
                         ),
                       ),
@@ -106,10 +112,10 @@ class _ActivityHistoryScreenState
               Expanded(
                 child: ListView.separated(
                   itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const Divider(
+                  separatorBuilder: (_, __) => Divider(
                     height: 1,
                     indent: AppDimensions.dividerIndent,
-                    color: AppColors.divider,
+                    color: context.appDivider,
                   ),
                   itemBuilder: (context, index) => ActivityEventTile(
                     event: filtered[index],
@@ -117,6 +123,7 @@ class _ActivityHistoryScreenState
                 ),
               ),
             ],
+          ),
           );
         },
       ),
@@ -144,7 +151,7 @@ class _ActivityHistoryScreenState
             ),
             const SizedBox(height: AppDimensions.spacingXxl),
             ListTile(
-              leading: const Text('🔵', style: TextStyle(fontSize: AppDimensions.fontHeadline)),
+              leading: const Text('\u{1F535}', style: TextStyle(fontSize: AppDimensions.fontHeadline)),
               title: const Text('Todos los estados'),
               selected: _filterState == null,
               onTap: () {

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/alert_log.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
@@ -10,43 +12,45 @@ import 'package:worksense_app/features/camera_monitor/presentation/providers/kio
     show appDatabaseProvider;
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/widgets/styled/app_content_constrainer.dart';
 
 class AlertLogScreen extends ConsumerWidget {
   const AlertLogScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final logsAsync = ref.watch(alertLogsProvider);
     final employeesAsync = ref.watch(employeesProvider);
     final unread = ref.watch(unacknowledgedAlertCountProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.appSurface,
         title: Row(
           children: [
-            const Text(
+            Text(
               'ALERTAS',
               style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
+                color: context.appOnSurface,
+                fontSize: AppDimensions.fontTitle,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1,
               ),
             ),
             if (unread > 0) ...[
-              const SizedBox(width: 8),
+              const SizedBox(width: AppDimensions.spacingMd),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: AppColors.error,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
                 ),
                 child: Text(
                   '$unread',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: context.appOnSurface,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
@@ -60,9 +64,9 @@ class AlertLogScreen extends ConsumerWidget {
             TextButton.icon(
               onPressed: () => _acknowledgeAll(context, ref),
               icon: const Icon(Icons.done_all, color: AppColors.primary, size: 16),
-              label: const Text(
+              label: Text(
                 'Marcar todas',
-                style: TextStyle(color: AppColors.primary, fontSize: 12),
+                style: theme.textTheme.bodySmall?.copyWith(color: AppColors.primary),
               ),
             ),
         ],
@@ -70,7 +74,7 @@ class AlertLogScreen extends ConsumerWidget {
       body: logsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
-          child: Text('$e', style: const TextStyle(color: AppColors.error)),
+          child: Text('$e', style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.error)),
         ),
         data: (logs) {
           if (logs.isEmpty) {
@@ -81,14 +85,13 @@ class AlertLogScreen extends ConsumerWidget {
                   Icon(
                     Icons.notifications_none,
                     size: 64,
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: context.appOnSurfaceDisabled,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppDimensions.spacingXxl),
                   Text(
                     'No hay alertas registradas',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.4),
-                      fontSize: 14,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: context.appOnSurfaceDisabled,
                     ),
                   ),
                 ],
@@ -99,8 +102,10 @@ class AlertLogScreen extends ConsumerWidget {
           final employees = employeesAsync.valueOrNull ?? [];
           final empMap = {for (final e in employees) e.id: e};
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
+          return AppContentConstrainer(
+            width: AppContentWidth.list,
+            child: ListView.builder(
+            padding: const EdgeInsets.all(AppDimensions.spacingXxl),
             itemCount: logs.length,
             itemBuilder: (context, i) {
               final log = logs[i];
@@ -111,6 +116,7 @@ class AlertLogScreen extends ConsumerWidget {
                 onAcknowledge: () => _acknowledge(ref, log.id),
               );
             },
+          ),
           );
         },
       ),
@@ -139,8 +145,6 @@ class AlertLogScreen extends ConsumerWidget {
   }
 }
 
-// ── Alert card ────────────────────────────────────────────────────────────────
-
 class _AlertLogCard extends StatelessWidget {
   final AlertLogData log;
   final Employee? employee;
@@ -154,6 +158,7 @@ class _AlertLogCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final alertType = AlertType.fromRaw(log.alertType);
     final fmt = DateFormat('dd/MM HH:mm');
 
@@ -161,24 +166,24 @@ class _AlertLogCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 5),
       decoration: BoxDecoration(
         color: log.acknowledged
-            ? AppColors.cardDark
+            ? context.appCard
             : alertType.color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCardLg),
         border: Border.all(
           color: log.acknowledged
-              ? AppColors.glassBorder
+              ? context.appGlassBorder
               : alertType.color.withValues(alpha: 0.3),
         ),
       ),
       child: ListTile(
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacingMd),
         leading: Container(
           width: 40,
           height: 40,
           decoration: BoxDecoration(
             color: alertType.color.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
           ),
           child: Icon(alertType.icon, color: alertType.color, size: 20),
         ),
@@ -188,8 +193,8 @@ class _AlertLogCard extends StatelessWidget {
               child: Text(
                 alertType.label,
                 style: TextStyle(
-                  color: log.acknowledged ? Colors.white70 : Colors.white,
-                  fontSize: 13,
+                  color: log.acknowledged ? AppColors.white70 : context.appOnSurface,
+                  fontSize: AppDimensions.fontBody,
                   fontWeight: log.acknowledged
                       ? FontWeight.normal
                       : FontWeight.w600,
@@ -213,7 +218,7 @@ class _AlertLogCard extends StatelessWidget {
             if (employee != null)
               Text(
                 employee!.displayName,
-                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                style: theme.textTheme.bodySmall?.copyWith(color: AppColors.white54),
               ),
             const SizedBox(height: 2),
             Row(
@@ -222,21 +227,21 @@ class _AlertLogCard extends StatelessWidget {
                 const SizedBox(width: 3),
                 Text(
                   _duration(log.durationSeconds),
-                  style: TextStyle(color: alertType.color, fontSize: 11),
+                  style: TextStyle(color: alertType.color, fontSize: AppDimensions.fontSm),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppDimensions.spacingMd),
                 Text(
                   fmt.format(log.triggeredAt),
                   style:
-                      const TextStyle(color: Colors.white38, fontSize: 11),
+                      TextStyle(color: context.appOnSurfaceDisabled, fontSize: AppDimensions.fontSm),
                 ),
               ],
             ),
           ],
         ),
         trailing: log.acknowledged
-            ? const Icon(Icons.check_circle_outline,
-                color: Colors.white24, size: 18)
+            ? Icon(Icons.check_circle_outline,
+                color: context.appOnSurfaceDisabled, size: 18)
             : IconButton(
                 icon: const Icon(Icons.check_circle_outline,
                     color: AppColors.primary, size: 20),

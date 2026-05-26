@@ -23,12 +23,12 @@ class ProcessSyncQueueUseCase {
     final List<String> errors = [];
 
     if (pending.isNotEmpty) {
-      debugPrint('[Sync ENGINE] Iniciando procesamiento de ${pending.length} items pendientes...');
+      if (kDebugMode) debugPrint('[Sync ENGINE] Iniciando procesamiento de ${pending.length} items pendientes...');
     }
 
     // Resolve companyId early for filtering
     final companyId = await _resolveCompanyId();
-    debugPrint('[Sync ENGINE] companyId resolved: $companyId');
+    if (kDebugMode) debugPrint('[Sync ENGINE] companyId resolved: $companyId');
 
     final batchEvents = pending
         .where(
@@ -51,9 +51,9 @@ class ProcessSyncQueueUseCase {
           success++;
         }
         batchSuccess = true;
-        debugPrint('[Sync ENGINE] Éxito al procesar batch de ${batchEvents.length} activity_events');
+        if (kDebugMode) debugPrint('[Sync ENGINE] Éxito al procesar batch de ${batchEvents.length} activity_events');
       } catch (e) {
-        debugPrint('[Sync ENGINE] Error en batch de activity_events: $e');
+        if (kDebugMode) debugPrint('[Sync ENGINE] Error en batch de activity_events: $e');
       }
     }
 
@@ -62,7 +62,7 @@ class ProcessSyncQueueUseCase {
 
       try {
         final payload = jsonDecode(entry.payload) as Map<String, dynamic>;
-        debugPrint('[Sync PUSH] Procesando entrada ID: ${entry.id}, tabla: ${entry.targetTable}, operación: ${entry.operation}, payload: $payload');
+        if (kDebugMode) debugPrint('[Sync PUSH] Procesando entrada ID: ${entry.id}, tabla: ${entry.targetTable}, operación: ${entry.operation}, payload: $payload');
         
         switch (entry.operation) {
           case 'UPSERT':
@@ -83,20 +83,20 @@ class ProcessSyncQueueUseCase {
 
         await _syncRepo.delete(entry.id);
         success++;
-        debugPrint('[Sync PUSH] Éxito al procesar ${entry.targetTable} ID ${entry.recordId}');
+        if (kDebugMode) debugPrint('[Sync PUSH] Éxito al procesar ${entry.targetTable} ID ${entry.recordId}');
       } on SyncException catch (e) {
-        debugPrint('[Sync PUSH] ERROR (SyncException) en entrada ${entry.id} (${entry.targetTable}): ${e.message}');
+        if (kDebugMode) debugPrint('[Sync PUSH] ERROR (SyncException) en entrada ${entry.id} (${entry.targetTable}): ${e.message}');
         if (e.message.contains('22P02') ||
             e.message.contains('violates foreign key constraint') ||
             e.message.contains('PGRST204') ||
             e.message.contains('PGRST205') ||
             e.message.contains('42501')) {
           await _syncRepo.delete(entry.id);
-          debugPrint('[Sync PUSH] Entrada omitida y removida de la cola por error de restricciones de BD.');
+          if (kDebugMode) debugPrint('[Sync PUSH] Entrada omitida y removida de la cola por error de restricciones de BD.');
         }
         errors.add('Entry ${entry.id} (${entry.targetTable}): ${e.message}');
       } catch (e) {
-        debugPrint('[Sync PUSH] ERROR INESPERADO en entrada ${entry.id} (${entry.targetTable}): $e');
+        if (kDebugMode) debugPrint('[Sync PUSH] ERROR INESPERADO en entrada ${entry.id} (${entry.targetTable}): $e');
         errors.add('Unexpected error on entry ${entry.id}: $e');
       }
     }
@@ -108,15 +108,15 @@ class ProcessSyncQueueUseCase {
     try {
       await _performPull(errors, companyId);
     } catch (e) {
-      debugPrint('[Sync PULL] ERROR al ejecutar Pull: $e');
+      if (kDebugMode) debugPrint('[Sync PULL] ERROR al ejecutar Pull: $e');
       errors.add('Pull Error: $e');
     }
 
     final result = SyncResult(synced: success, errors: errors, total: pending.length);
     if (errors.isNotEmpty) {
-      debugPrint('[Sync ENGINE] Completado con ${errors.length} errores. Detalles: $errors');
+      if (kDebugMode) debugPrint('[Sync ENGINE] Completado con ${errors.length} errores. Detalles: $errors');
     } else if (pending.isNotEmpty || success > 0) {
-      debugPrint('[Sync ENGINE] Completado exitosamente. $success de ${pending.length} procesados.');
+      if (kDebugMode) debugPrint('[Sync ENGINE] Completado exitosamente. $success de ${pending.length} procesados.');
     }
     return result;
   }
@@ -135,7 +135,7 @@ class ProcessSyncQueueUseCase {
       
       // Skip if company_id doesn't match current user
       if (summary['company_id'] != companyId) {
-        debugPrint('[Sync PUSH] Skipping daily summary with wrong company_id: ${summary['company_id']}');
+        if (kDebugMode) debugPrint('[Sync PUSH] Skipping daily summary with wrong company_id: ${summary['company_id']}');
         await _db.markDailySummaryPayloadSynced(summaryRow['id'] as String);
         continue;
       }
@@ -158,7 +158,7 @@ class ProcessSyncQueueUseCase {
       
       // Skip if company_id doesn't match current user
       if (rollup['company_id'] != companyId) {
-        debugPrint('[Sync PUSH] Skipping activity rollup with wrong company_id: ${rollup['company_id']}');
+        if (kDebugMode) debugPrint('[Sync PUSH] Skipping activity rollup with wrong company_id: ${rollup['company_id']}');
         await _db.markActivityRollupPayloadSynced(rollupRow['id'] as String);
         continue;
       }
@@ -228,22 +228,22 @@ Future<String> _resolveCompanyId() async {
   }
 
 Future<void> _performPull(List<String> errors, String companyId) async {
-    debugPrint('[Sync PULL] Using companyId: "$companyId"');
+    if (kDebugMode) debugPrint('[Sync PULL] Using companyId: "$companyId"');
 
     if (companyId == AppConstants.defaultCompanyId || companyId.isEmpty) {
       errors.add('CRITICAL: No se pudo determinar companyId para el usuario. Verifique que el usuario tenga company_id en metadatos JWT o registro en public.employees.');
-      debugPrint('[Sync PULL] ERROR: companyId no puede ser determinado. Abortando sync pull.');
+      if (kDebugMode) debugPrint('[Sync PULL] ERROR: companyId no puede ser determinado. Abortando sync pull.');
       return;
     }
 
-    debugPrint('[Sync PULL] companyId validado, procediendo con Pull...');
+    if (kDebugMode) debugPrint('[Sync PULL] companyId validado, procediendo con Pull...');
 
     final pendingSyncEntries = await _db.getPendingSyncQueueEntries();
 
     final remoteWorkstations = await _remote.fetchAllWorkstations(companyId);
     final remoteWorkstationIds =
         remoteWorkstations.map((w) => w['id'] as String).toSet();
-    debugPrint('[Sync PULL] Workstations remotas recuperadas: ${remoteWorkstationIds.toList()}');
+    if (kDebugMode) debugPrint('[Sync PULL] Workstations remotas recuperadas: ${remoteWorkstationIds.toList()}');
 
     final localWorkstations = await _db.getAllWorkstationRecords();
     final pendingWorkstationIds = pendingSyncEntries
@@ -363,7 +363,7 @@ Future<void> _performPull(List<String> errors, String companyId) async {
   Future<void> _pullTasks(List<String> errors, String companyId) async {
     try {
       final rows = await _remote.fetchByCompany('tasks', companyId);
-      debugPrint('[Sync PULL] tasks remotas: ${rows.length}');
+      if (kDebugMode) debugPrint('[Sync PULL] tasks remotas: ${rows.length}');
       for (final r in rows) {
         await _db.into(_db.taskRecords).insertOnConflictUpdate(
               TaskData(
@@ -389,7 +389,7 @@ Future<void> _performPull(List<String> errors, String companyId) async {
             );
       }
     } catch (e) {
-      debugPrint('[Sync PULL] Error pulling tasks: $e');
+      if (kDebugMode) debugPrint('[Sync PULL] Error pulling tasks: $e');
       errors.add('Pull tasks: $e');
     }
   }
@@ -397,7 +397,7 @@ Future<void> _performPull(List<String> errors, String companyId) async {
   Future<void> _pullLeaveRequests(List<String> errors, String companyId) async {
     try {
       final rows = await _remote.fetchByCompany('leave_requests', companyId);
-      debugPrint('[Sync PULL] leave_requests remotas: ${rows.length}');
+      if (kDebugMode) debugPrint('[Sync PULL] leave_requests remotas: ${rows.length}');
       for (final r in rows) {
         await _db.into(_db.leaveRequestRecords).insertOnConflictUpdate(
               LeaveRequestData(
@@ -422,7 +422,7 @@ Future<void> _performPull(List<String> errors, String companyId) async {
             );
       }
     } catch (e) {
-      debugPrint('[Sync PULL] Error pulling leave_requests: $e');
+      if (kDebugMode) debugPrint('[Sync PULL] Error pulling leave_requests: $e');
       errors.add('Pull leave_requests: $e');
     }
   }
@@ -436,7 +436,7 @@ Future<void> _performPull(List<String> errors, String companyId) async {
         ascending: false,
         limit: 200,
       );
-      debugPrint('[Sync PULL] alert_logs remotas: ${rows.length}');
+      if (kDebugMode) debugPrint('[Sync PULL] alert_logs remotas: ${rows.length}');
       for (final r in rows) {
         await _db.into(_db.alertLogRecords).insertOnConflictUpdate(
               AlertLogData(
@@ -454,7 +454,7 @@ Future<void> _performPull(List<String> errors, String companyId) async {
             );
       }
     } catch (e) {
-      debugPrint('[Sync PULL] Error pulling alert_logs: $e');
+      if (kDebugMode) debugPrint('[Sync PULL] Error pulling alert_logs: $e');
       errors.add('Pull alert_logs: $e');
     }
   }
@@ -462,7 +462,7 @@ Future<void> _performPull(List<String> errors, String companyId) async {
   Future<void> _pullAnnouncements(List<String> errors, String companyId) async {
     try {
       final rows = await _remote.fetchByCompany('announcements', companyId);
-      debugPrint('[Sync PULL] announcements remotas: ${rows.length}');
+      if (kDebugMode) debugPrint('[Sync PULL] announcements remotas: ${rows.length}');
       for (final r in rows) {
         await _db.into(_db.announcementRecords).insertOnConflictUpdate(
               AnnouncementData(
@@ -483,7 +483,7 @@ Future<void> _performPull(List<String> errors, String companyId) async {
             );
       }
     } catch (e) {
-      debugPrint('[Sync PULL] Error pulling announcements: $e');
+      if (kDebugMode) debugPrint('[Sync PULL] Error pulling announcements: $e');
       errors.add('Pull announcements: $e');
     }
   }
@@ -504,7 +504,7 @@ Future<void> _performPull(List<String> errors, String companyId) async {
   Future<void> _pullShifts(List<String> errors, String companyId) async {
     try {
       final rows = await _remote.fetchByCompany('shifts', companyId);
-      debugPrint('[Sync PULL] shifts remotos: ${rows.length}');
+      if (kDebugMode) debugPrint('[Sync PULL] shifts remotos: ${rows.length}');
       for (final r in rows) {
         // Remote stores times as 'HH:MM:SS' strings — parse to hour/minute ints
         final startRaw = r['start_time'] as String?;
@@ -532,7 +532,7 @@ Future<void> _performPull(List<String> errors, String companyId) async {
             );
       }
     } catch (e) {
-      debugPrint('[Sync PULL] Error pulling shifts: $e');
+      if (kDebugMode) debugPrint('[Sync PULL] Error pulling shifts: $e');
       errors.add('Pull shifts: $e');
     }
   }
@@ -546,7 +546,7 @@ Future<void> _performPull(List<String> errors, String companyId) async {
         ascending: false,
         limit: 300,
       );
-      debugPrint('[Sync PULL] attendance_logs remotas: ${rows.length}');
+      if (kDebugMode) debugPrint('[Sync PULL] attendance_logs remotas: ${rows.length}');
       for (final r in rows) {
         await _db.into(_db.attendanceLogs).insertOnConflictUpdate(
               AttendanceLogData(
@@ -569,7 +569,7 @@ Future<void> _performPull(List<String> errors, String companyId) async {
             );
       }
     } catch (e) {
-      debugPrint('[Sync PULL] Error pulling attendance_logs: $e');
+      if (kDebugMode) debugPrint('[Sync PULL] Error pulling attendance_logs: $e');
       errors.add('Pull attendance_logs: $e');
     }
   }

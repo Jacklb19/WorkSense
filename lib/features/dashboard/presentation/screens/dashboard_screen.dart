@@ -34,7 +34,7 @@ class DashboardScreen extends ConsumerWidget {
         body: Center(
           child: Text(
             'Error: $error',
-            style: TextStyle(color: AppColors.error),
+            style: const TextStyle(color: AppColors.error),
           ),
         ),
       ),

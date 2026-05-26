@@ -1,5 +1,6 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 
 class CameraPreviewWidget extends StatelessWidget {
@@ -53,14 +54,14 @@ class _CameraPlaceholder extends StatelessWidget {
             Icon(
               Icons.camera_alt_outlined,
               color: AppColors.grey600,
-              size: 48,
+              size: AppDimensions.iconEmptyState,
             ),
-            SizedBox(height: 12),
+            SizedBox(height: AppDimensions.spacingMd),
             Text(
               'Iniciando cámara...',
               style: TextStyle(
                 color: AppColors.grey500,
-                fontSize: 14,
+                fontSize: AppDimensions.fontBodyMd,
               ),
             ),
           ],
@@ -87,33 +88,33 @@ class CameraErrorWidget extends StatelessWidget {
       color: AppColors.backgroundDark,
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppDimensions.spacing24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(
                 Icons.videocam_off_outlined,
                 color: AppColors.error,
-                size: 48,
+                size: AppDimensions.iconEmptyState,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppDimensions.spacingXxl),
               Text(
                 message,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
+style: const TextStyle(
+                  color: AppColors.white,
+                  fontSize: AppDimensions.fontBodyMd,
                 ),
                 textAlign: TextAlign.center,
               ),
               if (onRetry != null) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: AppDimensions.spacingXxl),
                 OutlinedButton.icon(
                   onPressed: onRetry,
                   icon: const Icon(Icons.refresh),
                   label: const Text('Reintentar'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white38),
+                    foregroundColor: AppColors.white,
+                    side: const BorderSide(color: AppColors.white38),
                   ),
                 ),
               ],

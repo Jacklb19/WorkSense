@@ -1,53 +1,67 @@
 import 'package:flutter/material.dart';
-
 import '../../../core/constants/app_dimensions.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 
 class AppSectionHeader extends StatelessWidget {
-  final String title;
-  final IconData? icon;
-  final Color? accentColor;
-
   const AppSectionHeader({
     super.key,
     required this.title,
-    this.icon,
-    this.accentColor,
+    this.action,
+    this.subtitle,
   });
+
+  final String title;
+  final Widget? action;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
-    final color = accentColor ?? AppColors.primary;
+    final onSurfaceSecondary = context.appOnSurfaceSecondary;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppDimensions.spacingMd),
-      child: Row(
+    return Semantics(
+      header: true,
+      label: title,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (icon != null) ...[
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: AppDimensions.spacingSm),
-          ],
-          Container(
-            width: 3,
-            height: 14,
-            margin: const EdgeInsets.only(right: AppDimensions.spacingMd),
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Flexible(
-            child: Text(
-              title,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: color,
+          Row(
+            children: [
+              Container(
+                width: 3,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusXxs),
+                ),
+              ),
+              const SizedBox(width: AppDimensions.spacingMd),
+              Expanded(
+                child: Text(
+                  title.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: AppDimensions.fontCaption,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.5,
+                    color: AppColors.primary,
                   ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+                ),
+              ),
+              if (action != null) action!,
+            ],
           ),
+          if (subtitle != null)
+            Padding(
+              padding: const EdgeInsets.only(left: AppDimensions.spacingMd + 3),
+              child: Text(
+                subtitle!,
+                style: TextStyle(
+                  fontSize: AppDimensions.fontSm,
+                  color: onSurfaceSecondary,
+                ),
+              ),
+            ),
+          const SizedBox(height: AppDimensions.spacingSm),
         ],
       ),
     );

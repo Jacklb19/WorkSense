@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/constants/app_strings.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/features/alerts/presentation/providers/alerts_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/admin_analytics_provider.dart';
 import 'package:worksense_app/features/notifications/presentation/widgets/notification_panel.dart';
@@ -17,21 +19,23 @@ import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
 import 'package:worksense_app/shared/widgets/sync_indicator_widget.dart';
+import 'package:worksense_app/shared/widgets/styled/app_content_constrainer.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
 
-  @override
+@override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final employeesAsync = ref.watch(adminEmployeesProvider);
     final userState = ref.watch(currentUserProvider);
     final userEmail = userState.valueOrNull?.user?.email;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.appBackground,
       body: RefreshIndicator(
         color: AppColors.primary,
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.appSurface,
         onRefresh: () async {
           await ref.read(syncNotifierProvider.notifier).sync();
           ref.invalidate(adminEmployeesProvider);
@@ -41,7 +45,6 @@ class AdminDashboardScreen extends ConsumerWidget {
         },
         child: CustomScrollView(
           slivers: [
-            // ── Header ──────────────────────────────────────────────────
             SliverToBoxAdapter(
               child: _DashboardHeader(
                 userEmail: userEmail,
@@ -49,18 +52,21 @@ class AdminDashboardScreen extends ConsumerWidget {
               ),
             ),
 
-            // ── KPI panel ───────────────────────────────────────────────
-            SliverToBoxAdapter(
+            AppSliverContentConstrainer(
+              width: AppContentWidth.dashboard,
               child: _KpiPanel(ref: ref),
             ),
 
-            // ── Quick actions row 1 ──────────────────────────────────────
-            const SliverToBoxAdapter(child: _QuickActionsRow()),
+            const AppSliverContentConstrainer(
+              width: AppContentWidth.dashboard,
+              child: _QuickActionsRow(),
+            ),
 
-            // ── Quick actions row 2 (Nómina + Evaluaciones) ──────────────
-            const SliverToBoxAdapter(child: _QuickActionsRow2()),
+            const AppSliverContentConstrainer(
+              width: AppContentWidth.dashboard,
+              child: _QuickActionsRow2(),
+            ),
 
-            // ── Employee list ────────────────────────────────────────────
             employeesAsync.when(
               loading: () => const SliverFillRemaining(
                 child: AppLoadingWidget(message: 'Cargando colaboradores…'),
@@ -97,10 +103,8 @@ class AdminDashboardScreen extends ConsumerWidget {
                             const SizedBox(width: 10),
                             Text(
                               'COLABORADORES',
-                              style: TextStyle(
-                                color: AppColors.textSecondaryDark
-                                    .withValues(alpha: 0.9),
-                                fontSize: 11,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: context.appOnSurfaceSecondary.withValues(alpha: 0.9),
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 1.5,
                               ),
@@ -111,19 +115,15 @@ class AdminDashboardScreen extends ConsumerWidget {
                                   horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
                                 color: AppColors.primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
                                 border: Border.all(
-                                  color:
-                                      AppColors.primary.withValues(alpha: 0.2),
+                                    color:
+                                        AppColors.primary.withValues(alpha: 0.2),
                                 ),
                               ),
                               child: Text(
                                 '${employees.length}',
-                                style: const TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                                style: theme.textTheme.labelMedium?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
                               ),
                             ),
                           ],
@@ -131,14 +131,14 @@ class AdminDashboardScreen extends ConsumerWidget {
                       ),
                     ),
                     SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl),
                       sliver: SliverGrid(
                         gridDelegate:
                             const SliverGridDelegateWithMaxCrossAxisExtent(
                           maxCrossAxisExtent: 360,
                           mainAxisExtent: 176,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
+                          mainAxisSpacing: AppDimensions.spacingLg,
+                          crossAxisSpacing: AppDimensions.spacingLg,
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) => EmployeeDashboardCard(
@@ -161,8 +161,6 @@ class AdminDashboardScreen extends ConsumerWidget {
   }
 }
 
-// ── Dashboard header ──────────────────────────────────────────────────────────
-
 class _DashboardHeader extends StatelessWidget {
   final String? userEmail;
   final WidgetRef ref;
@@ -171,6 +169,7 @@ class _DashboardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final hour = DateTime.now().hour;
     final greeting = hour < 12
         ? 'Buenos días'
@@ -181,9 +180,9 @@ class _DashboardHeader extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(
         20,
-        MediaQuery.of(context).padding.top + 16,
+        MediaQuery.of(context).padding.top + AppDimensions.spacingXxl,
         20,
-        20,
+        AppDimensions.spacing20,
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -194,8 +193,8 @@ class _DashboardHeader extends StatelessWidget {
             AppColors.backgroundDark,
           ],
         ),
-        border: const Border(
-          bottom: BorderSide(color: AppColors.glassBorder, width: 0.6),
+        border: Border(
+          bottom: BorderSide(color: context.appGlassBorder, width: 0.6),
         ),
       ),
       child: Row(
@@ -206,18 +205,16 @@ class _DashboardHeader extends StatelessWidget {
               children: [
                 Text(
                   greeting,
-                  style: const TextStyle(
-                    color: AppColors.textSecondaryDark,
-                    fontSize: 13,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: context.appOnSurfaceSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 2),
-                const Text(
+                Text(
                   'Comando Central',
-                  style: TextStyle(
-                    color: AppColors.textPrimaryDark,
-                    fontSize: 24,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: context.appOnSurface,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.3,
                   ),
@@ -225,17 +222,14 @@ class _DashboardHeader extends StatelessWidget {
               ],
             ),
           ),
-          // Notification bell (replaces announcement bell — includes all notifications)
           const NotificationBellButton(isIconButton: false),
           const SizedBox(width: 6),
-          // Chat button
           _HeaderIconBtn(
             icon: Icons.forum_rounded,
             tooltip: 'Conversaciones',
             onTap: () => context.push(AppRoutes.chatList),
           ),
           const SizedBox(width: 4),
-          // Analytics button
           _HeaderIconBtn(
             icon: Icons.bar_chart_rounded,
             tooltip: 'Analíticas',
@@ -249,15 +243,13 @@ class _DashboardHeader extends StatelessWidget {
   }
 }
 
-// ── Quick actions ─────────────────────────────────────────────────────────────
-
 class _QuickActionsRow extends StatelessWidget {
   const _QuickActionsRow();
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: const EdgeInsets.fromLTRB(0, 4, 0, 8),
       child: Row(
         children: [
           Expanded(
@@ -292,15 +284,13 @@ class _QuickActionsRow extends StatelessWidget {
   }
 }
 
-// ── Quick actions row 2 ───────────────────────────────────────────────────────
-
 class _QuickActionsRow2 extends StatelessWidget {
   const _QuickActionsRow2();
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
       child: Row(
         children: [
           Expanded(
@@ -341,37 +331,44 @@ class _ActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 16),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
-              ),
+    final theme = Theme.of(context);
+    return Semantics(
+      button: true,
+      label: label,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingLg, horizontal: 8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
+              border: Border.all(color: color.withValues(alpha: 0.2)),
             ),
-          ],
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: color, size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
-
-// ── KPI Panel ─────────────────────────────────────────────────────────────────
 
 class _KpiPanel extends StatelessWidget {
   const _KpiPanel({required this.ref});
@@ -394,7 +391,7 @@ class _KpiPanel extends StatelessWidget {
     final unackAlerts = ref.watch(unacknowledgedAlertCountProvider);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(0, AppDimensions.spacingLg, 0, 4),
       child: Row(
         children: [
           Expanded(
@@ -406,7 +403,7 @@ class _KpiPanel extends StatelessWidget {
               onTap: () => context.push(AppRoutes.employees),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppDimensions.spacingMd),
           Expanded(
             child: _KpiTile(
               icon: Icons.computer_rounded,
@@ -416,7 +413,7 @@ class _KpiPanel extends StatelessWidget {
               onTap: () => context.push(AppRoutes.workstations),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppDimensions.spacingMd),
           Expanded(
             child: _KpiTile(
               icon: Icons.task_alt_rounded,
@@ -426,7 +423,7 @@ class _KpiPanel extends StatelessWidget {
               onTap: () => context.push(AppRoutes.tasks),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppDimensions.spacingMd),
           Expanded(
             child: _KpiTile(
               icon: Icons.event_note_rounded,
@@ -436,7 +433,7 @@ class _KpiPanel extends StatelessWidget {
               onTap: () => context.push(AppRoutes.leaves),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppDimensions.spacingMd),
           Expanded(
             child: _KpiTile(
               icon: Icons.warning_amber_rounded,
@@ -470,57 +467,64 @@ class _KpiTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = colors.first;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withValues(alpha: 0.18)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: colors),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: Colors.white, size: 16),
+    return Semantics(
+      button: true,
+      label: label,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingLg, horizontal: 6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppDimensions.radiusCard),
+              border: Border.all(color: color.withValues(alpha: 0.18)),
             ),
-            const SizedBox(height: 8),
-            Text(
-              '$value',
-              style: TextStyle(
-                color: color,
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-                height: 1,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: colors),
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
+                  ),
+                  child: Icon(icon, color: AppColors.white, size: 16),
+                ),
+                const SizedBox(height: AppDimensions.spacingMd),
+                Text(
+                  '$value',
+                  style: TextStyle(
+                    color: color,
+                    fontSize: AppDimensions.fontHeadline,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: context.appOnSurfaceSecondary,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                ),
+              ],
             ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: const TextStyle(
-                color: AppColors.textSecondaryDark,
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.2,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
-
-// ── Empty / Error states ──────────────────────────────────────────────────────
 
 class _EmptyEmployeesView extends ConsumerWidget {
   final String? userEmail;
@@ -529,9 +533,10 @@ class _EmptyEmployeesView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppDimensions.spacing32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -540,29 +545,26 @@ class _EmptyEmployeesView extends ConsumerWidget {
               height: 80,
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
                 border: Border.all(
                     color: AppColors.primary.withValues(alpha: 0.2)),
               ),
               child: const Icon(Icons.people_outline_rounded,
                   size: 36, color: AppColors.primary),
             ),
-            const SizedBox(height: 20),
-            const Text(
+            const SizedBox(height: AppDimensions.spacing20),
+            Text(
               'Sin colaboradores aún',
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
-                fontSize: 18,
+                color: context.appOnSurface,
+                fontSize: AppDimensions.fontTitleLg,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            const SizedBox(height: AppDimensions.spacingMd),
+            Text(
               'Registra empleados para comenzar a\ngestionar asistencia y productividad.',
-              style: TextStyle(
-                color: AppColors.textSecondaryDark,
-                fontSize: 14,
-              ),
+              style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 28),
@@ -597,27 +599,20 @@ class _ErrorView extends StatelessWidget {
               height: 64,
               decoration: BoxDecoration(
                 color: AppColors.error.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
               ),
               child: const Icon(Icons.error_outline_rounded,
                   color: AppColors.error, size: 32),
             ),
-            const SizedBox(height: 16),
-            const Text(
+            const SizedBox(height: AppDimensions.spacingXxl),
+            Text(
               AppStrings.errorLoadingData,
-              style: TextStyle(
-                color: AppColors.textPrimaryDark,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
+              style: theme.textTheme.titleMedium?.copyWith(color: context.appOnSurface),
             ),
             const SizedBox(height: 6),
             Text(
               error,
-              style: const TextStyle(
-                color: AppColors.textSecondaryDark,
-                fontSize: 12,
-              ),
+              style: theme.textTheme.bodySmall?.copyWith(color: context.appOnSurfaceSecondary),
               textAlign: TextAlign.center,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
@@ -642,22 +637,26 @@ class _HeaderIconBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceDark,
-            borderRadius: BorderRadius.circular(10),
-            border: const Border.fromBorderSide(
-              BorderSide(color: AppColors.glassBorder),
+    return Semantics(
+      button: true,
+      label: tooltip,
+      child: Tooltip(
+        message: tooltip,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
+          child: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: context.appSurface,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
+              border: Border.fromBorderSide(
+                BorderSide(color: context.appGlassBorder),
+              ),
             ),
+            child: Icon(icon, size: 18, color: context.appOnSurfaceSecondary),
           ),
-          child: Icon(icon, size: 18, color: AppColors.textSecondaryDark),
         ),
       ),
     );

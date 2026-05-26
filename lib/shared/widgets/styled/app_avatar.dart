@@ -1,62 +1,67 @@
 import 'package:flutter/material.dart';
-
 import '../../../core/theme/app_colors.dart';
+import '../../../core/constants/app_dimensions.dart';
+import '../../../core/theme/app_theme_extensions.dart';
 
 class AppAvatar extends StatelessWidget {
-  final double radius;
-  final String? letter;
-  final IconData? icon;
-  final Color? backgroundColor;
-  final Color? foregroundColor;
-  final Color? borderColor;
-  final Color? glowColor;
-  final double borderWidth;
-
   const AppAvatar({
     super.key,
-    this.radius = 24.0,
-    this.letter,
-    this.icon,
+    this.imageUrl,
+    this.initials,
+    this.radius,
     this.backgroundColor,
-    this.foregroundColor,
     this.borderColor,
-    this.glowColor,
     this.borderWidth = 2.0,
-  }) : assert(letter != null || icon != null);
+    this.showGlow = false,
+  });
+
+  final String? imageUrl;
+  final String? initials;
+  final double? radius;
+  final Color? backgroundColor;
+  final Color? borderColor;
+  final double borderWidth;
+  final bool showGlow;
 
   @override
   Widget build(BuildContext context) {
-    final bg = backgroundColor ?? AppColors.primary.withAlpha(30);
-    final fg = foregroundColor ?? AppColors.primary;
+    final r = radius ?? AppDimensions.avatarRadiusMd;
+    final theme = Theme.of(context);
+    final resolvedBorderColor = borderColor ?? AppColors.primary;
+    final resolvedBgColor = backgroundColor ?? context.appCard;
+    final textColor = theme.colorScheme.onSurface;
 
     return Container(
-      width: radius * 2 + borderWidth * 2,
-      height: radius * 2 + borderWidth * 2,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: glowColor != null
-            ? [
+      decoration: showGlow
+          ? BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
                 BoxShadow(
-                  color: glowColor!.withAlpha(50),
-                  blurRadius: 12,
-                  spreadRadius: 2,
+                  color: resolvedBorderColor.withValues(alpha: 0.4),
+                  blurRadius: r * 0.5,
+                  spreadRadius: r * 0.1,
                 ),
-              ]
-            : null,
-      ),
+              ],
+            )
+          : null,
       child: CircleAvatar(
-        radius: radius,
-        backgroundColor: bg,
-        child: icon != null
-            ? Icon(icon, size: radius, color: fg)
-            : Text(
-                letter!.toUpperCase(),
-                style: TextStyle(
-                  color: fg,
-                  fontWeight: FontWeight.bold,
-                  fontSize: radius * 0.85,
-                ),
-              ),
+        radius: r,
+        backgroundColor: resolvedBorderColor,
+        child: CircleAvatar(
+          radius: r - borderWidth,
+          backgroundColor: resolvedBgColor,
+          backgroundImage: imageUrl != null ? NetworkImage(imageUrl!) : null,
+          child: imageUrl == null
+              ? Text(
+                  initials ?? '?',
+                  style: TextStyle(
+                    fontSize: r * 0.7,
+                    fontWeight: FontWeight.w700,
+                    color: textColor,
+                  ),
+                )
+              : null,
+        ),
       ),
     );
   }

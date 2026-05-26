@@ -4,7 +4,10 @@ import 'package:camera/camera.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:screen_brightness/screen_brightness.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 import 'package:worksense_app/features/camera_monitor/presentation/providers/entrance_kiosk_provider.dart';
 
 class EntranceKioskScreen extends ConsumerStatefulWidget {
@@ -134,7 +137,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
     final isWelcome = state.phase == KioskPhase.welcome;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.black,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -149,8 +152,8 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
           AnimatedContainer(
             duration: const Duration(milliseconds: 400),
             color: isWelcome
-                ? Colors.black.withValues(alpha: 0.75)
-                : Colors.black.withValues(alpha: 0.4),
+                ? AppColors.black.withValues(alpha: 0.75)
+                : AppColors.black.withValues(alpha: 0.4),
           ),
 
           // 3 ── Flash overlay blanco (activo solo en fase verifying)
@@ -161,7 +164,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
             child: AnimatedOpacity(
               opacity: _isFlashing ? 0.72 : 0.0,
               duration: const Duration(milliseconds: 150),
-              child: const ColoredBox(color: Colors.white),
+              child: const ColoredBox(color: AppColors.white),
             ),
           ),
 
@@ -201,7 +204,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                     color: borderColor.withValues(alpha: _pulseAnimation.value),
                     width: 4,
                   ),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
                   boxShadow: [
                     BoxShadow(
                       color: borderColor.withValues(
@@ -239,27 +242,27 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
             child: _isFlashing
                 ? Padding(
                     key: const ValueKey('flash-chip'),
-                    padding: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.only(bottom: AppDimensions.spacing10),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 6),
+                          horizontal: AppDimensions.spacingXl, vertical: AppDimensions.spacingXs),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
+                        color: AppColors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppDimensions.radiusPill),
                         border: Border.all(
-                            color: Colors.white30, width: 1),
+                            color: AppColors.white30, width: 1),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.flash_on_rounded,
-                              color: Colors.white70, size: 14),
-                          SizedBox(width: 6),
+                              color: AppColors.white70, size: AppDimensions.iconSm),
+                          SizedBox(width: AppDimensions.spacingSm),
                           Text(
                             'Iluminación activa',
                             style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
+                              color: AppColors.white70,
+                              fontSize: AppDimensions.fontCaption,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -272,19 +275,19 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
 
           // Tarjeta de estado
           Container(
-            margin: const EdgeInsets.only(bottom: 40, left: 20, right: 20),
+            margin: const EdgeInsets.only(bottom: AppDimensions.spacing40, left: AppDimensions.spacing20, right: AppDimensions.spacing20),
             padding:
-                const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                const EdgeInsets.symmetric(horizontal: AppDimensions.spacing32, vertical: AppDimensions.spacing24),
             decoration: BoxDecoration(
-              color: AppColors.cardDark,
-              borderRadius: BorderRadius.circular(16),
+              color: context.appCard,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
               border: Border.all(
-                color: AppColors.glassBorder,
+                color: context.appGlassBorder,
                 width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
+                  color: AppColors.black.withValues(alpha: 0.3),
                   blurRadius: 15,
                   offset: const Offset(0, 5),
                 ),
@@ -295,8 +298,8 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
               children: [
                 if (isVerifying)
                   const SizedBox(
-                    width: 24,
-                    height: 24,
+                    width: AppDimensions.spacingXxl,
+                    height: AppDimensions.spacingXxl,
                     child: CircularProgressIndicator(
                       strokeWidth: 3,
                       color: AppColors.feedbackCapturing,
@@ -307,16 +310,16 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                     state.phase == KioskPhase.scanning
                         ? Icons.face_retouching_natural
                         : Icons.hourglass_top,
-                    color: Colors.white70,
-                    size: 28,
+                    color: AppColors.white70,
+                    size: AppDimensions.iconLg,
                   ),
-                const SizedBox(width: 16),
+                const SizedBox(width: AppDimensions.spacingXxl),
                 Expanded(
                   child: Text(
                     state.statusMessage,
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
+                      color: AppColors.white,
+                      fontSize: AppDimensions.fontTitleLg,
                       fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.center,
@@ -340,7 +343,7 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
         child: SafeArea(
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
+              padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing32),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -364,43 +367,43 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                     ),
                     child: const Icon(
                       Icons.check_rounded,
-                      color: Colors.white,
-                      size: 64,
+                      color: AppColors.white,
+                      size: AppDimensions.iconEmptyStateLg,
                     ),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: AppDimensions.spacing32),
 
                   const Text(
-                    '¡ÉXITO!',
+                    AppStrings.success,
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
+                      color: AppColors.white,
+                      fontSize: AppDimensions.fontTitle,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 6,
                     ),
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppDimensions.spacingLg),
 
                   Text(
                     state.statusMessage,
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
+                      color: AppColors.white,
+                      fontSize: AppDimensions.fontDisplayXs,
                       fontWeight: FontWeight.w800,
                     ),
                     textAlign: TextAlign.center,
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppDimensions.spacing24),
 
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 16),
+                        horizontal: AppDimensions.spacing24, vertical: AppDimensions.spacingXxl),
                     decoration: BoxDecoration(
-                      color: AppColors.cardDark.withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(16),
+                      color: context.appCard.withValues(alpha: 0.8),
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
                       border: Border.all(
                         color: AppColors.success.withValues(alpha: 0.3),
                         width: 1,
@@ -410,37 +413,37 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(10),
+                          padding: const EdgeInsets.all(AppDimensions.spacing10),
                           decoration: BoxDecoration(
                             color:
                                 AppColors.success.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
                           ),
                           child: const Icon(
                             Icons.desktop_mac_rounded,
                             color: AppColors.success,
-                            size: 28,
+                            size: AppDimensions.iconLg,
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: AppDimensions.spacingXxl),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'ESTACIÓN DE TRABAJO',
+                              AppStrings.workstation,
                               style: TextStyle(
-                                color: Colors.white54,
-                                fontSize: 11,
+                                color: AppColors.white54,
+                                fontSize: AppDimensions.fontSm,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 1.5,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: AppDimensions.spacingXs),
                             Text(
                               state.matchedWorkstationName ?? 'Activada',
                               style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
+                                color: AppColors.white,
+                                fontSize: AppDimensions.fontTitleLg,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -450,14 +453,14 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppDimensions.spacing20),
 
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 10),
+                        horizontal: AppDimensions.spacing20, vertical: AppDimensions.spacing10),
                     decoration: BoxDecoration(
                       color: AppColors.success.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusContainer),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
@@ -465,14 +468,14 @@ class _EntranceKioskScreenState extends ConsumerState<EntranceKioskScreen>
                         Icon(
                           Icons.verified_rounded,
                           color: AppColors.success,
-                          size: 18,
+                          size: AppDimensions.iconSm,
                         ),
-                        SizedBox(width: 8),
+                        SizedBox(width: AppDimensions.spacingMd),
                         Text(
                           'Acceso Autorizado · Puedes pasar',
                           style: TextStyle(
                             color: AppColors.success,
-                            fontSize: 14,
+                            fontSize: AppDimensions.fontBodyMd,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -493,29 +496,33 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(AppDimensions.spacing24),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => context.pop(),
+          Semantics(
+            button: true,
+            label: AppStrings.closeMonitor,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppColors.white),
+              onPressed: () => context.pop(),
+            ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppDimensions.spacingXxl),
           const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'WORKSENSE',
+                AppStrings.worksenseBrand,
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
+                  color: AppColors.white,
+                  fontSize: AppDimensions.fontDisplayXs,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 2,
                 ),
               ),
               Text(
-                'Kiosco de Acceso Frontal',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
+                AppStrings.kioskAccessFrontal,
+                style: TextStyle(color: AppColors.white70, fontSize: AppDimensions.fontBodyMd),
               ),
             ],
           ),

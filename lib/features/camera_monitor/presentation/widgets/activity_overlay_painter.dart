@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 
@@ -25,10 +26,28 @@ class ActivityOverlayPainter extends CustomPainter {
     this.identityConfidence = 0.0,
   });
 
-  // ─── COLORES ────────────────────────────────────────────────────────────────
+  // ─── CACHED PAINTS ─────────────────────────────────────────────────────
   static const Color _cyanDot  = AppColors.overlayCyanDot;
   static const Color _cyanLine = AppColors.overlayCyanLine;
   static const Color _redDot   = AppColors.overlayRedDot;
+
+  late final Paint _poseLinePaint = Paint()
+    ..color = _cyanLine.withValues(alpha: 0.4)
+    ..strokeWidth = 1.5
+    ..strokeCap = StrokeCap.round;
+
+  late final Paint _poseDotPaint = Paint()
+    ..color = _cyanDot
+    ..style = PaintingStyle.fill;
+
+  late final Paint _faceMeshPaint = Paint()
+    ..color = _redDot.withValues(alpha: 0.6)
+    ..style = PaintingStyle.fill;
+
+  late final Paint _faceRectPaint = Paint()
+    ..color = AppColors.overlayCyanDot
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2.0;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -48,15 +67,6 @@ class ActivityOverlayPainter extends CustomPainter {
   void _drawPose(Canvas canvas, Size size) {
     if (poses.isEmpty) return;
 
-    final linePaint = Paint()
-      ..color = _cyanLine.withValues(alpha: 0.4)
-      ..strokeWidth = 1.5
-      ..strokeCap = StrokeCap.round;
-
-    final dotPaint = Paint()
-      ..color = _cyanDot
-      ..style = PaintingStyle.fill;
-
     const connections = [
       [PoseLandmarkType.leftShoulder, PoseLandmarkType.rightShoulder],
       [PoseLandmarkType.leftShoulder, PoseLandmarkType.leftElbow],
@@ -74,13 +84,13 @@ class ActivityOverlayPainter extends CustomPainter {
         final b = pose.landmarks[conn[1]];
         if (a == null || b == null) continue;
         if (a.likelihood < 0.5 || b.likelihood < 0.5) continue;
-        canvas.drawLine(_toScreen(a.x, a.y, size), _toScreen(b.x, b.y, size), linePaint);
+        canvas.drawLine(_toScreen(a.x, a.y, size), _toScreen(b.x, b.y, size), _poseLinePaint);
       }
 
       for (final lm in pose.landmarks.values) {
         if (lm.likelihood < 0.5) continue;
         final pt = _toScreen(lm.x, lm.y, size);
-        canvas.drawCircle(pt, 3.0, dotPaint);
+        canvas.drawCircle(pt, 3.0, _poseDotPaint);
       }
     }
   }
@@ -88,17 +98,13 @@ class ActivityOverlayPainter extends CustomPainter {
   void _drawFaceMesh(Canvas canvas, Size size) {
     if (faces.isEmpty) return;
 
-    final dotPaint = Paint()
-      ..color = _redDot.withValues(alpha: 0.6)
-      ..style = PaintingStyle.fill;
-
     for (final face in faces) {
       final landmarks = face.landmarks.values;
       for (final lm in landmarks) {
         final pos = lm?.position;
         if (pos == null) continue;
         final pt = _toScreenInt(pos.x, pos.y, size);
-        canvas.drawCircle(pt, 2.0, dotPaint);
+        canvas.drawCircle(pt, 2.0, _faceMeshPaint);
       }
     }
   }
@@ -108,12 +114,7 @@ class ActivityOverlayPainter extends CustomPainter {
     final face = faces.first;
     final rect = face.boundingBox;
 
-    final paint = Paint()
-      ..color = AppColors.overlayCyanDot
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-
-    const L = 30.0;
+    const L = AppDimensions.kioskGuideCornerLength;
     // Mirror X
     final left   = size.width - (rect.right * (size.width / imageSize.width));
     final right  = size.width - (rect.left * (size.width / imageSize.width));
@@ -128,13 +129,13 @@ class ActivityOverlayPainter extends CustomPainter {
     ];
 
     for (final p in paths) {
-      canvas.drawPath(p, paint);
+      canvas.drawPath(p, _faceRectPaint);
     }
   }
 
   void _drawOutsideAreaOverlay(Canvas canvas, Size size) {
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = Colors.black45);
-    _drawCenteredText(canvas, 'EMPLEADO FUERA DE CÁMARA', Offset(size.width/2, size.height/2), const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 2), size);
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = AppColors.black45);
+    _drawCenteredText(canvas, 'EMPLEADO FUERA DE CÁMARA', Offset(size.width/2, size.height/2), const TextStyle(color: AppColors.white, fontSize: AppDimensions.fontBody, fontWeight: FontWeight.w900, letterSpacing: 2), size);
   }
 
   void _drawIdentityHUD(Canvas canvas, Size size) {
@@ -144,8 +145,8 @@ class ActivityOverlayPainter extends CustomPainter {
     final tp = TextPainter(
       text: TextSpan(
         children: [
-          TextSpan(text: '$icon $label  ', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.normal)),
-          TextSpan(text: '${(identityConfidence*100).toInt()}%', style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900)),
+          TextSpan(text: '$icon $label  ', style: const TextStyle(color: AppColors.white, fontSize: AppDimensions.fontXs, fontWeight: FontWeight.normal)),
+          TextSpan(text: '${(identityConfidence*100).toInt()}%', style: TextStyle(color: color, fontSize: AppDimensions.fontSm, fontWeight: FontWeight.w900)),
         ],
       ),
       textDirection: TextDirection.ltr,
@@ -156,7 +157,7 @@ class ActivityOverlayPainter extends CustomPainter {
     final left = size.width - w - 24;
     const top = 110.0;
 
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(left, top, w, h), const Radius.circular(8)), Paint()..color = AppColors.overlayBadgeBg);
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(left, top, w, h), const Radius.circular(AppDimensions.radiusXl)), Paint()..color = AppColors.overlayBadgeBg);
     tp.paint(canvas, Offset(left + 12, top + 6));
   }
 
@@ -199,5 +200,11 @@ class ActivityOverlayPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(ActivityOverlayPainter old) => true;
+  bool shouldRepaint(ActivityOverlayPainter old) =>
+      state != old.state ||
+      confidence != old.confidence ||
+      poses.length != old.poses.length ||
+      faces.length != old.faces.length ||
+      identityConfidence != old.identityConfidence ||
+      identificationMethod != old.identificationMethod;
 }

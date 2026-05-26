@@ -84,7 +84,7 @@ class _WorkSenseAppState extends ConsumerState<WorkSenseApp> {
     return MaterialApp.router(
       title: 'WorkSense',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
+      theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,
       locale: locale,

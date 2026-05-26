@@ -1,88 +1,75 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-
-import '../../../core/constants/app_dimensions.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
+import '../../../core/constants/app_dimensions.dart';
 
 class AppGradientButton extends StatelessWidget {
-  final String label;
-  final IconData? icon;
-  final VoidCallback? onPressed;
-  final bool isLoading;
-  final List<Color>? gradient;
-  final double height;
-  final double borderRadius;
-  final EdgeInsetsGeometry? padding;
-  final TextStyle? textStyle;
-
   const AppGradientButton({
     super.key,
     required this.label,
+    required this.onPressed,
     this.icon,
-    this.onPressed,
     this.isLoading = false,
-    this.gradient,
-    this.height = 56.0,
-    this.borderRadius = 16.0,
-    this.padding,
-    this.textStyle,
   });
+
+  final String label;
+  final VoidCallback onPressed;
+  final IconData? icon;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
-    final grad = gradient ?? AppColors.gradientButton;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final gradient = isDark ? AppGradients.primaryButton : AppGradients.lightPrimaryButton;
 
-    return Container(
-      width: double.infinity,
-      height: height,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: grad),
-        borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withAlpha(60),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: InkWell(
-          onTap: isLoading ? null : onPressed,
-          borderRadius: BorderRadius.circular(borderRadius),
-          child: Padding(
-            padding: padding ?? const EdgeInsets.symmetric(horizontal: 24),
-            child: Center(
-              child: AnimatedSwitcher(
-                duration: AppDimensions.animNormal,
+    return Semantics(
+      button: true,
+      label: isLoading ? '$label - Cargando' : label,
+      enabled: !isLoading,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          color: AppColors.transparent,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
+          child: InkWell(
+            onTap: isLoading ? null : onPressed,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
+            child: SizedBox(
+              height: AppDimensions.buttonMinHeight,
+              child: Center(
                 child: isLoading
-                    ? SizedBox(
-                        key: const ValueKey('loading'),
-                        width: 24,
-                        height: 24,
-                        child: const CircularProgressIndicator(
-                          strokeWidth: 2,
+                    ? const SizedBox(
+                        width: AppDimensions.progressIndicatorSize,
+                        height: AppDimensions.progressIndicatorSize,
+                        child: CircularProgressIndicator(
+                          strokeWidth: AppDimensions.progressStrokeWidth,
                           color: AppColors.white,
                         ),
                       )
                     : Row(
-                        key: const ValueKey('content'),
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (icon != null) ...[
-                            Icon(icon, color: AppColors.white, size: 20),
-                            const SizedBox(width: 8),
+                            Icon(icon, size: AppDimensions.iconMd, color: AppColors.white),
+                            const SizedBox(width: AppDimensions.spacingMd),
                           ],
                           Text(
                             label,
-                            style: textStyle ??
-                                Theme.of(context).textTheme.labelLarge?.copyWith(
-                                      color: AppColors.white,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 1.0,
-                                    ),
+                            style: const TextStyle(
+                              fontSize: AppDimensions.fontTitle,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.white,
+                            ),
                           ),
                         ],
                       ),
@@ -91,9 +78,6 @@ class AppGradientButton extends StatelessWidget {
           ),
         ),
       ),
-    ).animate(target: onPressed == null ? 0 : 1).shimmer(
-          duration: 1000.ms,
-          color: AppColors.white.withAlpha(8),
-        );
+    );
   }
 }

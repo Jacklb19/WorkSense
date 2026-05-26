@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-
-import '../../core/constants/app_dimensions.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/core/constants/app_strings.dart';
+import 'package:worksense_app/core/theme/app_theme_extensions.dart';
 
 class AppErrorWidget extends StatelessWidget {
   final String message;
@@ -12,111 +12,88 @@ class AppErrorWidget extends StatelessWidget {
     super.key,
     required this.message,
     this.onRetry,
-    this.icon = Icons.error_outline_rounded,
+    this.icon = Icons.error_outline,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: AppColors.error.withValues(alpha: 0.2),
+    final theme = Theme.of(context);
+    final errorColor = theme.colorScheme.error;
+    return Semantics(
+      liveRegion: true,
+      label: '${AppStrings.somethingWentWrong}. $message',
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppDimensions.spacing24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: errorColor, size: AppDimensions.iconEmptyState),
+              const SizedBox(height: AppDimensions.spacingXxl),
+              Text(
+                AppStrings.somethingWentWrong,
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: AppDimensions.spacingMd),
+              Text(
+                message,
+                style: theme.textTheme.bodyMedium?.copyWith(color: context.appOnSurfaceSecondary),
+                textAlign: TextAlign.center,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (onRetry != null) ...[
+                const SizedBox(height: AppDimensions.spacing20),
+                FilledButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text(AppStrings.retryButton),
                 ),
-              ),
-              child: Icon(icon, color: AppColors.error, size: 32),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Algo salió mal',
-              style: TextStyle(
-                color: AppColors.textPrimaryDark,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: AppDimensions.spacingXxl),
-            Text(
-              message,
-              style: const TextStyle(
-                color: AppColors.textSecondaryDark,
-                fontSize: 13,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (onRetry != null) ...[
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh_rounded, size: 16),
-                label: const Text('Reintentar'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  minimumSize: const Size(160, 46),
-                ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Error banner inline (no full-screen)
 class ErrorBannerWidget extends StatelessWidget {
   final String message;
   final VoidCallback? onDismiss;
 
-  const ErrorBannerWidget({
-    super.key,
-    required this.message,
-    this.onDismiss,
-  });
+  const ErrorBannerWidget({super.key, required this.message, this.onDismiss});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.error.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.error_outline_rounded,
-              color: AppColors.error, size: 17),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(
-                color: AppColors.error,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+    final errorColor = Theme.of(context).colorScheme.error;
+    return Semantics(
+      liveRegion: true,
+      label: message,
+      child: Container(
+        margin: const EdgeInsets.all(AppDimensions.spacingXxl),
+        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacingXxl, vertical: AppDimensions.spacingLg),
+        decoration: BoxDecoration(
+          color: errorColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          border: Border.all(color: errorColor.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.error_outline, color: errorColor, size: AppDimensions.iconSm),
+            const SizedBox(width: AppDimensions.spacingMd),
+            Expanded(child: Text(message, style: TextStyle(color: errorColor, fontSize: AppDimensions.fontBody))),
+            if (onDismiss != null)
+              IconButton(
+                tooltip: 'Cerrar',
+                icon: const Icon(Icons.close, size: AppDimensions.iconMd),
+                color: errorColor,
+                onPressed: onDismiss,
+                padding: const EdgeInsets.all(AppDimensions.spacingXs),
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               ),
-            ),
-          ),
-          if (onDismiss != null)
-            GestureDetector(
-              onTap: onDismiss,
-              child: const Icon(Icons.close_rounded,
-                  size: 16, color: AppColors.error),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

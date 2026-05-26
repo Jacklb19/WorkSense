@@ -88,7 +88,7 @@ final employeeAnalyticsProvider =
       mergedEvents[e.id] = e;
     }
   } catch (e) {
-    debugPrint('Error fetching local activity events: $e');
+    if (kDebugMode) debugPrint('Error fetching local activity events: $e');
   }
 
   // B. Remote Fetch (Supabase)
@@ -103,8 +103,8 @@ final employeeAnalyticsProvider =
       mergedEvents[e.id] = e;
     }
   } catch (e, stack) {
-    debugPrint('Error fetching remote activity events: $e');
-    debugPrint('$stack');
+    if (kDebugMode) debugPrint('Error fetching remote activity events: $e');
+    if (kDebugMode) debugPrint('$stack');
   }
 
   final allEvents = mergedEvents.values.toList();
@@ -178,7 +178,7 @@ final employeeDetailProvider =
       mergedEvents[e.id] = e;
     }
   } catch (e) {
-    debugPrint('Error fetching local detail for $employeeId: $e');
+    if (kDebugMode) debugPrint('Error fetching local detail for $employeeId: $e');
   }
 
   // B. Remote
@@ -193,8 +193,8 @@ final employeeDetailProvider =
       mergedEvents[e.id] = e;
     }
   } catch (e, stack) {
-    debugPrint('Error fetching remote detail for $employeeId: $e');
-    debugPrint('$stack');
+    if (kDebugMode) debugPrint('Error fetching remote detail for $employeeId: $e');
+    if (kDebugMode) debugPrint('$stack');
   }
 
   final events = mergedEvents.values.toList();
@@ -224,8 +224,8 @@ final employeeAttendanceProvider =
       mergedLogs[log.id] = log;
     }
   } catch (e, stack) {
-    debugPrint('Error fetching local attendance logs for employee $employeeId: $e');
-    debugPrint('$stack');
+    if (kDebugMode) debugPrint('Error fetching local attendance logs for employee $employeeId: $e');
+    if (kDebugMode) debugPrint('$stack');
   }
 
   try {
@@ -238,8 +238,8 @@ final employeeAttendanceProvider =
       mergedLogs[log.id] = log;
     }
   } catch (e, stack) {
-    debugPrint('Error fetching attendance logs for employee $employeeId: $e');
-    debugPrint('$stack');
+    if (kDebugMode) debugPrint('Error fetching attendance logs for employee $employeeId: $e');
+    if (kDebugMode) debugPrint('$stack');
   }
 
   final logs = mergedLogs.values.toList()
