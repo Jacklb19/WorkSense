@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/announcement.dart';
 import 'package:worksense_app/features/announcements/presentation/providers/announcements_provider.dart';
 import 'package:worksense_app/features/announcements/presentation/widgets/announcement_card.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/widgets/styled/app_empty_state.dart';
 
 class AnnouncementsScreen extends ConsumerWidget {
   const AnnouncementsScreen({super.key});
@@ -18,13 +20,14 @@ class AnnouncementsScreen extends ConsumerWidget {
     final announcementsAsync = ref.watch(companyAnnouncementsProvider);
     final notifier = ref.read(announcementsNotifierProvider.notifier);
 
+    final ac = context.appColors;
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: ac.background,
       appBar: AppBar(
-        backgroundColor: AppColors.backgroundDark,
-        title: const Text(
+        backgroundColor: ac.background,
+        title: Text(
           'Comunicados',
-          style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: ac.textPrimary, fontWeight: FontWeight.bold),
         ),
         actions: [
           if (isAdmin)
@@ -44,7 +47,11 @@ class AnnouncementsScreen extends ConsumerWidget {
         ),
         data: (list) {
           if (list.isEmpty) {
-            return const _EmptyState();
+            return const AppEmptyState(
+              icon: Icons.campaign_outlined,
+              title: 'Sin comunicados activos',
+              subtitle: 'Los nuevos comunicados aparecerán aquí',
+            );
           }
           return RefreshIndicator(
             onRefresh: () async =>
@@ -78,9 +85,9 @@ class AnnouncementsScreen extends ConsumerWidget {
     showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AppColors.cardDark,
-        title: const Text('Eliminar comunicado',
-            style: TextStyle(color: AppColors.white)),
+        backgroundColor: context.appColors.card,
+        title: Text('Eliminar comunicado',
+            style: TextStyle(color: context.appColors.textPrimary)),
         content: Text(
           '¿Eliminar "${a.title}"?',
           style: const TextStyle(color: AppColors.grey400),
@@ -106,32 +113,3 @@ class AnnouncementsScreen extends ConsumerWidget {
 
 // ── Empty state ───────────────────────────────────────────────────────────────
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.campaign_outlined, size: 64, color: AppColors.grey400),
-          SizedBox(height: 16),
-          Text(
-            'Sin comunicados activos',
-            style: TextStyle(
-              color: AppColors.grey400,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Los nuevos comunicados aparecerán aquí',
-            style: TextStyle(color: AppColors.grey400, fontSize: 13),
-          ),
-        ],
-      ),
-    );
-  }
-}

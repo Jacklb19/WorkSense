@@ -53,6 +53,19 @@ class AppLocalizations {
   String get errorLoadingData   => _t('Error al cargar datos', 'Error loading data');
   String get saveChanges        => _t('Guardar cambios',   'Save changes');
   String get confirm            => _t('Confirmar',         'Confirm');
+  String get fieldRequired      => _t('Campo requerido',   'Required field');
+  String get sectionIdentity    => _t('IDENTIDAD',         'IDENTITY');
+  String get sectionCredentials => _t('CREDENCIALES',      'CREDENTIALS');
+  String get errorSaving        => _t('Error al guardar',  'Error saving');
+  String get errorDeleting      => _t('Error al eliminar', 'Error deleting');
+  String get notFound           => _t('No encontrado',     'Not found');
+  String get deleteShift        => _t('Eliminar turno',    'Delete shift');
+  String get workShifts         => _t('Horarios Laborales','Work Schedules');
+  String get newShift           => _t('NUEVO TURNO',       'NEW SHIFT');
+  String get noShiftsRegistered => _t('No hay turnos registrados', 'No shifts registered');
+  String get noShiftsHint       => _t('Crea tu primer horario laboral\npara asignarlo a tus empleados.',
+                                      'Create your first work schedule\nto assign it to your employees.');
+  String get employeeNotFound   => _t('Empleado no encontrado', 'Employee not found');
 
   // ── AUTH ───────────────────────────────────────────────────────────────────
   String get emailLabel       => _t('Correo electrónico',     'Email');
@@ -78,6 +91,12 @@ class AppLocalizations {
   String get errorLoadingWorkstation =>
       _t('Error al cargar la información del puesto.',
          'Error loading workstation information.');
+  String get loadingCollaborators    => _t('Cargando colaboradores…', 'Loading collaborators…');
+  String get noCollaboratorsYet      => _t('Sin colaboradores aún',   'No collaborators yet');
+  String get noCollaboratorsSubtitle => _t(
+      'Registra empleados para comenzar a\ngestionar asistencia y productividad.',
+      'Register employees to start\nmanaging attendance and productivity.');
+  String get registerEmployee        => _t('Registrar empleado',      'Register employee');
 
   // ── EMPLOYEE DASHBOARD ─────────────────────────────────────────────────────
   String get mySpace          => _t('Mi Espacio',             'My Space');
@@ -97,6 +116,7 @@ class AppLocalizations {
   String get noActivityToday  =>
       _t('Aún no hay actividad registrada para ti hoy.',
          'No activity recorded for you today.');
+  String get noShiftAssigned  => _t('Sin turno asignado',      'No shift assigned');
   String get noRecentEvents   => _t('No hay eventos recientes.','No recent events.');
   String get calculatingTime  => _t('Calculando tiempo…',     'Calculating time…');
   String get working          => _t('Trabajando',             'Working');
@@ -143,6 +163,12 @@ class AppLocalizations {
   String get editEmployee     => _t('Editar Empleado',        'Edit Employee');
   String get addEmployee      => _t('Agregar empleado',       'Add employee');
   String get deleteEmployee   => _t('Eliminar empleado',      'Delete employee');
+  String get confirmDeleteEmployeeBody => _t(
+      '¿Estás seguro de que deseas eliminar permanentemente este colaborador? '
+      'Esta acción eliminará su acceso y todos sus datos de asistencia.',
+      'Are you sure you want to permanently delete this employee? '
+      'This will remove their access and all attendance data.');
+  String get employeeDeleted  => _t('Colaborador eliminado',   'Employee deleted');
   String get employeeUpdated  => _t('Empleado actualizado correctamente.',
                                     'Employee updated successfully.');
   String get employeeAdded    => _t('Empleado agregado correctamente.',
@@ -152,6 +178,7 @@ class AppLocalizations {
   String get roleLabel        => _t('Rol',                    'Role');
   String get roleEmployee     => _t('Empleado (Kiosk)',       'Employee (Kiosk)');
   String get roleAdmin        => _t('Administrador',          'Administrator');
+  String get cameraMonitorRole => _t('Monitor de cámara',    'Camera Monitor');
   String get noEmployees      => _t('Sin empleados registrados','No employees registered');
   String get addEmployeeHint  => _t('Agrega empleados con el botón +',
                                     'Add employees with the + button');
@@ -252,6 +279,122 @@ class AppLocalizations {
 
   // ── REPORTS ────────────────────────────────────────────────────────────────
   String get reports          => _t('Reportes',               'Reports');
+
+  // ── GREETINGS ───────────────────────────────────────────────────────────────
+  String greeting() {
+    final h = DateTime.now().hour;
+    if (h < 12) return _en ? 'Good morning 👋'   : 'Buenos días 👋';
+    if (h < 18) return _en ? 'Good afternoon 👋' : 'Buenas tardes 👋';
+    return          _en ? 'Good evening 👋'   : 'Buenas noches 👋';
+  }
+
+  // ── QUICK ACCESS subtitles ───────────────────────────────────────────────────
+  String get myActivitySubtitle   => _t('Ver historial personal detallado',
+                                        'View detailed personal history');
+  String get myHoursSubtitle      => _t('Consultar horas, sesiones y resumen diario',
+                                        'Check hours, sessions and daily summary');
+  String get myEvaluationsSubtitle => _t('Consultar tus evaluaciones de desempeño',
+                                         'View your performance evaluations');
+
+  // ── GENERAL (new) ──────────────────────────────────────────────────────────
+  String get edit                  => _t('Editar',               'Edit');
+  String get all                   => _t('Todos',                'All');
+  String get total                 => _t('Total',                'Total');
+  String get syncNow               => _t('Sincronizar ahora',    'Sync now');
+  String get searchByNameEmail     => _t('Buscar por nombre o email…',
+                                         'Search by name or email…');
+  String get noResultsPrefix       => _t('Sin resultados para',  'No results for');
+  String get pendingSyncLabel      => _t('pendientes de sincronización',
+                                         'pending sync');
+  String get removeFilter          => _t('Quitar filtro',        'Remove filter');
+  String get registeredOn          => _t('Registrado el',        'Registered on');
+
+  // ── HOME EMPLOYEE (new) ─────────────────────────────────────────────────
+  String get myEmployeePanel       => _t('Mi Panel de Empleado', 'My Employee Panel');
+  String get welcome               => _t('Bienvenido',           'Welcome');
+  String get scheduleAndActivityHint => _t(
+      'Aquí verás tu horario y estado de actividad.',
+      'Here you\'ll see your schedule and activity status.');
+
+  // ── WORKSTATIONS (new) ──────────────────────────────────────────────────
+  String get workstationDeleted    => _t(
+      'Estación eliminada (Sincronización pendiente)',
+      'Workstation deleted (Sync pending)');
+  String get workstationNameRequired => _t('Ingresa un nombre', 'Enter a name');
+  String get deviceIdRequired      => _t('El ID no puede estar vacío',
+                                         'ID cannot be empty');
+  String get editWorkstation       => _t('Editar estación',     'Edit workstation');
+  String get updateWorkstation     => _t('Actualizar estación', 'Update workstation');
+  String get confirmDeleteWs       => _t(
+      '¿Seguro que deseas eliminar la estación',
+      'Are you sure you want to delete workstation');
+  String get newWorkstationShort   => _t('Nueva estación',      'New workstation');
+
+  // ── SETTINGS — thresholds (new) ─────────────────────────────────────────
+  String get maxYawLabel           => _t('Ángulo máximo de giro (yaw)',
+                                         'Max rotation angle (yaw)');
+  String get minPitchLabel         => _t('Ángulo mínimo de inclinación (pitch)',
+                                         'Min tilt angle (pitch)');
+  String get maxRollLabel          => _t('Ángulo máximo de volteo (roll)',
+                                         'Max roll angle (roll)');
+  String get minPoseConfidenceLabel => _t('Confianza mínima de pose',
+                                          'Min pose confidence');
+  String get inactivityThresholdLabel => _t('Umbral de inactividad',
+                                             'Inactivity threshold');
+
+  // ── LEAVES (new) ────────────────────────────────────────────────────────
+  String get leaveApprovedMsg      => _t('Permiso aprobado',    'Leave approved');
+  String get leaveRejectedMsg      => _t('Permiso rechazado',   'Leave rejected');
+  String get rejectLeaveTitle      => _t('Rechazar permiso',    'Reject leave request');
+  String get rejectReason          => _t('Motivo del rechazo (opcional)',
+                                         'Reason for rejection (optional)');
+  String get writeNote             => _t('Escribe una nota…',   'Write a note…');
+  String get cancelRequest         => _t('Cancelar solicitud',  'Cancel request');
+  String get requestCancelledOk    => _t('Solicitud cancelada',  'Request cancelled');
+  String get confirmCancelRequest  => _t(
+      '¿Seguro que quieres cancelar esta solicitud?',
+      'Are you sure you want to cancel this request?');
+  String get noLeaveRequests       => _t('No hay solicitudes de permiso',
+                                         'No leave requests');
+  String get noLeaveRequestsEmployee => _t(
+      'No has enviado solicitudes de permiso',
+      'You haven\'t submitted any leave requests');
+  String get noLeavesFiltered      => _t('No hay permisos', 'No leaves');
+  String get selectAbsencePeriod   => _t('Selecciona el período de ausencia',
+                                         'Select the absence period');
+  String get leavePendingPlural    => _t('Pendientes',       'Pending');
+  String get leaveApprovedPlural   => _t('Aprobados',        'Approved');
+  String get leaveRejectedPlural   => _t('Rechazados',       'Rejected');
+
+  // ── NOTIFICATIONS (new) ─────────────────────────────────────────────────
+  String get errorLoadingNotifications => _t('Error cargando notificaciones',
+                                             'Error loading notifications');
+  String get timeAgoNow            => _t('Ahora mismo',      'Just now');
+  String timeAgoMinutes(int m)     => _en ? '${m}m ago'      : 'hace $m min';
+  String timeAgoHours(int h)       => _en ? '${h}h ago'      : 'hace $h h';
+  String timeAgoDays(int d)        => _en ? '${d}d ago'      : 'hace $d días';
+
+  // ── CHAT (new) ──────────────────────────────────────────────────────────
+  String get online                => _t('En línea',         'Online');
+  String get startConversation     => _t('Empieza la conversación 👋',
+                                         'Start the conversation 👋');
+  String get errorLoadingMessages  => _t('Error cargando mensajes',
+                                         'Error loading messages');
+  String get errorSendingMessage   => _t('Error enviando mensaje',
+                                         'Error sending message');
+  String get noConversations       => _t('Sin conversaciones','No conversations');
+  String get noConversationsDesc   => _t(
+      'Los mensajes con empleados\naparecerán aquí.',
+      'Messages with employees\nwill appear here.');
+  String get administrator         => _t('Administrador',    'Administrator');
+  String get sendMessageToCompany  => _t('Envía un mensaje a tu empresa',
+                                         'Send a message to your company');
+  String get viewConversation      => _t('Ver conversación →','View conversation →');
+  String get adminNotFound         => _t(
+      'No se encontró un administrador.\nContacta a soporte.',
+      'No administrator found.\nContact support.');
+  String get errorLoadingConversations => _t('Error cargando conversaciones',
+                                             'Error loading conversations');
 
   // ── ROUTER / MISC ──────────────────────────────────────────────────────────
   String get goToDashboard    => _t('Ir al dashboard',        'Go to dashboard');

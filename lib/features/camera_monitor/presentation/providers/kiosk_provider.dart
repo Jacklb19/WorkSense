@@ -113,6 +113,11 @@ class KioskState {
     this.workstationRoi,
   });
 
+  // Sentinel object used by copyWith to distinguish "pass null intentionally"
+  // from "don't change this field". Dart doesn't have a built-in way to do this
+  // for nullable types, so we use a private sentinel.
+  static const _kKeep = Object();
+
   KioskState copyWith({
     ActivityState? currentState,
     double? confidence,
@@ -129,10 +134,10 @@ class KioskState {
     SessionStatus? sessionStatus,
     bool? isEmployeeScanned,
     EmployeeProfile? employeeProfile,
-    String? identificationMethod,
+    Object? identificationMethod = _kKeep, // Object? allows explicit null
     double? identityConfidence,
     String? assignedEmployeeId,
-    DateTime? sessionStartTime,
+    Object? sessionStartTime = _kKeep,     // Object? allows explicit null
     String? workstationStatus,
     WorkstationRoi? workstationRoi,
   }) {
@@ -151,10 +156,14 @@ class KioskState {
       sessionStatus: sessionStatus ?? this.sessionStatus,
       isEmployeeScanned: isEmployeeScanned ?? this.isEmployeeScanned,
       employeeProfile: employeeProfile ?? this.employeeProfile,
-      identificationMethod: identificationMethod ?? this.identificationMethod,
+      identificationMethod: identical(identificationMethod, _kKeep)
+          ? this.identificationMethod
+          : identificationMethod as String?,
       identityConfidence: identityConfidence ?? this.identityConfidence,
       assignedEmployeeId: assignedEmployeeId ?? this.assignedEmployeeId,
-      sessionStartTime: sessionStartTime ?? this.sessionStartTime,
+      sessionStartTime: identical(sessionStartTime, _kKeep)
+          ? this.sessionStartTime
+          : sessionStartTime as DateTime?,
       workstationStatus: workstationStatus ?? this.workstationStatus,
       companyId: companyId ?? this.companyId,
       workstationRoi: workstationRoi ?? this.workstationRoi,
@@ -238,7 +247,15 @@ class KioskNotifier extends StateNotifier<KioskState> {
   int _consecutiveFaceMissFrames = 0;
   int _stableEntryFrames = 0;
   bool _requiresFreshIdentityCheck = true;
-  
+
+  /// Timestamp when the locked employee first went absent during an active session.
+  /// Null means they are present (or no active session).
+  DateTime? _absenceStart;
+
+  /// After this many seconds absent during an active session, the session is
+  /// cancelled and the kiosk returns to idle (requiring a new face detection).
+  static const Duration _absenceTimeout = Duration(seconds: 5);
+
   /// Number of consecutive absent frames required to cancel entryPending/exitPending.
   static const int _absentFramesToCancel = 8;
   
@@ -406,29 +423,66 @@ class KioskNotifier extends StateNotifier<KioskState> {
       if (events.isEmpty) return;
       final data = events.first;
       final status = data['status'] as String? ?? 'IDLE';
-      
+
       final bool isRunning = _cameraController != null && state.cameraInitialized;
 
       // Only start the monitoring camera when an enrolled profile exists.
       // Starting it without a profile would (a) block touches on the enrollment UI,
       // (b) draw pose/face landmarks over the enrollment text, and
       // (c) conflict with the enrollment camera for the physical camera resource.
-      if (status == 'ACTIVE' && !isRunning && state.isEmployeeScanned) {
+      if (status == 'ACTIVE' && state.isEmployeeScanned) {
+        if (isRunning) {
+          // Camera already running — could be a stale session from the wrong person.
+          // Stop and restart cleanly to ensure fresh tracking state.
+          debugPrint('[REALTIME] Camera already running on ACTIVE — restarting cleanly for $workstationId');
+          await stopCamera();
+          _resetMonitoringSession();
+        }
         debugPrint('[REALTIME] Activating camera for $workstationId');
         final cameras = await availableCameras();
         await initializeCamera(cameras);
-      } else if (status == 'IDLE' && isRunning) {
-        debugPrint('[REALTIME] Deactivating camera for $workstationId');
-        await stopCamera();
+      } else if (status == 'IDLE') {
+        if (isRunning) {
+          debugPrint('[REALTIME] Deactivating camera for $workstationId');
+          await stopCamera();
+        }
+        // Full session reset so that the next ACTIVE event starts fresh
+        _resetMonitoringSession();
       } else if (status == 'BREAK' && isRunning) {
         debugPrint('[REALTIME] Pausing camera for break');
         await stopCamera();
       }
-      
+
       if (!_disposed) state = state.copyWith(workstationStatus: status);
     }, onError: (e) {
       debugPrint('[REALTIME Error] $e');
     });
+  }
+
+  /// Resets all in-memory monitoring session state without touching the camera.
+  /// Call this when a session ends (IDLE) or needs a clean restart (new ACTIVE).
+  void _resetMonitoringSession() {
+    _consecutiveAbsentFrames = 0;
+    _consecutiveFaceMissFrames = 0;
+    _stableEntryFrames = 0;
+    _requiresFreshIdentityCheck = true;
+    _absenceStart = null;
+    _lastMovementTime = DateTime.now();
+    _lastReidTime = DateTime.fromMillisecondsSinceEpoch(0);
+    _lastSaveTime = DateTime.fromMillisecondsSinceEpoch(0);
+    _activityWindowBuffer.reset();
+    _finder?.reset();
+    if (!_disposed) {
+      state = state.copyWith(
+        sessionStatus: SessionStatus.idle,
+        currentState: ActivityState.ausente,
+        identityConfidence: 0.0,
+        sessionStartTime: null, // now properly clears to null via sentinel
+        poses: const [],
+        faces: const [],
+      );
+    }
+    debugPrint('[MONITOR] Session state reset complete.');
   }
 
   Future<void> initializeCamera(List<CameraDescription> cameras) async {
@@ -582,6 +636,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
       if (canTrustTrackedOwnerWithoutEmbedding) {
         _consecutiveAbsentFrames = 0; // reset, person is clearly visible
+        _absenceStart = null; // clear absence timer — employee is tracked
         
         // Pick the largest face for activity analysis
         final largestFace = allFaces.reduce((a, b) =>
@@ -686,20 +741,45 @@ class KioskNotifier extends StateNotifier<KioskState> {
     _consecutiveAbsentFrames++;
     _stableEntryFrames = 0;
 
-    // Only flag fresh identity check after grace period, not on first miss
+    final now = DateTime.now();
+
     if (state.sessionStatus == SessionStatus.active) {
       _consecutiveFaceMissFrames++;
       if (_consecutiveFaceMissFrames >= AiThresholds.monitorGracePeriodFrames) {
         _requiresFreshIdentityCheck = true;
         _activityWindowBuffer.reset();
       }
-      // Keep partial identity confidence during grace period
+
+      // ── 5-second absence timeout ─────────────────────────────────────────
+      _absenceStart ??= now; // mark start of absence
+      final absentFor = now.difference(_absenceStart!);
+      if (absentFor >= _absenceTimeout) {
+        // Employee gone too long — end session, require face detection again.
+        _absenceStart = null;
+        _consecutiveAbsentFrames = 0;
+        _consecutiveFaceMissFrames = 0;
+        _stableEntryFrames = 0;
+        _requiresFreshIdentityCheck = true;
+        _activityWindowBuffer.reset();
+        _finder?.reset();
+        debugPrint('[MONITOR] Employee absent for ${absentFor.inSeconds}s — session cancelled.');
+        state = state.copyWith(
+          sessionStatus: SessionStatus.idle,
+          currentState: ActivityState.ausente,
+          identityConfidence: 0.0,
+          isProcessing: false,
+          poses: const [],
+          faces: const [],
+          imageSize: imgSize,
+        );
+        return;
+      }
     } else {
+      _absenceStart = null; // no timeout outside active session
       _activityWindowBuffer.reset();
     }
-    
+
     // Only cancel entryPending/exitPending after several consecutive absent frames.
-    // This prevents a single bad frame from destroying the welcome overlay.
     SessionStatus nextStatus = state.sessionStatus;
     if ((state.sessionStatus == SessionStatus.entryPending ||
         state.sessionStatus == SessionStatus.exitPending) &&
@@ -708,7 +788,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
       debugPrint('[MONITOR] Cancelled pending after $_consecutiveAbsentFrames absent frames.');
     }
 
-    // Progressive confidence degradation instead of immediate zero
+    // Progressive confidence degradation during grace period.
     final degradedConfidence = state.sessionStatus == SessionStatus.active &&
             _consecutiveAbsentFrames < AiThresholds.monitorMaxConsecutiveMisses
         ? (state.identityConfidence * 0.85).clamp(0.0, 1.0)
@@ -730,6 +810,7 @@ class KioskNotifier extends StateNotifier<KioskState> {
   void _handleFound(FindResult findResult, List<Face> allFaces, List<Pose> allPoses, Size imgSize, DateTime now) {
     _requiresFreshIdentityCheck = false;
     _consecutiveFaceMissFrames = 0;
+    _absenceStart = null; // employee is back — reset absence timer
     final employeeFace = findResult.employeeFace!;
     final employeePose = findResult.employeePose;
 
@@ -809,9 +890,10 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
   Future<void> approveEntry() async {
     if (state.sessionStatus != SessionStatus.entryPending) return;
-    
+
     final now = DateTime.now();
     _stableEntryFrames = 0;
+    _absenceStart = null; // fresh start — employee just confirmed entry
     state = state.copyWith(
       sessionStatus: SessionStatus.active,
       sessionStartTime: now,
@@ -836,9 +918,10 @@ class KioskNotifier extends StateNotifier<KioskState> {
 
   Future<void> approveExit() async {
     if (state.sessionStatus != SessionStatus.exitPending) return;
-    
+
     final now = DateTime.now();
     _stableEntryFrames = 0;
+    _absenceStart = null;
     
     // 1. Guardar evento de salida (AUSENTE para indicar fin de jornada)
     await _saveEvent(

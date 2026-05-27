@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:worksense_app/core/constants/ai_thresholds.dart';
 import 'package:worksense_app/core/constants/app_constants.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
-import 'package:worksense_app/core/constants/app_strings.dart';
 import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
@@ -222,24 +221,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           // ── Thresholds info ──────────────────────────────────────
           _SectionHeader(title: l10n.detectionThresholds),
-          const _ThresholdTile(
-            label: AppStrings.maxYawLabel,
+          _ThresholdTile(
+            label: l10n.maxYawLabel,
             value: '${AiThresholds.maxYawAngle}°',
           ),
-          const _ThresholdTile(
-            label: AppStrings.minPitchLabel,
+          _ThresholdTile(
+            label: l10n.minPitchLabel,
             value: '${AiThresholds.minPitchAngle}°',
           ),
-          const _ThresholdTile(
-            label: AppStrings.maxRollLabel,
+          _ThresholdTile(
+            label: l10n.maxRollLabel,
             value: '${AiThresholds.maxRollAngle}°',
           ),
           _ThresholdTile(
-            label: AppStrings.minPoseConfidenceLabel,
+            label: l10n.minPoseConfidenceLabel,
             value: '${(AiThresholds.minPoseConfidence * 100).toInt()}%',
           ),
-          const _ThresholdTile(
-            label: AppStrings.inactivityThresholdLabel,
+          _ThresholdTile(
+            label: l10n.inactivityThresholdLabel,
             value: '${AiThresholds.inactivityThresholdSeconds} seg',
           ),
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/task_item.dart';
 
 class TaskCard extends StatelessWidget {
@@ -19,14 +20,18 @@ class TaskCard extends StatelessWidget {
     this.onStatusChanged,
   });
 
+  // ✅ Static final — DateFormat instantiated once, not on every build.
+  static final _dueDateFmt = DateFormat('dd/MM/yy');
+
   @override
   Widget build(BuildContext context) {
     final overdue = task.isOverdue;
 
+    final ac = context.appColors;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: ac.card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: overdue
@@ -51,8 +56,8 @@ class TaskCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       task.title,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: ac.textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
@@ -70,8 +75,8 @@ class TaskCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   task.description!,
-                  style: const TextStyle(
-                    color: Colors.white54,
+                  style: TextStyle(
+                    color: ac.textSecondary,
                     fontSize: 12,
                   ),
                   maxLines: 2,
@@ -88,12 +93,12 @@ class TaskCard extends StatelessWidget {
                 children: [
                   // Assigned to (admin view)
                   if (isAdmin && employeeName != null) ...[
-                    const Icon(Icons.person_outline, size: 13, color: Colors.white38),
+                    Icon(Icons.person_outline, size: 13, color: ac.textDisabled),
                     const SizedBox(width: 4),
                     Flexible(
                       child: Text(
                         employeeName!,
-                        style: const TextStyle(color: Colors.white54, fontSize: 11),
+                        style: TextStyle(color: ac.textSecondary, fontSize: 11),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -105,13 +110,13 @@ class TaskCard extends StatelessWidget {
                     Icon(
                       Icons.event_outlined,
                       size: 13,
-                      color: overdue ? AppColors.error : Colors.white38,
+                      color: overdue ? AppColors.error : ac.textDisabled,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      DateFormat('dd/MM/yy').format(task.dueDate!),
+                      _dueDateFmt.format(task.dueDate!),
                       style: TextStyle(
-                        color: overdue ? AppColors.error : Colors.white54,
+                        color: overdue ? AppColors.error : ac.textSecondary,
                         fontSize: 11,
                         fontWeight: overdue ? FontWeight.w600 : FontWeight.normal,
                       ),
@@ -217,21 +222,25 @@ class _QuickStatusButton extends StatelessWidget {
     final label = task.status == TaskStatus.pending ? 'Iniciar' : 'Completar';
     final color = task.status == TaskStatus.pending ? AppColors.primary : AppColors.success;
 
-    return GestureDetector(
-      onTap: () => onStatusChanged?.call(nextStatus),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withValues(alpha: 0.4)),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: color,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
+    return Material(
+      color: color.withValues(alpha: 0.15),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: () => onStatusChanged?.call(nextStatus),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: color.withValues(alpha: 0.4)),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),

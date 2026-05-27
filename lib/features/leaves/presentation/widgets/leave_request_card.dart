@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/domain/entities/leave_request.dart';
 
 class LeaveRequestCard extends StatelessWidget {
@@ -21,16 +23,27 @@ class LeaveRequestCard extends StatelessWidget {
     this.onDelete,
   });
 
+  // ✅ Static final — DateFormat instantiated once, not on every build.
+  static final _fmt = DateFormat('dd MMM yy', 'es');
+
   @override
   Widget build(BuildContext context) {
-    final fmt = DateFormat('dd MMM yy', 'es');
-
+    final ac = context.appColors;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: ac.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.glassBorder),
+        // Use theme-aware divider so cards are visible in both dark and light mode.
+        // glassBorder (0x1AFFFFFF = white 10%) is invisible against light backgrounds.
+        border: Border.all(color: ac.divider),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.07),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -57,8 +70,8 @@ class LeaveRequestCard extends StatelessWidget {
                     children: [
                       Text(
                         request.type.label,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: ac.textPrimary,
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                         ),
@@ -66,8 +79,8 @@ class LeaveRequestCard extends StatelessWidget {
                       if (isAdmin && employeeName != null)
                         Text(
                           employeeName!,
-                          style: const TextStyle(
-                            color: Colors.white54,
+                          style: TextStyle(
+                            color: ac.textSecondary,
                             fontSize: 12,
                           ),
                         ),
@@ -83,11 +96,11 @@ class LeaveRequestCard extends StatelessWidget {
             // ── Date range ────────────────────────────────────────────────
             Row(
               children: [
-                const Icon(Icons.date_range_outlined, size: 14, color: Colors.white38),
+                Icon(Icons.date_range_outlined, size: 14, color: ac.textDisabled),
                 const SizedBox(width: 6),
                 Text(
-                  '${fmt.format(request.startDate)} → ${fmt.format(request.endDate)}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  '${_fmt.format(request.startDate)} → ${_fmt.format(request.endDate)}',
+                  style: TextStyle(color: ac.textSecondary, fontSize: 12),
                 ),
                 const SizedBox(width: 8),
                 Container(
@@ -98,8 +111,8 @@ class LeaveRequestCard extends StatelessWidget {
                   ),
                   child: Text(
                     '${request.durationDays} día${request.durationDays == 1 ? '' : 's'}',
-                    style: const TextStyle(
-                      color: Colors.white54,
+                    style: TextStyle(
+                      color: ac.textSecondary,
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                     ),
@@ -113,7 +126,7 @@ class LeaveRequestCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 request.reason!,
-                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                style: TextStyle(color: ac.textSecondary, fontSize: 12),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -188,7 +201,7 @@ class LeaveRequestCard extends StatelessWidget {
                 child: TextButton.icon(
                   onPressed: onDelete,
                   icon: const Icon(Icons.delete_outline, size: 14),
-                  label: const Text('Cancelar solicitud'),
+                  label: Text(context.l10n.cancelRequest),
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.error,
                     textStyle: const TextStyle(fontSize: 12),

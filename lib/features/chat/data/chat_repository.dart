@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:worksense_app/features/chat/domain/entities/chat_message.dart';
@@ -16,6 +17,10 @@ class ChatRepository {
     required String userB,
     int limit = 80,
   }) async {
+    // Do NOT swallow errors here — let the provider catch them and surface an
+    // error state so the user sees a meaningful message instead of an empty
+    // chat.  Supabase RLS issues (e.g. missing SELECT policy) would otherwise
+    // silently return [] and make old messages appear "gone".
     try {
       final rows = await _client
           .from(_table)
@@ -29,8 +34,9 @@ class ChatRepository {
       return (rows as List)
           .map((r) => ChatMessage.fromMap(r as Map<String, dynamic>))
           .toList();
-    } catch (_) {
-      return [];
+    } catch (e) {
+      debugPrint('[Chat] fetchConversation error: $e');
+      rethrow; // propagate so the provider enters AsyncError state
     }
   }
 

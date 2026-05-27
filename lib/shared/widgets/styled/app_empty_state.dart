@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../core/constants/app_dimensions.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_colors.dart';
 
 class AppEmptyState extends StatelessWidget {
   final IconData icon;
@@ -27,7 +28,8 @@ class AppEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = iconColor ?? AppColors.textDisabled;
+    final ac = context.appColors;
+    final color = iconColor ?? ac.textDisabled;
 
     return Center(
       child: Padding(
@@ -55,7 +57,7 @@ class AppEmptyState extends StatelessWidget {
             Text(
               title,
               style: theme.textTheme.titleMedium?.copyWith(
-                color: AppColors.textSecondary,
+                color: ac.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
@@ -68,7 +70,7 @@ class AppEmptyState extends StatelessWidget {
               Text(
                 subtitle!,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.textDisabled,
+                  color: ac.textDisabled,
                 ),
                 textAlign: TextAlign.center,
               ).animate().fadeIn(

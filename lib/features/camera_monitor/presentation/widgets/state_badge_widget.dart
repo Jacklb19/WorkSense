@@ -129,7 +129,7 @@ class KioskStateBadge extends StatelessWidget {
           Text(
             '${(confidence * 100).toStringAsFixed(0)}%',
             style: const TextStyle(
-              color: Colors.white70,
+              color: AppColors.textOnCamera70,
               fontSize: 12,
             ),
           ),

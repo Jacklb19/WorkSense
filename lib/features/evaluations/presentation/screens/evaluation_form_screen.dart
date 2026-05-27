@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/evaluation.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/features/evaluations/presentation/providers/evaluations_provider.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
 class EvaluationFormScreen extends ConsumerStatefulWidget {
@@ -53,14 +55,15 @@ class _EvaluationFormScreenState
         .where((e) => e.role == AppRole.employee)
         .toList();
 
+    final ac = context.appColors;
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: ac.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text(
+        backgroundColor: ac.surface,
+        title: Text(
           'Nueva Evaluación',
           style: TextStyle(
-            color: AppColors.textPrimaryDark,
+            color: ac.textPrimary,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -79,7 +82,7 @@ class _EvaluationFormScreenState
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.primary,
                     ),
-                    child: const Text('Guardar'),
+                    child: Text(context.l10n.save),
                   ),
           ),
         ],
@@ -95,9 +98,9 @@ class _EvaluationFormScreenState
             DropdownButtonFormField<String>(
               // ignore: deprecated_member_use
               value: _selectedEmployeeId,
-              dropdownColor: AppColors.surfaceDark,
-              decoration: _inputDeco('Seleccionar empleado'),
-              style: const TextStyle(color: AppColors.textPrimaryDark),
+              dropdownColor: ac.surface,
+              decoration: _inputDeco('Seleccionar empleado', ac),
+              style: TextStyle(color: ac.textPrimary),
               items: employees.map((e) {
                 return DropdownMenuItem(
                   value: e.id,
@@ -112,9 +115,9 @@ class _EvaluationFormScreenState
             const SizedBox(height: 8),
             TextField(
               controller: _periodCtrl,
-              style: const TextStyle(color: AppColors.textPrimaryDark),
+              style: TextStyle(color: ac.textPrimary),
               decoration:
-                  _inputDeco('Ej: Enero 2026, Q1 2026…'),
+                  _inputDeco('Ej: Enero 2026, Q1 2026…', ac),
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 24),
@@ -140,8 +143,8 @@ class _EvaluationFormScreenState
             const SizedBox(height: 8),
             TextField(
               controller: _notesCtrl,
-              style: const TextStyle(color: AppColors.textPrimaryDark),
-              decoration: _inputDeco('Observaciones, recomendaciones…'),
+              style: TextStyle(color: ac.textPrimary),
+              decoration: _inputDeco('Observaciones, recomendaciones…', ac),
               maxLines: 3,
             ),
           ],
@@ -193,12 +196,12 @@ class _EvaluationFormScreenState
     }
   }
 
-  InputDecoration _inputDeco(String hint) => InputDecoration(
+  InputDecoration _inputDeco(String hint, AppThemeColors ac) => InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
-            color: AppColors.textSecondaryDark.withValues(alpha: 0.5)),
+            color: ac.textSecondary.withValues(alpha: 0.5)),
         filled: true,
-        fillColor: AppColors.surfaceDark,
+        fillColor: ac.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: AppColors.glassBorder),
@@ -249,8 +252,8 @@ class _CriterionSlider extends StatelessWidget {
             children: [
               Text(
                 criterion.name,
-                style: const TextStyle(
-                  color: AppColors.textPrimaryDark,
+                style: TextStyle(
+                  color: context.appColors.textPrimary,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -328,10 +331,10 @@ class _ScorePreview extends StatelessWidget {
         children: [
           Icon(Icons.stars_rounded, color: color, size: 20),
           const SizedBox(width: 10),
-          const Text(
+          Text(
             'Puntaje total: ',
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: context.appColors.textSecondary,
               fontSize: 13,
             ),
           ),
@@ -369,8 +372,8 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title.toUpperCase(),
-      style: const TextStyle(
-        color: AppColors.textSecondaryDark,
+      style: TextStyle(
+        color: context.appColors.textSecondary,
         fontSize: 11,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.2,

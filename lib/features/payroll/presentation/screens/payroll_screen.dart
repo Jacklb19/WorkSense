@@ -5,10 +5,12 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/domain/entities/payroll.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/features/payroll/presentation/providers/payroll_provider.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
 final _currFmt = NumberFormat.currency(
@@ -21,14 +23,15 @@ class PayrollScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final periodsAsync = ref.watch(payrollPeriodsProvider);
 
+    final ac = context.appColors;
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: ac.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text(
+        backgroundColor: ac.surface,
+        title: Text(
           'NÓMINA',
           style: TextStyle(
-            color: Colors.white,
+            color: ac.textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w900,
             letterSpacing: 1,
@@ -36,7 +39,7 @@ class PayrollScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: AppColors.textSecondaryDark),
+            icon: Icon(Icons.settings_outlined, color: ac.textSecondary),
             tooltip: 'Configurar tarifas',
             onPressed: () => _openRatesConfig(context, ref),
           ),
@@ -53,7 +56,7 @@ class PayrollScreen extends ConsumerWidget {
             children: [
               const Icon(Icons.error_outline, color: AppColors.error, size: 48),
               const SizedBox(height: 12),
-              Text('Error: $e', style: const TextStyle(color: AppColors.textSecondaryDark)),
+              Text('Error: $e', style: TextStyle(color: ac.textSecondary)),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () => ref.read(payrollPeriodsProvider.notifier).refresh(),
@@ -64,7 +67,7 @@ class PayrollScreen extends ConsumerWidget {
         ),
         data: (periods) => RefreshIndicator(
           color: AppColors.primary,
-          backgroundColor: AppColors.surfaceDark,
+          backgroundColor: ac.surface,
           onRefresh: () => ref.read(payrollPeriodsProvider.notifier).refresh(),
           child: periods.isEmpty
               ? _EmptyState(onCreateTap: () => _showNewPeriodDialog(context, ref))
@@ -79,7 +82,7 @@ class PayrollScreen extends ConsumerWidget {
         onPressed: () => _showNewPeriodDialog(context, ref),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add),
-        label: const Text('Nuevo período'),
+        label: Text(context.l10n.newPeriod),
       ),
     );
   }
@@ -111,26 +114,32 @@ class _PeriodCard extends ConsumerWidget {
   final PayrollPeriod period;
   const _PeriodCard({required this.period});
 
+  // ✅ Static final — DateFormat instantiated once, not on every build.
+  static final _dateFmt = DateFormat('dd/MM/yyyy');
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dateFmt = DateFormat('dd/MM/yyyy');
 
-    return GestureDetector(
-      onTap: () => context.push(
-        AppRoutes.payrollPeriod.replaceFirst(':periodId', period.id),
-        extra: period,
-      ),
-      onLongPress: period.status == PayrollStatus.draft
-          ? () => _confirmDelete(context, ref)
-          : null,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.glassBorder),
+    final ac = context.appColors;
+    return Material(
+      color: ac.surface,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: () => context.push(
+          AppRoutes.payrollPeriod.replaceFirst(':periodId', period.id),
+          extra: period,
         ),
+        onLongPress: period.status == PayrollStatus.draft
+            ? () => _confirmDelete(context, ref)
+            : null,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.glassBorder),
+          ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -139,8 +148,8 @@ class _PeriodCard extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     period.name,
-                    style: const TextStyle(
-                      color: AppColors.textPrimaryDark,
+                    style: TextStyle(
+                      color: ac.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),
@@ -151,9 +160,9 @@ class _PeriodCard extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              '${dateFmt.format(period.startDate)} – ${dateFmt.format(period.endDate)}',
-              style: const TextStyle(
-                color: AppColors.textSecondaryDark,
+              '${_dateFmt.format(period.startDate)} – ${_dateFmt.format(period.endDate)}',
+              style: TextStyle(
+                color: ac.textSecondary,
                 fontSize: 12,
               ),
             ),
@@ -179,6 +188,7 @@ class _PeriodCard extends ConsumerWidget {
             ),
           ],
         ),
+        ),
       ),
     );
   }
@@ -187,20 +197,20 @@ class _PeriodCard extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text('Eliminar período',
-            style: TextStyle(color: Colors.white)),
+        backgroundColor: context.appColors.surface,
+        title: Text('Eliminar período',
+            style: TextStyle(color: context.appColors.textPrimary)),
         content: Text('¿Eliminar "${period.name}"?',
-            style: const TextStyle(color: AppColors.textSecondaryDark)),
+            style: TextStyle(color: context.appColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar',
-                style: TextStyle(color: AppColors.error)),
+            child: Text(context.l10n.delete,
+                style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -247,14 +257,15 @@ class _InfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: AppColors.textSecondaryDark),
+        Icon(icon, size: 14, color: ac.textSecondary),
         const SizedBox(width: 4),
         Text(label,
-            style: const TextStyle(
-                color: AppColors.textSecondaryDark, fontSize: 12)),
+            style: TextStyle(
+                color: ac.textSecondary, fontSize: 12)),
       ],
     );
   }
@@ -273,18 +284,18 @@ class _EmptyState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.payments_outlined,
-              size: 64, color: Colors.white.withValues(alpha: 0.15)),
+              size: 64, color: context.appColors.textDisabled.withValues(alpha: 0.3)),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'Sin períodos de nómina',
-            style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 15),
+            style: TextStyle(color: context.appColors.textSecondary, fontSize: 15),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Crea el primer período para calcular\nla nómina de tu equipo.',
             textAlign: TextAlign.center,
             style:
-                TextStyle(color: AppColors.textDisabledDark, fontSize: 12),
+                TextStyle(color: context.appColors.textDisabled, fontSize: 12),
           ),
           const SizedBox(height: 24),
           FilledButton.icon(
@@ -313,6 +324,9 @@ class _NewPeriodDialogState extends ConsumerState<_NewPeriodDialog> {
   DateTime _start = DateTime.now().copyWith(day: 1);
   DateTime _end   = DateTime.now();
   bool _loading   = false;
+  // ✅ Static finals — DateFormats instantiated once, not on every build/initState.
+  static final _dateFmt      = DateFormat('dd/MM/yyyy');
+  static final _monthYearFmt = DateFormat('MMMM yyyy', 'es');
 
   @override
   void initState() {
@@ -321,7 +335,7 @@ class _NewPeriodDialogState extends ConsumerState<_NewPeriodDialog> {
     _start = DateTime(now.year, now.month, 1);
     _end   = DateTime(now.year, now.month + 1, 0); // last day of month
     _nameCtrl.text =
-        DateFormat('MMMM yyyy', 'es').format(now);
+        _monthYearFmt.format(now);
   }
 
   @override
@@ -332,24 +346,24 @@ class _NewPeriodDialogState extends ConsumerState<_NewPeriodDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final dateFmt = DateFormat('dd/MM/yyyy');
+    final ac = context.appColors;
     return AlertDialog(
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: ac.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text('Nuevo período de nómina',
-          style: TextStyle(color: Colors.white, fontSize: 16)),
+      title: Text('Nuevo período de nómina',
+          style: TextStyle(color: ac.textPrimary, fontSize: 16)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             controller: _nameCtrl,
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: ac.textPrimary),
             decoration: InputDecoration(
               labelText: 'Nombre del período',
               labelStyle:
-                  const TextStyle(color: AppColors.textSecondaryDark),
+                  TextStyle(color: ac.textSecondary),
               filled: true,
-              fillColor: AppColors.cardDark,
+              fillColor: ac.card,
               border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none),
@@ -385,16 +399,16 @@ class _NewPeriodDialogState extends ConsumerState<_NewPeriodDialog> {
           ),
           const SizedBox(height: 8),
           Text(
-            '${dateFmt.format(_start)} – ${dateFmt.format(_end)}',
-            style: const TextStyle(
-                color: AppColors.textSecondaryDark, fontSize: 11),
+            '${_dateFmt.format(_start)} – ${_dateFmt.format(_end)}',
+            style: TextStyle(
+                color: ac.textSecondary, fontSize: 11),
           ),
         ],
       ),
       actions: [
         TextButton(
           onPressed: _loading ? null : () => Navigator.pop(context),
-          child: const Text('Cancelar'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: _loading ? null : _submit,
@@ -444,35 +458,41 @@ class _DateRow extends StatelessWidget {
   final VoidCallback onPick;
   const _DateRow({required this.label, required this.date, required this.onPick});
 
+  // ✅ Static final — DateFormat instantiated once, not on every build.
+  static final _dateFmt = DateFormat('dd/MM/yyyy');
+
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     return Row(
       children: [
         SizedBox(
           width: 50,
           child: Text(label,
-              style: const TextStyle(
-                  color: AppColors.textSecondaryDark, fontSize: 12)),
+              style: TextStyle(
+                  color: ac.textSecondary, fontSize: 12)),
         ),
         Expanded(
-          child: GestureDetector(
-            onTap: onPick,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.cardDark,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_today_rounded,
-                      size: 14, color: AppColors.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    DateFormat('dd/MM/yyyy').format(date),
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
-                  ),
-                ],
+          child: Material(
+            color: ac.card,
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              onTap: onPick,
+              borderRadius: BorderRadius.circular(10),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today_rounded,
+                        size: 14, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      _dateFmt.format(date),
+                      style: TextStyle(
+                          color: ac.textPrimary, fontSize: 13),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -497,9 +517,9 @@ class _RatesConfigSheet extends ConsumerWidget {
       minChildSize:     0.4,
       maxChildSize:     0.95,
       builder: (ctx, scroll) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: ctx.appColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           children: [
@@ -511,16 +531,16 @@ class _RatesConfigSheet extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: Row(
                 children: [
-                  Icon(Icons.payments_outlined,
+                  const Icon(Icons.payments_outlined,
                       color: AppColors.primary, size: 20),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Text('Tarifas por hora',
                       style: TextStyle(
-                          color: Colors.white,
+                          color: ctx.appColors.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.w700)),
                 ],
@@ -534,18 +554,18 @@ class _RatesConfigSheet extends ConsumerWidget {
                         CircularProgressIndicator(color: AppColors.primary)),
                 error: (e, _) => Center(
                     child: Text('$e',
-                        style: const TextStyle(
-                            color: AppColors.textSecondaryDark))),
+                        style: TextStyle(
+                            color: ctx.appColors.textSecondary))),
                 data: (configs) {
                   final workers = (employeesAsync.valueOrNull ?? [])
                       .where((e) => e.role == AppRole.employee)
                       .toList();
 
                   if (workers.isEmpty) {
-                    return const Center(
+                    return Center(
                       child: Text('Sin empleados registrados',
                           style: TextStyle(
-                              color: AppColors.textSecondaryDark)),
+                              color: ctx.appColors.textSecondary)),
                     );
                   }
 
@@ -645,14 +665,14 @@ class _RateTileState extends State<_RateTile> {
               children: [
                 Text(
                   widget.employee.displayName,
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: context.appColors.textPrimary, fontWeight: FontWeight.w600),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const Text('\$ / hora',
+                Text('\$ / hora',
                     style: TextStyle(
-                        color: AppColors.textSecondaryDark, fontSize: 11)),
+                        color: context.appColors.textSecondary, fontSize: 11)),
               ],
             ),
           ),
@@ -662,14 +682,14 @@ class _RateTileState extends State<_RateTile> {
             child: TextField(
               controller: _ctrl,
               keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+              style: TextStyle(color: context.appColors.textPrimary, fontSize: 13),
               textAlign: TextAlign.right,
               decoration: InputDecoration(
                 hintText: '0',
                 hintStyle:
-                    const TextStyle(color: AppColors.textDisabledDark),
+                    TextStyle(color: context.appColors.textDisabled),
                 filled: true,
-                fillColor: AppColors.cardDark,
+                fillColor: context.appColors.card,
                 contentPadding: const EdgeInsets.symmetric(
                     horizontal: 10, vertical: 8),
                 border: OutlineInputBorder(

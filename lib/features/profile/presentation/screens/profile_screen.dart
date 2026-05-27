@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/leave_request.dart';
 import 'package:worksense_app/domain/entities/task_item.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
@@ -29,14 +31,16 @@ class ProfileScreen extends ConsumerWidget {
         ? shifts.where((s) => s.id == myEmployee!.shiftId).firstOrNull
         : null;
 
+    final ac = context.appColors;
+    final l10n = context.l10n;
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: ac.background,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             expandedHeight: 200,
             pinned: true,
-            backgroundColor: AppColors.backgroundDark,
+            backgroundColor: ac.background,
             flexibleSpace: FlexibleSpaceBar(
               background: _ProfileHero(
                 name: myEmployee?.displayName ??
@@ -46,10 +50,10 @@ class ProfileScreen extends ConsumerWidget {
                 role: currentUser?.role.metadataValue ?? 'EMPLOYEE',
               ),
             ),
-            title: const Text(
+            title: Text(
               'Mi Perfil',
               style: TextStyle(
-                  color: AppColors.white, fontWeight: FontWeight.bold),
+                  color: context.appColors.textPrimary, fontWeight: FontWeight.bold),
             ),
           ),
           SliverPadding(
@@ -90,7 +94,7 @@ class ProfileScreen extends ConsumerWidget {
                             '${myShift.startTime.minute.toString().padLeft(2, '0')} – '
                             '${myShift.endTime.hour.toString().padLeft(2, '0')}:'
                             '${myShift.endTime.minute.toString().padLeft(2, '0')})'
-                        : 'Sin turno asignado',
+                        : l10n.noShiftAssigned,
                   ),
                   if (myEmployee?.companyId != null)
                     _InfoRow(
@@ -228,7 +232,7 @@ class _ProfileHero extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.backgroundDark],
+          colors: [AppColors.primary, AppColors.primaryDark],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -240,7 +244,7 @@ class _ProfileHero extends StatelessWidget {
             const SizedBox(height: 48),
             CircleAvatar(
               radius: 40,
-              backgroundColor: AppColors.primary.withValues(alpha: 0.3),
+              backgroundColor: AppColors.white.withValues(alpha: 0.2),
               child: Text(
                 initials,
                 style: const TextStyle(
@@ -261,8 +265,8 @@ class _ProfileHero extends StatelessWidget {
             ),
             Text(
               email,
-              style: TextStyle(
-                color: AppColors.white.withValues(alpha: 0.7),
+              style: const TextStyle(
+                color: AppColors.white,
                 fontSize: 12,
               ),
             ),
@@ -283,7 +287,7 @@ class _InfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: context.appColors.card,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.glassBorder),
       ),
@@ -328,8 +332,8 @@ class _InfoRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(
-                    color: AppColors.white,
+                  style: TextStyle(
+                    color: context.appColors.textPrimary,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -361,7 +365,7 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: context.appColors.card,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/features/notifications/domain/entities/app_notification.dart';
 import 'package:worksense_app/features/notifications/presentation/providers/notifications_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
@@ -58,7 +60,7 @@ class NotificationBellButton extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const _NotificationSheet(),
+      builder: (ctx) => const _NotificationSheet(),
     );
   }
 }
@@ -76,15 +78,15 @@ class _ContainerBtn extends StatelessWidget {
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
+          color: context.appColors.surface,
           borderRadius: BorderRadius.circular(10),
           border: const Border.fromBorderSide(
               BorderSide(color: AppColors.glassBorder)),
         ),
-        child: const Icon(
+        child: Icon(
           Icons.notifications_outlined,
           size: 18,
-          color: AppColors.textSecondaryDark,
+          color: context.appColors.textSecondary,
         ),
       ),
     );
@@ -107,11 +109,13 @@ class _NotificationSheet extends ConsumerWidget {
       minChildSize: 0.4,
       maxChildSize: 0.95,
       builder: (context, scrollController) {
+        final ac = context.appColors;
+        final l10n = context.l10n;
         return Container(
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceDark,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            border: Border(
+          decoration: BoxDecoration(
+            color: ac.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            border: const Border(
               top: BorderSide(color: AppColors.glassBorder, width: 0.8),
             ),
           ),
@@ -136,10 +140,10 @@ class _NotificationSheet extends ConsumerWidget {
                     const Icon(Icons.notifications_rounded,
                         color: AppColors.primary, size: 20),
                     const SizedBox(width: 10),
-                    const Text(
-                      'Notificaciones',
+                    Text(
+                      l10n.notifications,
                       style: TextStyle(
-                        color: AppColors.textPrimaryDark,
+                        color: ac.textPrimary,
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
                       ),
@@ -151,9 +155,9 @@ class _NotificationSheet extends ConsumerWidget {
                             .read(notificationsProvider.notifier)
                             .markAllRead(companyId);
                       },
-                      child: const Text(
-                        'Leer todo',
-                        style: TextStyle(
+                      child: Text(
+                        l10n.markAllRead,
+                        style: const TextStyle(
                             color: AppColors.primary,
                             fontSize: 12,
                             fontWeight: FontWeight.w600),
@@ -171,9 +175,9 @@ class _NotificationSheet extends ConsumerWidget {
                     child: CircularProgressIndicator(
                         color: AppColors.primary, strokeWidth: 2),
                   ),
-                  error: (_, __) => const Center(
-                    child: Text('Error cargando notificaciones',
-                        style: TextStyle(color: AppColors.textSecondaryDark)),
+                  error: (_, __) => Center(
+                    child: Text(l10n.errorLoadingNotifications,
+                        style: TextStyle(color: ac.textSecondary)),
                   ),
                   data: (notifs) {
                     if (notifs.isEmpty) {
@@ -181,7 +185,7 @@ class _NotificationSheet extends ConsumerWidget {
                     }
                     return RefreshIndicator(
                       color: AppColors.primary,
-                      backgroundColor: AppColors.surfaceDark,
+                      backgroundColor: ac.surface,
                       onRefresh: () =>
                           ref.read(notificationsProvider.notifier).refresh(),
                       child: ListView.separated(
@@ -281,7 +285,7 @@ class _NotificationTile extends StatelessWidget {
                         child: Text(
                           notification.title,
                           style: TextStyle(
-                            color: AppColors.textPrimaryDark,
+                            color: context.appColors.textPrimary,
                             fontSize: 13,
                             fontWeight: isUnread
                                 ? FontWeight.w700
@@ -306,8 +310,8 @@ class _NotificationTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     notification.body,
-                    style: const TextStyle(
-                      color: AppColors.textSecondaryDark,
+                    style: TextStyle(
+                      color: context.appColors.textSecondary,
                       fontSize: 12,
                     ),
                     maxLines: 2,
@@ -315,7 +319,7 @@ class _NotificationTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _timeAgo(notification.createdAt),
+                    _timeAgo(notification.createdAt, context.l10n),
                     style: const TextStyle(
                       color: AppColors.grey400,
                       fontSize: 10,
@@ -330,12 +334,12 @@ class _NotificationTile extends StatelessWidget {
     );
   }
 
-  String _timeAgo(DateTime dt) {
+  String _timeAgo(DateTime dt, AppLocalizations l10n) {
     final diff = DateTime.now().difference(dt);
-    if (diff.inSeconds < 60) return 'Ahora mismo';
-    if (diff.inMinutes < 60) return 'hace ${diff.inMinutes} min';
-    if (diff.inHours < 24) return 'hace ${diff.inHours} h';
-    if (diff.inDays < 7) return 'hace ${diff.inDays} días';
+    if (diff.inSeconds < 60) return l10n.timeAgoNow;
+    if (diff.inMinutes < 60) return l10n.timeAgoMinutes(diff.inMinutes);
+    if (diff.inHours < 24) return l10n.timeAgoHours(diff.inHours);
+    if (diff.inDays < 7) return l10n.timeAgoDays(diff.inDays);
     return '${dt.day}/${dt.month}/${dt.year}';
   }
 }
@@ -352,13 +356,13 @@ class _EmptyNotifications extends StatelessWidget {
           Icon(
             Icons.notifications_none_rounded,
             size: 56,
-            color: AppColors.textSecondaryDark.withValues(alpha: 0.3),
+            color: context.appColors.textSecondary.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Sin notificaciones',
+          Text(
+            context.l10n.noNotifications,
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: context.appColors.textSecondary,
               fontSize: 14,
             ),
           ),

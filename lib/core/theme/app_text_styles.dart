@@ -110,7 +110,6 @@ abstract final class AppTextStyles {
   static const TextStyle cardSubtitle = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w500,
-    color: AppColors.textSecondary,
     fontFamily: 'Inter',
   );
 
@@ -132,7 +131,6 @@ abstract final class AppTextStyles {
   static const TextStyle statLabel = TextStyle(
     fontSize: 10,
     fontWeight: FontWeight.w600,
-    color: AppColors.textSecondary,
     letterSpacing: 0.8,
     fontFamily: 'Inter',
   );
@@ -157,7 +155,6 @@ abstract final class AppTextStyles {
   static const TextStyle kioskSubtitle = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.w600,
-    color: AppColors.textSecondary,
     fontFamily: 'Inter',
   );
 
@@ -174,13 +171,11 @@ abstract final class AppTextStyles {
   static const TextStyle emptyTitle = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.w700,
-    color: AppColors.textSecondary,
     fontFamily: 'Inter',
   );
   static const TextStyle emptySubtitle = TextStyle(
     fontSize: 13,
     fontWeight: FontWeight.w400,
-    color: AppColors.textDisabled,
     fontFamily: 'Inter',
   );
 

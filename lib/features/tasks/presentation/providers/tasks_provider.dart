@@ -65,21 +65,43 @@ class TasksNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _repo.saveTask(task));
     if (state is AsyncData) {
-      // Notificar al empleado asignado (no al creador)
-      await NotificationRepository.instance.pushToUser(
-        recipientId: task.assignedToId,
-        companyId: _companyId,
-        type: 'task_assigned',
-        title: '📋 Nueva tarea asignada',
-        body: task.title,
-        route: '/tasks',
-      );
+      try {
+        await NotificationRepository.instance.pushToUser(
+          recipientId: task.assignedToId,
+          companyId: _companyId,
+          type: 'task_assigned',
+          title: '📋 Nueva tarea asignada',
+          body: task.title,
+          route: '/tasks',
+        );
+      } catch (_) {}
     }
   }
 
-  Future<void> updateStatus(String taskId, TaskStatus status) async {
+  Future<void> updateStatus(
+    String taskId,
+    TaskStatus status, {
+    String? taskTitle,
+    String? assignedToId,
+  }) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _repo.updateTaskStatus(taskId, status));
+    if (state is AsyncData) {
+      try {
+        if (status == TaskStatus.done) {
+          // Notify admin that a task was completed
+          await NotificationRepository.instance.pushToAdmins(
+            companyId: _companyId,
+            type: 'task_completed',
+            title: '✅ Tarea completada',
+            body: taskTitle != null
+                ? '"$taskTitle" fue marcada como completada'
+                : 'Una tarea fue marcada como completada',
+            route: '/tasks',
+          );
+        }
+      } catch (_) {}
+    }
   }
 
   Future<void> deleteTask(String taskId) async {

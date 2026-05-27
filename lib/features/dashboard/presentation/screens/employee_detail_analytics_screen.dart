@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/l10n/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_theme_colors.dart';
 import '../../../../domain/entities/activity_state.dart';
 import '../../../../shared/widgets/loading_widget.dart';
 import '../../../../shared/widgets/styled/app_avatar.dart';
@@ -18,6 +20,9 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
     required this.employeeId,
     super.key,
   });
+
+  // ✅ Static final — DateFormat instantiated once, not on every build.
+  static final _timeFmt = DateFormat('HH:mm');
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,7 +48,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
         ),
         data: (EmployeeAnalytics? analytics) {
           if (analytics == null) {
-            return const Center(child: Text('Empleado no encontrado'));
+            return Center(child: Text(context.l10n.employeeNotFound));
           }
 
           if (!analytics.hasData) {
@@ -122,12 +127,12 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
               attendanceAsync.when(
                 data: (logs) {
                   if (logs.isEmpty) {
-                    return const SliverToBoxAdapter(
+                    return SliverToBoxAdapter(
                       child: Padding(
-                        padding: EdgeInsets.all(AppDimensions.spacingXxl),
+                        padding: const EdgeInsets.all(AppDimensions.spacingXxl),
                         child: Text(
                           'No hay registros de asistencia en el scanner.',
-                          style: TextStyle(color: AppColors.textSecondary),
+                          style: TextStyle(color: context.appColors.textSecondary),
                         ),
                       ),
                     );
@@ -156,16 +161,16 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                       ),
                       ...logs.map((log) {
                         final inStr =
-                            DateFormat('HH:mm').format(log.clockInTime);
+                            _timeFmt.format(log.clockInTime);
                         final outStr = log.clockOutTime != null
-                            ? DateFormat('HH:mm').format(log.clockOutTime!)
+                            ? _timeFmt.format(log.clockOutTime!)
                             : 'En curso';
                         final diff = (log.clockOutTime ?? DateTime.now())
                             .difference(log.clockInTime);
                         return ListTile(
-                          leading: const Icon(
+                          leading: Icon(
                             Icons.sensor_door,
-                            color: AppColors.textDisabled,
+                            color: context.appColors.textDisabled,
                           ),
                           title: Text('Entrada: $inStr - Salida: $outStr'),
                           trailing: Text(
@@ -238,7 +243,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(AppDimensions.radiusXs),
                 child: LinearProgressIndicator(
                   value: pct,
-                  backgroundColor: AppColors.surface,
+                  backgroundColor: context.appColors.surface,
                   color: entry.key.color,
                   minHeight: AppDimensions.progressBarHeight,
                 ),
@@ -249,9 +254,9 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
               width: AppDimensions.stateBreakdownPercentageWidth,
               child: Text(
                 '${(pct * 100).round()}% - ${_fmtDur(entry.value)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: AppDimensions.fontSm,
-                  color: AppColors.textSecondary,
+                  color: context.appColors.textSecondary,
                 ),
                 textAlign: TextAlign.right,
               ),
@@ -267,6 +272,8 @@ class _SummaryHeader extends StatelessWidget {
   final EmployeeAnalytics analytics;
 
   const _SummaryHeader({required this.analytics});
+
+  static final _timeFmt = DateFormat('HH:mm');
 
   @override
   Widget build(BuildContext context) {
@@ -313,9 +320,9 @@ class _SummaryHeader extends StatelessWidget {
                         ),
                         if (analytics.lastUpdate != null)
                           Text(
-                            'Ultima actividad: ${DateFormat('HH:mm').format(analytics.lastUpdate!)}',
+                            'Ultima actividad: ${_timeFmt.format(analytics.lastUpdate!)}',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
+                              color: context.appColors.textSecondary,
                             ),
                           ),
                       ],
@@ -397,7 +404,7 @@ class _Chip extends StatelessWidget {
       onSelected: (_) => onTap(),
       selectedColor: AppColors.primary.withAlpha(38),
       labelStyle: TextStyle(
-        color: selected ? AppColors.primary : AppColors.textSecondary,
+        color: selected ? AppColors.primary : context.appColors.textSecondary,
         fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
       ),
       side: BorderSide(
@@ -418,23 +425,23 @@ class _EmptyDetailView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.person_search_outlined,
             size: AppDimensions.iconEmptyStateLg,
-            color: AppColors.textDisabled,
+            color: context.appColors.textDisabled,
           ),
           const SizedBox(height: AppDimensions.spacingXxl),
           Text(
             'Sin datos para $name',
             style: theme.textTheme.titleMedium?.copyWith(
-              color: AppColors.textSecondary,
+              color: context.appColors.textSecondary,
             ),
           ),
           const SizedBox(height: AppDimensions.spacingMd),
           Text(
             'No se han registrado eventos\nen el periodo seleccionado.',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.textDisabled,
+              color: context.appColors.textDisabled,
             ),
             textAlign: TextAlign.center,
           ),

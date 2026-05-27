@@ -32,20 +32,36 @@ class ReportService {
   // ── Public API ──────────────────────────────────────────────────────────────
 
   /// Preview + share PDF for tasks report.
+  ///
+  /// [employeeNames] optional map of `{employeeId: displayName}` — used to
+  /// show real names instead of truncated UUIDs in the "Asignado a" column.
   Future<void> previewTasksReport({
     required List<TaskItem> tasks,
     required String companyName,
+    Map<String, String>? employeeNames,
   }) async {
-    final doc = await _buildTasksDocument(tasks: tasks, companyName: companyName);
+    final doc = await _buildTasksDocument(
+      tasks: tasks,
+      companyName: companyName,
+      employeeNames: employeeNames,
+    );
     await Printing.layoutPdf(onLayout: (_) async => doc);
   }
 
   /// Preview + share PDF for leave requests report.
+  ///
+  /// [employeeNames] optional map of `{employeeId: displayName}` — used to
+  /// show real names instead of truncated UUIDs in the "Empleado" column.
   Future<void> previewLeavesReport({
     required List<LeaveRequest> leaves,
     required String companyName,
+    Map<String, String>? employeeNames,
   }) async {
-    final doc = await _buildLeavesDocument(leaves: leaves, companyName: companyName);
+    final doc = await _buildLeavesDocument(
+      leaves: leaves,
+      companyName: companyName,
+      employeeNames: employeeNames,
+    );
     await Printing.layoutPdf(onLayout: (_) async => doc);
   }
 
@@ -75,6 +91,7 @@ class ReportService {
   Future<Uint8List> _buildTasksDocument({
     required List<TaskItem> tasks,
     required String companyName,
+    Map<String, String>? employeeNames,
   }) async {
     final pdf = pw.Document();
 
@@ -104,7 +121,7 @@ class ReportService {
           if (tasks.isNotEmpty) ...[
             _sectionTitle('Detalle de tareas'),
             pw.SizedBox(height: 8),
-            _tasksTable(tasks),
+            _tasksTable(tasks, employeeNames),
           ] else
             _emptyState('No hay tareas registradas.'),
         ],
@@ -117,6 +134,7 @@ class ReportService {
   Future<Uint8List> _buildLeavesDocument({
     required List<LeaveRequest> leaves,
     required String companyName,
+    Map<String, String>? employeeNames,
   }) async {
     final pdf = pw.Document();
 
@@ -144,7 +162,7 @@ class ReportService {
           if (leaves.isNotEmpty) ...[
             _sectionTitle('Detalle de solicitudes'),
             pw.SizedBox(height: 8),
-            _leavesTable(leaves),
+            _leavesTable(leaves, employeeNames),
           ] else
             _emptyState('No hay solicitudes de permiso registradas.'),
         ],
@@ -369,12 +387,12 @@ class ReportService {
 
   // ── Tables ──────────────────────────────────────────────────────────────────
 
-  pw.Widget _tasksTable(List<TaskItem> tasks) {
+  pw.Widget _tasksTable(List<TaskItem> tasks, Map<String, String>? names) {
     return pw.TableHelper.fromTextArray(
       headers: ['Título', 'Asignado a', 'Estado', 'Prioridad', 'Vence'],
       data: tasks.map((t) => [
-        t.title,
-        t.assignedToId.substring(0, 8),
+        t.title.length > 40 ? '${t.title.substring(0, 40)}…' : t.title,
+        _resolveName(t.assignedToId, names),
         t.status.label,
         t.priority.label,
         t.dueDate != null ? _fmtDate(t.dueDate!) : '—',
@@ -395,11 +413,11 @@ class ReportService {
     );
   }
 
-  pw.Widget _leavesTable(List<LeaveRequest> leaves) {
+  pw.Widget _leavesTable(List<LeaveRequest> leaves, Map<String, String>? names) {
     return pw.TableHelper.fromTextArray(
       headers: ['Empleado', 'Tipo', 'Estado', 'Desde', 'Hasta', 'Días'],
       data: leaves.map((l) => [
-        l.employeeId.substring(0, 8),
+        _resolveName(l.employeeId, names),
         l.type.label,
         l.status.label,
         _fmtDate(l.startDate),
@@ -471,6 +489,16 @@ class ReportService {
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
+
+  /// Returns the display name for [id] if present in [names], otherwise
+  /// falls back to the first 8 characters of the UUID.
+  String _resolveName(String id, Map<String, String>? names) {
+    if (names != null) {
+      final name = names[id];
+      if (name != null && name.trim().isNotEmpty) return name;
+    }
+    return id.length >= 8 ? id.substring(0, 8) : id;
+  }
 
   String _fmtDate(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';

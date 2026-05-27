@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_theme_colors.dart';
 import '../../../../shared/widgets/styled/app_section_header.dart';
 import '../../presentation/providers/shifts_provider.dart';
 
@@ -214,7 +215,7 @@ class _ShiftFormScreenState extends ConsumerState<ShiftFormScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_isEditing ? 'Turno actualizado exitosamente' : 'Turno registrado exitosamente'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         context.pop();
@@ -400,7 +401,7 @@ class _TimeCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacingXxl, horizontal: AppDimensions.spacingLg),
         decoration: BoxDecoration(
-          color: AppColors.card,
+          color: context.appColors.card,
           borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
           border: Border.all(color: AppColors.glassBorder),
         ),

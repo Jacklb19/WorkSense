@@ -25,47 +25,58 @@ class ActivityOverlayPainter extends CustomPainter {
     this.identityConfidence = 0.0,
   });
 
-  // ─── COLORES ────────────────────────────────────────────────────────────────
-  static const Color _cyanDot  = AppColors.overlayCyanDot;
-  static const Color _cyanLine = AppColors.overlayCyanLine;
-  static const Color _redDot   = AppColors.overlayRedDot;
+  // ─── COLORS ─────────────────────────────────────────────────────────────────
+  // Use state-driven colors for both skeleton and face frame
+  Color get _accentColor {
+    switch (state) {
+      case ActivityState.trabajando:    return AppColors.stateWorking;
+      case ActivityState.distraido:     return AppColors.stateDistracted;
+      case ActivityState.fatiga:        return AppColors.stateFatigue;
+      case ActivityState.ausente:       return AppColors.stateAbsent;
+      case ActivityState.fueraDelArea:  return AppColors.stateOutsideArea;
+      default:                          return AppColors.primary;
+    }
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
     if (state == ActivityState.fueraDelArea) {
       _drawOutsideAreaOverlay(canvas, size);
-    } else {
-      _drawPose(canvas, size);
-      _drawFaceMesh(canvas, size);
-      _drawFaceRect(canvas, size);
+      return;
     }
 
+    // Draw clean skeleton lines (no dots)
+    _drawPoseSkeleton(canvas, size);
+
+    // Draw face corner frame
+    _drawFaceFrame(canvas, size);
+
+    // Draw identity HUD badge
     if (identificationMethod != null && identityConfidence > 0) {
       _drawIdentityHUD(canvas, size);
     }
   }
 
-  void _drawPose(Canvas canvas, Size size) {
+  /// Draws only the skeleton LINES connecting major joints — no landmark dots.
+  void _drawPoseSkeleton(Canvas canvas, Size size) {
     if (poses.isEmpty) return;
 
+    final color = _accentColor;
     final linePaint = Paint()
-      ..color = _cyanLine.withValues(alpha: 0.4)
-      ..strokeWidth = 1.5
+      ..color = color.withValues(alpha: 0.55)
+      ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round;
 
-    final dotPaint = Paint()
-      ..color = _cyanDot
-      ..style = PaintingStyle.fill;
-
     const connections = [
-      [PoseLandmarkType.leftShoulder, PoseLandmarkType.rightShoulder],
-      [PoseLandmarkType.leftShoulder, PoseLandmarkType.leftElbow],
-      [PoseLandmarkType.leftElbow,    PoseLandmarkType.leftWrist],
-      [PoseLandmarkType.rightShoulder,PoseLandmarkType.rightElbow],
-      [PoseLandmarkType.rightElbow,   PoseLandmarkType.rightWrist],
-      [PoseLandmarkType.leftShoulder, PoseLandmarkType.leftHip],
-      [PoseLandmarkType.rightShoulder,PoseLandmarkType.rightHip],
-      [PoseLandmarkType.leftHip,      PoseLandmarkType.rightHip],
+      // Upper body only — visible and meaningful in kiosk context
+      [PoseLandmarkType.leftShoulder,  PoseLandmarkType.rightShoulder],
+      [PoseLandmarkType.leftShoulder,  PoseLandmarkType.leftElbow],
+      [PoseLandmarkType.leftElbow,     PoseLandmarkType.leftWrist],
+      [PoseLandmarkType.rightShoulder, PoseLandmarkType.rightElbow],
+      [PoseLandmarkType.rightElbow,    PoseLandmarkType.rightWrist],
+      [PoseLandmarkType.leftShoulder,  PoseLandmarkType.leftHip],
+      [PoseLandmarkType.rightShoulder, PoseLandmarkType.rightHip],
+      [PoseLandmarkType.leftHip,       PoseLandmarkType.rightHip],
     ];
 
     for (final pose in poses) {
@@ -74,112 +85,122 @@ class ActivityOverlayPainter extends CustomPainter {
         final b = pose.landmarks[conn[1]];
         if (a == null || b == null) continue;
         if (a.likelihood < 0.5 || b.likelihood < 0.5) continue;
-        canvas.drawLine(_toScreen(a.x, a.y, size), _toScreen(b.x, b.y, size), linePaint);
-      }
-
-      for (final lm in pose.landmarks.values) {
-        if (lm.likelihood < 0.5) continue;
-        final pt = _toScreen(lm.x, lm.y, size);
-        canvas.drawCircle(pt, 3.0, dotPaint);
+        canvas.drawLine(
+          _toScreen(a.x, a.y, size),
+          _toScreen(b.x, b.y, size),
+          linePaint,
+        );
       }
     }
   }
 
-  void _drawFaceMesh(Canvas canvas, Size size) {
-    if (faces.isEmpty) return;
-
-    final dotPaint = Paint()
-      ..color = _redDot.withValues(alpha: 0.6)
-      ..style = PaintingStyle.fill;
-
-    for (final face in faces) {
-      final landmarks = face.landmarks.values;
-      for (final lm in landmarks) {
-        final pos = lm?.position;
-        if (pos == null) continue;
-        final pt = _toScreenInt(pos.x, pos.y, size);
-        canvas.drawCircle(pt, 2.0, dotPaint);
-      }
-    }
-  }
-
-  void _drawFaceRect(Canvas canvas, Size size) {
-    if (faces.isEmpty) return;
+  /// Draws the 4-corner frame around the face bounding box — no dots.
+  void _drawFaceFrame(Canvas canvas, Size size) {
+    if (faces.isEmpty || imageSize == Size.zero) return;
     final face = faces.first;
     final rect = face.boundingBox;
 
+    final color = _accentColor;
     final paint = Paint()
-      ..color = AppColors.overlayCyanDot
+      ..color = color.withValues(alpha: 0.85)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round;
 
-    const L = 30.0;
-    // Mirror X
-    final left   = size.width - (rect.right * (size.width / imageSize.width));
-    final right  = size.width - (rect.left * (size.width / imageSize.width));
-    final top    = rect.top * (size.height / imageSize.height);
-    final bottom = rect.bottom * (size.height / imageSize.height);
+    // Mirror X (front camera)
+    final scaleX = size.width / imageSize.width;
+    final scaleY = size.height / imageSize.height;
+    final left   = size.width - rect.right  * scaleX;
+    final right  = size.width - rect.left   * scaleX;
+    final top    = rect.top    * scaleY;
+    final bottom = rect.bottom * scaleY;
 
-    final paths = [
-      Path()..moveTo(left, top + L)..lineTo(left, top)..lineTo(left + L, top),
-      Path()..moveTo(right - L, top)..lineTo(right, top)..lineTo(right, top + L),
-      Path()..moveTo(left, bottom - L)..lineTo(left, bottom)..lineTo(left + L, bottom),
-      Path()..moveTo(right - L, bottom)..lineTo(right, bottom)..lineTo(right, bottom - L),
+    // Adaptive corner length — 20% of the shorter dimension
+    final cornerLen = ((right - left) * 0.20).clamp(12.0, 36.0);
+
+    final corners = <Path>[
+      Path()..moveTo(left, top + cornerLen)..lineTo(left, top)..lineTo(left + cornerLen, top),
+      Path()..moveTo(right - cornerLen, top)..lineTo(right, top)..lineTo(right, top + cornerLen),
+      Path()..moveTo(left, bottom - cornerLen)..lineTo(left, bottom)..lineTo(left + cornerLen, bottom),
+      Path()..moveTo(right - cornerLen, bottom)..lineTo(right, bottom)..lineTo(right, bottom - cornerLen),
     ];
-
-    for (final p in paths) {
+    for (final p in corners) {
       canvas.drawPath(p, paint);
     }
+
+    // Subtle tinted fill — just a hint of color
+    canvas.drawRect(
+      Rect.fromLTRB(left, top, right, bottom),
+      Paint()..color = color.withValues(alpha: 0.04),
+    );
   }
 
   void _drawOutsideAreaOverlay(Canvas canvas, Size size) {
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = Colors.black45);
-    _drawCenteredText(canvas, 'EMPLEADO FUERA DE CÁMARA', Offset(size.width/2, size.height/2), const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 2), size);
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()..color = Colors.black45,
+    );
+    _drawCenteredText(
+      canvas,
+      'EMPLEADO FUERA DE ÁREA',
+      Offset(size.width / 2, size.height / 2),
+      const TextStyle(
+        color: Colors.white,
+        fontSize: 13,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 2,
+      ),
+      size,
+    );
   }
 
   void _drawIdentityHUD(Canvas canvas, Size size) {
     final (icon, label) = _identityLabel(identificationMethod);
     final color = _identityColor(identityConfidence);
-    
+
     final tp = TextPainter(
       text: TextSpan(
         children: [
-          TextSpan(text: '$icon $label  ', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.normal)),
-          TextSpan(text: '${(identityConfidence*100).toInt()}%', style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900)),
+          TextSpan(
+            text: '$icon $label  ',
+            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.normal),
+          ),
+          TextSpan(
+            text: '${(identityConfidence * 100).toInt()}%',
+            style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900),
+          ),
         ],
       ),
       textDirection: TextDirection.ltr,
     )..layout();
 
-    final w = tp.width + 24;
-    final h = tp.height + 12;
-    final left = size.width - w - 24;
     const top = 110.0;
+    final w   = tp.width + 24;
+    final h   = tp.height + 12;
+    final left = size.width - w - 24;
 
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(left, top, w, h), const Radius.circular(8)), Paint()..color = AppColors.overlayBadgeBg);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(left, top, w, h), const Radius.circular(8)),
+      Paint()..color = AppColors.overlayBadgeBg,
+    );
     tp.paint(canvas, Offset(left + 12, top + 6));
   }
 
-  // ─── HELPERS ─────────────────────────────────────────────────────────────
+  // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
-  double _toScreenX(double x, Size canvasSize) {
-    if (imageSize == Size.zero) return x;
-    return (imageSize.width - x) * (canvasSize.width / imageSize.width);
+  Offset _toScreen(double x, double y, Size canvasSize) {
+    if (imageSize == Size.zero) return Offset(x, y);
+    final mirroredX = (imageSize.width - x) * (canvasSize.width / imageSize.width);
+    final scaledY   = y * (canvasSize.height / imageSize.height);
+    return Offset(mirroredX, scaledY);
   }
-
-  double _toScreenY(double y, Size canvasSize) {
-    if (imageSize == Size.zero) return y;
-    return y * (canvasSize.height / imageSize.height);
-  }
-
-  Offset _toScreen(double x, double y, Size canvasSize) =>
-      Offset(_toScreenX(x, canvasSize), _toScreenY(y, canvasSize));
-
-  Offset _toScreenInt(int x, int y, Size size) =>
-      _toScreen(x.toDouble(), y.toDouble(), size);
 
   void _drawCenteredText(Canvas canvas, String text, Offset center, TextStyle style, Size size) {
-    final tp = TextPainter(text: TextSpan(text: text, style: style), textDirection: TextDirection.ltr, textAlign: TextAlign.center)..layout(maxWidth: size.width * 0.8);
+    final tp = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+    )..layout(maxWidth: size.width * 0.8);
     tp.paint(canvas, Offset(center.dx - tp.width / 2, center.dy));
   }
 
@@ -187,7 +208,8 @@ class ActivityOverlayPainter extends CustomPainter {
     switch (method?.toUpperCase()) {
       case 'FACEEMBEDDING': return ('👁️', 'BIO-FACE');
       case 'BODY':          return ('🧍', 'BODY-SCAN');
-      case 'COMBINED':      return ('🔍', 'HYBRID');
+      case 'COMBINED':      return ('🔍', 'HÍBRIDO');
+      case 'TRACKING':      return ('🎯', 'TRACKING');
       default:              return ('🔍', 'BUSCANDO');
     }
   }
@@ -199,5 +221,9 @@ class ActivityOverlayPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(ActivityOverlayPainter old) => true;
+  bool shouldRepaint(ActivityOverlayPainter old) =>
+      old.state != state ||
+      old.faces != faces ||
+      old.poses != poses ||
+      old.identityConfidence != identityConfidence;
 }

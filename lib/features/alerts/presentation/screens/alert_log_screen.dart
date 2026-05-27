@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/alert_log.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
@@ -20,16 +21,17 @@ class AlertLogScreen extends ConsumerWidget {
     final employeesAsync = ref.watch(employeesProvider);
     final unread = ref.watch(unacknowledgedAlertCountProvider);
 
+    final ac = context.appColors;
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: ac.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: ac.surface,
         title: Row(
           children: [
-            const Text(
+            Text(
               'ALERTAS',
               style: TextStyle(
-                color: Colors.white,
+                color: ac.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1,
@@ -81,13 +83,13 @@ class AlertLogScreen extends ConsumerWidget {
                   Icon(
                     Icons.notifications_none,
                     size: 64,
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: ac.textDisabled.withValues(alpha: 0.3),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'No hay alertas registradas',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.4),
+                      color: ac.textDisabled,
                       fontSize: 14,
                     ),
                   ),
@@ -152,16 +154,19 @@ class _AlertLogCard extends StatelessWidget {
     required this.onAcknowledge,
   });
 
+  // ✅ Static final — DateFormat instantiated once, not on every build.
+  static final _fmt = DateFormat('dd/MM HH:mm');
+
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     final alertType = AlertType.fromRaw(log.alertType);
-    final fmt = DateFormat('dd/MM HH:mm');
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 5),
       decoration: BoxDecoration(
         color: log.acknowledged
-            ? AppColors.cardDark
+            ? ac.card
             : alertType.color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
@@ -188,7 +193,7 @@ class _AlertLogCard extends StatelessWidget {
               child: Text(
                 alertType.label,
                 style: TextStyle(
-                  color: log.acknowledged ? Colors.white70 : Colors.white,
+                  color: log.acknowledged ? ac.textSecondary : ac.textPrimary,
                   fontSize: 13,
                   fontWeight: log.acknowledged
                       ? FontWeight.normal
@@ -213,7 +218,7 @@ class _AlertLogCard extends StatelessWidget {
             if (employee != null)
               Text(
                 employee!.displayName,
-                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                style: TextStyle(color: ac.textSecondary, fontSize: 12),
               ),
             const SizedBox(height: 2),
             Row(
@@ -226,17 +231,17 @@ class _AlertLogCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  fmt.format(log.triggeredAt),
+                  _fmt.format(log.triggeredAt),
                   style:
-                      const TextStyle(color: Colors.white38, fontSize: 11),
+                      TextStyle(color: ac.textDisabled, fontSize: 11),
                 ),
               ],
             ),
           ],
         ),
         trailing: log.acknowledged
-            ? const Icon(Icons.check_circle_outline,
-                color: Colors.white24, size: 18)
+            ? Icon(Icons.check_circle_outline,
+                color: ac.textDisabled, size: 18)
             : IconButton(
                 icon: const Icon(Icons.check_circle_outline,
                     color: AppColors.primary, size: 20),

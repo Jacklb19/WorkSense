@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_dimensions.dart';
+import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_theme_colors.dart';
 
 class AppErrorWidget extends StatelessWidget {
   final String message;
@@ -36,10 +38,10 @@ class AppErrorWidget extends StatelessWidget {
               child: Icon(icon, color: AppColors.error, size: 32),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Algo salió mal',
+            Text(
+              context.l10n.somethingWentWrong,
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
+                color: context.appColors.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
               ),
@@ -47,8 +49,8 @@ class AppErrorWidget extends StatelessWidget {
             const SizedBox(height: AppDimensions.spacingXxl),
             Text(
               message,
-              style: const TextStyle(
-                color: AppColors.textSecondaryDark,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
                 fontSize: 13,
               ),
               textAlign: TextAlign.center,
@@ -60,7 +62,7 @@ class AppErrorWidget extends StatelessWidget {
               FilledButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded, size: 16),
-                label: const Text('Reintentar'),
+                label: Text(context.l10n.retry),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   minimumSize: const Size(160, 46),

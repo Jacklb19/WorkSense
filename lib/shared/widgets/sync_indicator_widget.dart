@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/constants/app_strings.dart';
+import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_colors.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/sync_state_provider.dart';
@@ -15,10 +15,11 @@ class SyncIndicatorWidget extends ConsumerWidget {
     final pendingAsync = ref.watch(pendingSyncCountProvider);
     final syncState = ref.watch(syncNotifierProvider);
 
+    final l10n = context.l10n;
     if (!isOnline) {
-      return const Tooltip(
-        message: AppStrings.offlineMode,
-        child: Padding(
+      return Tooltip(
+        message: l10n.offlineMode,
+        child: const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0),
           child: Icon(Icons.cloud_off, color: AppColors.syncOffline),
         ),
@@ -43,7 +44,7 @@ class SyncIndicatorWidget extends ConsumerWidget {
 
         if (pendingCount > 0) {
           return Tooltip(
-            message: '$pendingCount pendientes de sincronizacion',
+            message: '$pendingCount ${l10n.pendingSyncLabel}',
             child: InkWell(
               onTap: () => ref.read(syncNotifierProvider.notifier).sync(),
               child: Padding(
@@ -64,9 +65,9 @@ class SyncIndicatorWidget extends ConsumerWidget {
           );
         }
 
-        return const Tooltip(
-          message: AppStrings.onlineAndSynced,
-          child: Padding(
+        return Tooltip(
+          message: l10n.onlineAndSynced,
+          child: const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.0),
             child: Icon(Icons.cloud_done, color: AppColors.syncOk),
           ),

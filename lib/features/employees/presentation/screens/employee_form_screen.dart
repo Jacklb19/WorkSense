@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/app_role.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 
 class EmployeeFormScreen extends ConsumerStatefulWidget {
@@ -88,21 +90,20 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
     final confirm = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Eliminar colaborador'),
-            content: const Text(
-              '¿Estás seguro de que deseas eliminar permanentemente este colaborador? '
-              'Esta acción eliminará su acceso y todos sus datos de asistencia.',
+            title: Text(ctx.l10n.deleteEmployee),
+            content: Text(
+              ctx.l10n.confirmDeleteEmployeeBody,
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancelar'),
+                child: Text(ctx.l10n.cancel),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text(
-                  'Eliminar',
-                  style: TextStyle(color: Colors.red),
+                child: Text(
+                  ctx.l10n.delete,
+                  style: const TextStyle(color: AppColors.error),
                 ),
               ),
             ],
@@ -118,8 +119,8 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Colaborador eliminado'),
+        SnackBar(
+          content: Text(context.l10n.employeeDeleted),
           backgroundColor: AppColors.success,
         ),
       );
@@ -139,10 +140,10 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
           SnackBar(
             content: Text(
               _isEditing
-                  ? 'Colaborador actualizado'
-                  : 'Colaborador registrado',
+                  ? context.l10n.employeeUpdated
+                  : context.l10n.employeeAdded,
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         context.pop();
@@ -154,7 +155,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
         slivers: [
           SliverAppBar(
             pinned: true,
-            title: Text(_isEditing ? 'Editar Perfil' : 'Nuevo Ingreso'),
+            title: Text(_isEditing ? context.l10n.editEmployee : context.l10n.newEmployee),
           ),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -165,7 +166,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'IDENTIDAD',
+                      context.l10n.sectionIdentity,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.bold,
@@ -175,26 +176,26 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                     const SizedBox(height: 20),
                     TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nombre',
-                        prefixIcon: Icon(Icons.person_outline),
+                      decoration: InputDecoration(
+                        labelText: context.l10n.nameLabel,
+                        prefixIcon: const Icon(Icons.person_outline),
                       ),
                       validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Campo requerido' : null,
+                          (v == null || v.isEmpty) ? context.l10n.fieldRequired : null,
                     ),
                     const SizedBox(height: AppDimensions.spacingXxl),
                     TextFormField(
                       controller: _lastNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Apellidos',
-                        prefixIcon: Icon(Icons.badge_outlined),
+                      decoration: InputDecoration(
+                        labelText: context.l10n.lastNameLabel,
+                        prefixIcon: const Icon(Icons.badge_outlined),
                       ),
                       validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Campo requerido' : null,
+                          (v == null || v.isEmpty) ? context.l10n.fieldRequired : null,
                     ),
                     const SizedBox(height: 40),
                     Text(
-                      'CREDENCIALES',
+                      context.l10n.sectionCredentials,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.bold,
@@ -205,13 +206,13 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email_outlined),
+                      decoration: InputDecoration(
+                        labelText: context.l10n.emailLabel,
+                        prefixIcon: const Icon(Icons.email_outlined),
                       ),
                       validator: (v) =>
                           (v == null || !v.contains('@'))
-                              ? 'Email inválido'
+                              ? context.l10n.emailInvalid
                               : null,
                     ),
                     if (!_isEditing) ...[
@@ -219,35 +220,35 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                       TextFormField(
                         controller: _passwordController,
                         obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Contraseña Temporal',
-                          prefixIcon: Icon(Icons.lock_outline),
+                        decoration: InputDecoration(
+                          labelText: context.l10n.passwordTempLabel,
+                          prefixIcon: const Icon(Icons.lock_outline),
                         ),
                         validator: (v) =>
                             (v == null || v.length < 6)
-                                ? 'Minimo 6 caracteres'
+                                ? context.l10n.passwordTooShort
                                 : null,
                       ),
                     ],
                     const SizedBox(height: 16),
                     DropdownButtonFormField<AppRole>(
                       initialValue: _selectedRole,
-                      decoration: const InputDecoration(
-                        labelText: 'Rol',
-                        prefixIcon: Icon(Icons.security_outlined),
+                      decoration: InputDecoration(
+                        labelText: context.l10n.roleLabel,
+                        prefixIcon: const Icon(Icons.security_outlined),
                       ),
-                      items: const [
+                      items: [
                         DropdownMenuItem(
                           value: AppRole.employee,
-                          child: Text('Empleado'),
+                          child: Text(context.l10n.employee),
                         ),
                         DropdownMenuItem(
                           value: AppRole.admin,
-                          child: Text('Administrador'),
+                          child: Text(context.l10n.administrator),
                         ),
                         DropdownMenuItem(
                           value: AppRole.cameraMonitor,
-                          child: Text('Monitor de camara'),
+                          child: Text(context.l10n.cameraMonitorRole),
                         ),
                       ],
                       onChanged: (val) {
@@ -260,14 +261,14 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                       data: (shifts) {
                         return DropdownButtonFormField<String>(
                           initialValue: _selectedShiftId,
-                          decoration: const InputDecoration(
-                            labelText: 'Turno / Horario',
-                            prefixIcon: Icon(Icons.schedule),
+                          decoration: InputDecoration(
+                            labelText: context.l10n.navShifts,
+                            prefixIcon: const Icon(Icons.schedule),
                           ),
                           items: [
-                            const DropdownMenuItem(
+                            DropdownMenuItem(
                               value: null,
-                              child: Text('Sin Asignar (Libre)'),
+                              child: Text(context.l10n.none),
                             ),
                             ...shifts.map(
                               (s) => DropdownMenuItem(
@@ -285,8 +286,8 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                       loading: () =>
                           const Center(child: CircularProgressIndicator()),
                       error: (e, _) => Text(
-                        'Error cargando turnos: $e',
-                        style: const TextStyle(color: Colors.red),
+                        '${context.l10n.errorLoadingData}: $e',
+                        style: const TextStyle(color: AppColors.error),
                       ),
                     ),
                     const SizedBox(height: 56),
@@ -303,8 +304,8 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                             )
                           : Text(
                               _isEditing
-                                  ? 'GUARDAR CAMBIOS'
-                                  : 'REGISTRAR EMPLEADO',
+                                  ? context.l10n.saveChanges.toUpperCase()
+                                  : context.l10n.addEmployee.toUpperCase(),
                             ),
                     ),
                     if (formState.errorMessage != null) ...[
@@ -313,7 +314,7 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                         formState.errorMessage!,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          color: Colors.redAccent,
+                          color: AppColors.errorAccent,
                           fontSize: 13,
                         ),
                       ),
@@ -324,11 +325,11 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen> {
                         onPressed: formState.isLoading ? null : _handleDelete,
                         icon: const Icon(
                           Icons.delete_outline,
-                          color: Colors.redAccent,
+                          color: AppColors.errorAccent,
                         ),
-                        label: const Text(
-                          'ELIMINAR EMPLEADO',
-                          style: TextStyle(color: Colors.redAccent),
+                        label: Text(
+                          context.l10n.deleteEmployee.toUpperCase(),
+                          style: const TextStyle(color: AppColors.errorAccent),
                         ),
                         style: OutlinedButton.styleFrom(
                           minimumSize:

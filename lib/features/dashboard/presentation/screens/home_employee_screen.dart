@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:worksense_app/core/constants/app_strings.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
+import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
@@ -12,16 +15,17 @@ class HomeEmployeeScreen extends ConsumerWidget {
     final userState = ref.watch(currentUserProvider);
     final theme = Theme.of(context);
 
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppStrings.myEmployeePanel),
+        title: Text(l10n.myEmployeePanel),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
               ref.read(loginNotifierProvider.notifier).signOut();
             },
-            tooltip: AppStrings.logout,
+            tooltip: l10n.logout,
           ),
         ],
       ),
@@ -48,7 +52,7 @@ class HomeEmployeeScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppDimensions.spacing24),
                 Text(
-                  AppStrings.welcome,
+                  l10n.welcome,
                   style: theme.textTheme.headlineMedium,
                 ),
                 if (currentUser.user?.email != null) ...[
@@ -56,15 +60,15 @@ class HomeEmployeeScreen extends ConsumerWidget {
                   Text(
                     currentUser.user!.email!,
                     style: theme.textTheme.titleMedium?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.appColors.textSecondary,
                     ),
                   ),
                 ],
                 const SizedBox(height: AppDimensions.spacing32),
                 Text(
-                  AppStrings.scheduleAndActivityHint,
+                  l10n.scheduleAndActivityHint,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ),
               ],

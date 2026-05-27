@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/leave_request.dart';
 import 'package:worksense_app/features/leaves/presentation/providers/leaves_provider.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
 class LeaveRequestFormScreen extends ConsumerStatefulWidget {
@@ -33,21 +35,22 @@ class _LeaveRequestFormScreenState
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: ac.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text(
+        backgroundColor: ac.surface,
+        title: Text(
           'SOLICITAR PERMISO',
           style: TextStyle(
-            color: Colors.white,
+            color: ac.textPrimary,
             fontSize: 15,
             fontWeight: FontWeight.w900,
             letterSpacing: 0.8,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
+          icon: Icon(Icons.close, color: ac.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -133,14 +136,14 @@ class _LeaveRequestFormScreenState
               const SizedBox(height: 8),
               TextFormField(
                 controller: _reasonController,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: ac.textPrimary),
                 maxLines: 3,
                 maxLength: 300,
                 decoration: InputDecoration(
                   hintText: 'Explica brevemente el motivo…',
-                  hintStyle: const TextStyle(color: Colors.white38),
+                  hintStyle: TextStyle(color: ac.textDisabled),
                   filled: true,
-                  fillColor: AppColors.surfaceDark,
+                  fillColor: ac.surface,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide:
@@ -157,7 +160,7 @@ class _LeaveRequestFormScreenState
                         color: AppColors.primary, width: 1.5),
                   ),
                   counterStyle:
-                      const TextStyle(color: Colors.white38),
+                      TextStyle(color: ac.textDisabled),
                 ),
               ),
 
@@ -232,9 +235,30 @@ class _LeaveRequestFormScreenState
   Future<void> _submit(BuildContext context) async {
     if (_startDate == null || _endDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Selecciona el período de ausencia'),
+        SnackBar(
+          content: Text(context.l10n.selectAbsencePeriod),
           backgroundColor: AppColors.warning,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final user = ref.read(currentUserProvider).valueOrNull;
+
+    // Guard: both employeeId and companyId are required for Supabase RLS.
+    // If either is missing the insert would fail silently downstream.
+    final employeeId = user?.user?.id ?? '';
+    final companyId = user?.companyId ?? '';
+
+    if (employeeId.isEmpty || companyId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No se pudo determinar tu empresa. '
+            'Cierra sesión, vuelve a entrar e intenta de nuevo.',
+          ),
+          backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -243,15 +267,14 @@ class _LeaveRequestFormScreenState
 
     setState(() => _loading = true);
 
-    final user = ref.read(currentUserProvider).valueOrNull;
     final now = DateTime.now();
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
 
     final request = LeaveRequest(
       id: const Uuid().v4(),
-      employeeId: user?.user?.id ?? '',
-      companyId: user?.companyId ?? '',
+      employeeId: employeeId,
+      companyId: companyId,
       type: _type,
       status: LeaveStatus.pending,
       startDate: _startDate!,
@@ -290,8 +313,8 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: const TextStyle(
-        color: Colors.white70,
+      style: TextStyle(
+        color: context.appColors.textSecondary,
         fontSize: 12,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.4,
@@ -308,48 +331,58 @@ class _TypeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-      childAspectRatio: 3,
-      children: LeaveType.values.map((t) {
-        final isSelected = t == selected;
-        return GestureDetector(
-          onTap: () => onChanged(t),
-          child: Container(
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? AppColors.primary.withValues(alpha: 0.2)
-                  : AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isSelected ? AppColors.primary : AppColors.glassBorder,
-                width: isSelected ? 1.5 : 1,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(t.icon,
-                    size: 16,
-                    color: isSelected ? AppColors.primary : Colors.white38),
-                const SizedBox(width: 8),
-                Text(
-                  t.label,
-                  style: TextStyle(
-                    color: isSelected ? AppColors.primary : Colors.white54,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = 10.0;
+        final tileWidth = (constraints.maxWidth - spacing) / 2;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: LeaveType.values.map((t) {
+            final isSelected = t == selected;
+            return SizedBox(
+              width: tileWidth,
+              child: Material(
+                color: isSelected
+                    ? AppColors.primary.withValues(alpha: 0.2)
+                    : context.appColors.surface,
+                borderRadius: BorderRadius.circular(10),
+                child: InkWell(
+                  onTap: () => onChanged(t),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isSelected ? AppColors.primary : AppColors.glassBorder,
+                        width: isSelected ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(t.icon,
+                            size: 16,
+                            color: isSelected ? AppColors.primary : context.appColors.textDisabled),
+                        const SizedBox(width: 8),
+                        Text(
+                          t.label,
+                          style: TextStyle(
+                            color: isSelected ? AppColors.primary : context.appColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          }).toList(),
         );
-      }).toList(),
+      },
     );
   }
 }
@@ -365,38 +398,45 @@ class _DatePickerField extends StatelessWidget {
     required this.onTap,
   });
 
+  // ✅ Static final — DateFormat instantiated once, not on every build.
+  static final _dateFmt = DateFormat('dd/MM/yyyy');
+
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: value != null ? AppColors.primary : AppColors.glassBorder,
+    return Material(
+      color: context.appColors.surface,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: value != null ? AppColors.primary : AppColors.glassBorder,
+            ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(color: Colors.white38, fontSize: 10),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value != null
-                  ? DateFormat('dd/MM/yyyy').format(value!)
-                  : 'Seleccionar',
-              style: TextStyle(
-                color: value != null ? Colors.white : Colors.white38,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(color: context.appColors.textDisabled, fontSize: 10),
               ),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                value != null
+                    ? _dateFmt.format(value!)
+                    : 'Seleccionar',
+                style: TextStyle(
+                  color: value != null ? context.appColors.textPrimary : context.appColors.textDisabled,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_theme_colors.dart';
 import '../../../../data/datasources/local/database.dart';
 import '../../../camera_monitor/presentation/widgets/state_badge_widget.dart';
 import '../../presentation/providers/dashboard_provider.dart';
@@ -17,15 +18,21 @@ class WorkstationCard extends ConsumerWidget {
     super.key,
   });
 
+  // ✅ Static finals — DateFormat is expensive; instantiate once, not per helper call.
+  static final _timeFmt     = DateFormat('HH:mm');
+  static final _datetimeFmt = DateFormat('dd/MM HH:mm');
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final lastEvent = ref.watch(lastEventByWorkstationProvider(workstation.id));
 
+    final ac = context.appColors;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: ac.card,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: ac.divider.withValues(alpha: 0.5)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
@@ -59,7 +66,7 @@ class WorkstationCard extends ConsumerWidget {
                         style: theme.textTheme.labelMedium?.copyWith(
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.5,
-                          color: AppColors.textPrimary,
+                          color: ac.textPrimary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -77,16 +84,16 @@ class WorkstationCard extends ConsumerWidget {
                   const SizedBox(height: AppDimensions.spacingLg),
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.access_time,
                         size: AppDimensions.iconXxs,
-                        color: AppColors.textDisabled,
+                        color: ac.textDisabled,
                       ),
                       const SizedBox(width: AppDimensions.spacingXs),
                       Text(
                         _formatTimestamp(lastEvent.timestamp),
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: AppColors.textDisabled,
+                          color: ac.textDisabled,
                         ),
                       ),
                     ],
@@ -95,7 +102,7 @@ class WorkstationCard extends ConsumerWidget {
                   Text(
                     'SIN ACTIVIDAD RECIENTE',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.textDisabled,
+                      color: ac.textDisabled,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -114,8 +121,8 @@ class WorkstationCard extends ConsumerWidget {
     if (diff.inMinutes < 1) return 'Hace un momento';
     if (diff.inMinutes < 60) return 'Hace ${diff.inMinutes} min';
     if (diff.inHours < 24) {
-      return DateFormat('HH:mm').format(dt);
+      return _timeFmt.format(dt);
     }
-    return DateFormat('dd/MM HH:mm').format(dt);
+    return _datetimeFmt.format(dt);
   }
 }

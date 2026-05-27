@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/shift.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
 
 class ShiftsListScreen extends ConsumerWidget {
@@ -14,10 +17,11 @@ class ShiftsListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final shiftsAsync = ref.watch(shiftsProvider);
     final theme = Theme.of(context);
+    final ac = context.appColors;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Horarios Laborales'),
+        title: Text(context.l10n.workShifts),
       ),
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(shiftsProvider),
@@ -71,7 +75,7 @@ class ShiftsListScreen extends ConsumerWidget {
                       child: Text(
                         '$startStr - $endStr',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: ac.textSecondary,
                         ),
                       ),
                     ),
@@ -102,7 +106,7 @@ class ShiftsListScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.shiftNew),
         icon: const Icon(Icons.add),
-        label: const Text('NUEVO TURNO'),
+        label: Text(context.l10n.newShift),
         backgroundColor: AppColors.primary,
       ),
     );
@@ -112,16 +116,16 @@ class ShiftsListScreen extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Eliminar turno'),
+        title: Text(context.l10n.deleteShift),
         content: Text('¿Eliminar "${shift.name}"? Esta acción no se puede deshacer.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar', style: TextStyle(color: AppColors.error)),
+            child: Text(context.l10n.delete, style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -145,12 +149,12 @@ class _EmptyShiftsView extends StatelessWidget {
           const Icon(Icons.event_busy, size: 64, color: AppColors.grey300),
           const SizedBox(height: 16),
           Text(
-            'No hay turnos registrados',
+            context.l10n.noShiftsRegistered,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.grey500),
           ),
           const SizedBox(height: 8),
           Text(
-            'Crea tu primer horario laboral \npara asignarlo a tus empleados.',
+            context.l10n.noShiftsHint,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.grey400),
             textAlign: TextAlign.center,
           ),

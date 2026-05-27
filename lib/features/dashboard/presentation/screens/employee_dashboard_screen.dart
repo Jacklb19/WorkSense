@@ -2,18 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
-import 'package:worksense_app/core/constants/app_strings.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/domain/entities/task_item.dart';
+import 'package:worksense_app/features/dashboard/presentation/helpers/hours_formatters.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
 import 'package:worksense_app/features/notifications/presentation/widgets/notification_panel.dart';
 import 'package:worksense_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/shared/widgets/error_widget.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
+import 'package:worksense_app/shared/widgets/styled/app_section_header.dart';
 import 'package:worksense_app/shared/widgets/sync_indicator_widget.dart';
 
 class EmployeeDashboardScreen extends ConsumerWidget {
@@ -21,13 +25,14 @@ class EmployeeDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final userState = ref.watch(currentUserProvider);
     final userEmail =
-        userState.valueOrNull?.user?.email ?? AppStrings.employee;
+        userState.valueOrNull?.user?.email ?? l10n.employee;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppStrings.mySpace),
+        title: Text(l10n.mySpace),
         centerTitle: false,
         actions: [
           // Notification bell (unified: tasks, leaves, messages, etc.)
@@ -35,7 +40,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
           // Chat with admin
           IconButton(
             icon: const Icon(Icons.forum_outlined),
-            tooltip: 'Mensajes',
+            tooltip: l10n.messages,
             onPressed: () => context.push(
               AppRoutes.chatList,
               extra: {'isEmployee': true},
@@ -47,7 +52,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         color: AppColors.primary,
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.appColors.surface,
         onRefresh: () async {
           ref.invalidate(employeeAssignedWorkstationProvider);
           ref.invalidate(employeeTodayAnalyticsProvider);
@@ -66,7 +71,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                     end: Alignment.bottomRight,
                     colors: [
                       AppColors.primary.withValues(alpha: 0.10),
-                      AppColors.backgroundDark,
+                      context.appColors.background,
                     ],
                   ),
                   border: const Border(
@@ -77,17 +82,17 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _greeting(),
-                      style: const TextStyle(
-                        color: AppColors.textSecondaryDark,
+                      l10n.greeting(),
+                      style: TextStyle(
+                        color: context.appColors.textSecondary,
                         fontSize: 13,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       userEmail,
-                      style: const TextStyle(
-                        color: AppColors.textPrimaryDark,
+                      style: TextStyle(
+                        color: context.appColors.textPrimary,
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.3,
@@ -96,10 +101,10 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      AppStrings.todaySummary,
+                    Text(
+                      l10n.todaySummary,
                       style: TextStyle(
-                        color: AppColors.textSecondaryDark,
+                        color: context.appColors.textSecondary,
                         fontSize: 13,
                       ),
                     ),
@@ -108,66 +113,61 @@ class EmployeeDashboardScreen extends ConsumerWidget {
               ),
 
               const SizedBox(height: 20),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _SectionHeader(label: AppStrings.assignedWorkstation,
+                    AppSectionHeader(title: l10n.assignedWorkstation,
                         icon: Icons.desktop_windows_rounded),
-                    SizedBox(height: 10),
-                    _AssignedWorkstationSection(),
-                    SizedBox(height: 24),
+                    const _AssignedWorkstationSection(),
+                    const SizedBox(height: 24),
 
-                    _SectionHeader(label: AppStrings.myProductivityToday,
+                    AppSectionHeader(title: l10n.myProductivityToday,
                         icon: Icons.bar_chart_rounded),
-                    SizedBox(height: 10),
-                    _PersonalProductivitySection(),
-                    SizedBox(height: 24),
+                    const _PersonalProductivitySection(),
+                    const SizedBox(height: 24),
 
-                    _SectionHeader(label: AppStrings.recentActivityLive,
+                    AppSectionHeader(title: l10n.recentActivityLive,
                         icon: Icons.history_rounded),
-                    SizedBox(height: 10),
-                    _RecentActivitySection(),
-                    SizedBox(height: 24),
+                    const _RecentActivitySection(),
+                    const SizedBox(height: 24),
 
-                    _SectionHeader(label: 'MIS TAREAS',
+                    AppSectionHeader(title: l10n.myTasksLabel,
                         icon: Icons.task_alt_rounded),
-                    SizedBox(height: 10),
-                    _TaskMiniWidget(),
-                    SizedBox(height: 24),
+                    const _TaskMiniWidget(),
+                    const SizedBox(height: 24),
 
-                    _SectionHeader(label: 'ACCESOS RÁPIDOS',
+                    AppSectionHeader(title: l10n.quickAccess,
                         icon: Icons.grid_view_rounded),
-                    SizedBox(height: 10),
                     _QuickAccessCard(
                       icon: Icons.history_rounded,
-                      title: 'Mi actividad',
-                      subtitle: 'Ver historial personal detallado',
+                      title: l10n.myActivity,
+                      subtitle: l10n.myActivitySubtitle,
                       route: AppRoutes.myActivity,
                     ),
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     _QuickAccessCard(
                       icon: Icons.schedule_rounded,
-                      title: 'Mis horas',
-                      subtitle: 'Consultar horas, sesiones y resumen diario',
+                      title: l10n.myHours,
+                      subtitle: l10n.myHoursSubtitle,
                       route: AppRoutes.myHours,
                     ),
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     _QuickAccessCard(
                       icon: Icons.person_rounded,
-                      title: 'Mi perfil',
-                      subtitle: 'Ver estadísticas personales y datos de cuenta',
+                      title: l10n.myProfile,
+                      subtitle: l10n.myProfileSubtitle,
                       route: AppRoutes.profile,
                     ),
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     _QuickAccessCard(
                       icon: Icons.star_rounded,
-                      title: 'Mis evaluaciones',
-                      subtitle: 'Consultar tus evaluaciones de desempeño',
+                      title: l10n.myEvaluations,
+                      subtitle: l10n.myEvaluationsSubtitle,
                       route: AppRoutes.evaluations,
                     ),
-                    SizedBox(height: 48),
+                    const SizedBox(height: 48),
                   ],
                 ),
               ),
@@ -179,46 +179,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
   }
 }
 
-String _greeting() {
-  final h = DateTime.now().hour;
-  if (h < 12) return 'Buenos días 👋';
-  if (h < 18) return 'Buenas tardes 👋';
-  return 'Buenas noches 👋';
-}
-
-// ── Section header ────────────────────────────────────────────────────────────
-class _SectionHeader extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  const _SectionHeader({required this.label, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, size: 14, color: AppColors.primary),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.textSecondaryDark,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.2,
-          ),
-        ),
-      ],
-    );
-  }
-}
+// _greeting() moved to AppLocalizations.greeting()
 
 // ── Assigned Workstation ──────────────────────────────────────────────────────
 class _AssignedWorkstationSection extends ConsumerWidget {
@@ -230,7 +191,7 @@ class _AssignedWorkstationSection extends ConsumerWidget {
         ref.watch(employeeAssignedWorkstationProvider);
 
     return workstationAsync.when(
-      loading: () => const AppLoadingWidget(message: AppStrings.verifyingWorkstation),
+      loading: () => AppLoadingWidget(message: context.l10n.verifyingWorkstation),
       error: (e, _) => const ErrorBannerWidget(
         message: 'No se pudo cargar la información del puesto de trabajo. Desliza hacia abajo para reintentar.',
       ),
@@ -249,12 +210,13 @@ class _NoWorkstationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: ac.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.dividerDark),
+        border: Border.all(color: ac.divider),
       ),
       child: Row(
         children: [
@@ -265,27 +227,27 @@ class _NoWorkstationCard extends StatelessWidget {
               color: AppColors.grey600.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.desktop_access_disabled_rounded,
-                color: AppColors.textDisabledDark, size: 22),
+            child: Icon(Icons.desktop_access_disabled_rounded,
+                color: ac.textDisabled, size: 22),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  AppStrings.noAssignedWorkstation,
+                  context.l10n.noAssignedWorkstation,
                   style: TextStyle(
-                    color: AppColors.textPrimaryDark,
+                    color: ac.textPrimary,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
                 ),
-                SizedBox(height: 3),
+                const SizedBox(height: 3),
                 Text(
-                  AppStrings.noAssignedWorkstationDescription,
+                  context.l10n.noAssignedWorkstationDesc,
                   style: TextStyle(
-                    color: AppColors.textSecondaryDark,
+                    color: ac.textSecondary,
                     fontSize: 12,
                   ),
                   maxLines: 2,
@@ -305,10 +267,11 @@ class _WorkstationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: ac.card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: AppColors.primary.withValues(alpha: 0.25),
@@ -351,8 +314,8 @@ class _WorkstationCard extends StatelessWidget {
               children: [
                 Text(
                   workstation.name,
-                  style: const TextStyle(
-                    color: AppColors.textPrimaryDark,
+                  style: TextStyle(
+                    color: ac.textPrimary,
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
                   ),
@@ -369,9 +332,9 @@ class _WorkstationCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    const Text(
-                      AppStrings.monitoringAssigned,
-                      style: TextStyle(
+                    Text(
+                      context.l10n.monitoringAssigned,
+                      style: const TextStyle(
                           color: AppColors.success,
                           fontSize: 12,
                           fontWeight: FontWeight.w500),
@@ -397,7 +360,7 @@ class _PersonalProductivitySection extends ConsumerWidget {
     final analyticsAsync = ref.watch(employeeTodayAnalyticsProvider);
 
     return analyticsAsync.when(
-      loading: () => const AppLoadingWidget(message: AppStrings.calculatingTime),
+      loading: () => AppLoadingWidget(message: context.l10n.calculatingTime),
       error: (e, _) => const ErrorBannerWidget(
         message: 'No se pudieron cargar tus métricas de productividad. Desliza hacia abajo para reintentar.',
       ),
@@ -409,12 +372,12 @@ class _PersonalProductivitySection extends ConsumerWidget {
               borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
               side: BorderSide(color: AppColors.glassBorder),
             ),
-            child: const Padding(
-              padding: EdgeInsets.all(AppDimensions.spacing24),
+            child: Padding(
+              padding: const EdgeInsets.all(AppDimensions.spacing24),
               child: Center(
                 child: Text(
-                  AppStrings.noActivityToday,
-                  style: TextStyle(color: AppColors.textSecondary),
+                  context.l10n.noActivityToday,
+                  style: TextStyle(color: context.appColors.textSecondary),
                 ),
               ),
             ),
@@ -444,7 +407,7 @@ class _PersonalProductivitySection extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Tiempo total: ${_formatDuration(totalDuration)}',
+                  'Tiempo total: ${HoursFormatters.formatDuration(totalDuration)}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: AppDimensions.fontTitle,
@@ -452,7 +415,7 @@ class _PersonalProductivitySection extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppDimensions.spacingXxl),
                 _StatBarRow(
-                  label: 'Trabajando',
+                  label: context.l10n.working,
                   duration: workTime,
                   total: totalDuration,
                   color: AppColors.primary,
@@ -460,7 +423,7 @@ class _PersonalProductivitySection extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppDimensions.spacingLg),
                 _StatBarRow(
-                  label: 'Distraido',
+                  label: context.l10n.distracted,
                   duration: distractTime,
                   total: totalDuration,
                   color: AppColors.warning,
@@ -468,7 +431,7 @@ class _PersonalProductivitySection extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppDimensions.spacingLg),
                 _StatBarRow(
-                  label: 'Fatiga',
+                  label: context.l10n.fatigue,
                   duration: fatigueTime,
                   total: totalDuration,
                   color: AppColors.error,
@@ -482,11 +445,6 @@ class _PersonalProductivitySection extends ConsumerWidget {
     );
   }
 
-  String _formatDuration(Duration d) {
-    if (d.inMinutes < 1) return '${d.inSeconds}s';
-    if (d.inHours < 1) return '${d.inMinutes}m';
-    return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
-  }
 }
 
 class _StatBarRow extends StatelessWidget {
@@ -508,12 +466,6 @@ class _StatBarRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final double percentage =
         total.inSeconds > 0 ? (duration.inSeconds / total.inSeconds) : 0.0;
-
-    String formatDuration(Duration d) {
-      if (d.inMinutes < 1) return '${d.inSeconds}s';
-      if (d.inHours < 1) return '${d.inMinutes}m';
-      return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
-    }
 
     return Row(
       children: [
@@ -544,7 +496,7 @@ class _StatBarRow extends StatelessWidget {
         SizedBox(
           width: AppDimensions.statBarValueWidth,
           child: Text(
-            formatDuration(duration),
+            HoursFormatters.formatDuration(duration),
             textAlign: TextAlign.right,
             style: const TextStyle(
               fontSize: AppDimensions.fontBody,
@@ -571,12 +523,12 @@ class _RecentActivitySection extends ConsumerWidget {
       ),
       data: (events) {
         if (events.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(AppDimensions.spacingXxl),
+          return Padding(
+            padding: const EdgeInsets.all(AppDimensions.spacingXxl),
             child: Center(
               child: Text(
-                AppStrings.noRecentEvents,
-                style: TextStyle(color: AppColors.textSecondary),
+                context.l10n.noRecentEvents,
+                style: TextStyle(color: context.appColors.textSecondary),
               ),
             ),
           );
@@ -588,51 +540,49 @@ class _RecentActivitySection extends ConsumerWidget {
             borderRadius: BorderRadius.circular(AppDimensions.radiusXxl),
             side: BorderSide(color: AppColors.glassBorder),
           ),
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: events.length,
-            separatorBuilder: (_, __) =>
-                const Divider(height: 1, color: AppColors.divider),
-            itemBuilder: (context, index) {
-              final event = events[index];
-              return ListTile(
-                leading: Container(
-                  width: AppDimensions.stateIndicatorSize * 1.5,
-                  height: AppDimensions.stateIndicatorSize * 1.5,
-                  decoration: BoxDecoration(
-                    color: event.state.color,
-                    shape: BoxShape.circle,
+          child: Column(
+            children: [
+              for (int i = 0; i < events.length; i++) ...[
+                ListTile(
+                  leading: Container(
+                    width: AppDimensions.stateIndicatorSize * 1.5,
+                    height: AppDimensions.stateIndicatorSize * 1.5,
+                    decoration: BoxDecoration(
+                      color: events[i].state.color,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                ),
-                title: Text(
-                  event.state.label,
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
-                subtitle: Text(_formatTime(event.timestamp)),
-                trailing: event.identificationMethod != null
-                    ? Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppDimensions.spacingMd,
-                          vertical: AppDimensions.spacingXxs,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(
-                            AppDimensions.radiusSm,
+                  title: Text(
+                    events[i].state.label,
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: Text(_formatTime(events[i].timestamp)),
+                  trailing: events[i].identificationMethod != null
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppDimensions.spacingMd,
+                            vertical: AppDimensions.spacingXxs,
                           ),
-                        ),
-                        child: Text(
-                          event.identificationMethod!,
-                          style: const TextStyle(
-                            fontSize: AppDimensions.fontXs,
-                            color: AppColors.textSecondary,
+                          decoration: BoxDecoration(
+                            color: context.appColors.surface,
+                            borderRadius: BorderRadius.circular(
+                              AppDimensions.radiusSm,
+                            ),
                           ),
-                        ),
-                      )
-                    : null,
-              );
-            },
+                          child: Text(
+                            events[i].identificationMethod!,
+                            style: TextStyle(
+                              fontSize: AppDimensions.fontXs,
+                              color: context.appColors.textSecondary,
+                            ),
+                          ),
+                        )
+                      : null,
+                ),
+                if (i < events.length - 1)
+                  Divider(height: 1, color: context.appColors.divider),
+              ],
+            ],
           ),
         );
       },
@@ -667,26 +617,31 @@ class _TaskMiniWidget extends ConsumerWidget {
         final inProgress = tasks.where((t) => t.status == TaskStatus.inProgress).length;
         final overdue = tasks.where((t) => t.isOverdue).length;
 
-        return GestureDetector(
-          onTap: () => context.go(AppRoutes.tasks),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: AppColors.cardDark,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.dividerDark),
-            ),
-            child: Row(
-              children: [
-                _TaskCountBadge(count: pending, label: 'Pendientes', color: AppColors.textSecondaryDark),
-                const _TaskDivider(),
-                _TaskCountBadge(count: inProgress, label: 'En curso', color: AppColors.primary),
-                const _TaskDivider(),
-                _TaskCountBadge(count: overdue, label: 'Vencidas', color: AppColors.error),
-                const Spacer(),
-                const Icon(Icons.arrow_forward_ios_rounded,
-                    size: 14, color: AppColors.textDisabledDark),
-              ],
+        final ac = context.appColors;
+        return Material(
+          color: ac.card,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            onTap: () => context.go(AppRoutes.tasks),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: ac.divider),
+              ),
+              child: Row(
+                children: [
+                  _TaskCountBadge(count: pending, label: 'Pendientes', color: ac.textSecondary),
+                  const _TaskDivider(),
+                  _TaskCountBadge(count: inProgress, label: 'En curso', color: AppColors.primary),
+                  const _TaskDivider(),
+                  _TaskCountBadge(count: overdue, label: 'Vencidas', color: AppColors.error),
+                  const Spacer(),
+                  Icon(Icons.arrow_forward_ios_rounded,
+                      size: 14, color: ac.textDisabled),
+                ],
+              ),
             ),
           ),
         );
@@ -757,61 +712,66 @@ class _QuickAccessCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => context.push(route),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.dividerDark),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.2),
+    final ac = context.appColors;
+    return Material(
+      color: ac.card,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: () => context.push(route),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: ac.divider),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Icon(icon, color: AppColors.primary, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: ac.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: ac.textSecondary,
+                        fontSize: 12,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
-              child: Icon(icon, color: AppColors.primary, size: 20),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: AppColors.textPrimaryDark,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: AppColors.textSecondaryDark,
-                      fontSize: 12,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: ac.textDisabled,
               ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 14,
-              color: AppColors.textDisabledDark,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

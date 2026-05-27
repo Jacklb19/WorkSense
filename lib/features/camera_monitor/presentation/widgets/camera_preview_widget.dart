@@ -19,7 +19,7 @@ class CameraPreviewWidget extends StatelessWidget {
     // previewSize en Flutter camera es landscape (width > height)
     // Para portrait, el preview real es width=height y height=width del sensor
     final previewSize = controller.value.previewSize!;
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final isPortrait = MediaQuery.orientationOf(context) == Orientation.portrait;
 
     final displayW = isPortrait ? previewSize.height : previewSize.width;
     final displayH = isPortrait ? previewSize.width : previewSize.height;
@@ -113,7 +113,7 @@ class CameraErrorWidget extends StatelessWidget {
                   label: const Text('Reintentar'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white38),
+                    side: const BorderSide(color: AppColors.textOnCamera38),
                   ),
                 ),
               ],

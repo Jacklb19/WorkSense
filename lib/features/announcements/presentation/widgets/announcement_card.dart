@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/announcement.dart';
 import 'package:worksense_app/features/announcements/presentation/providers/announcements_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
@@ -19,12 +20,13 @@ class AnnouncementCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final ac = context.appColors;
     final readIds = ref.watch(readAnnouncementIdsProvider).value ?? {};
     final isRead = readIds.contains(announcement.id);
     final user = ref.watch(currentUserProvider).value;
 
     return Card(
-      color: AppColors.cardDark,
+      color: ac.card,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -58,7 +60,7 @@ class AnnouncementCard extends ConsumerWidget {
                     child: Text(
                       announcement.title,
                       style: TextStyle(
-                        color: AppColors.white,
+                        color: ac.textPrimary,
                         fontWeight:
                             isRead ? FontWeight.w500 : FontWeight.bold,
                         fontSize: 15,
@@ -136,7 +138,7 @@ class AnnouncementCard extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.cardDark,
+      backgroundColor: context.appColors.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -224,8 +226,8 @@ class _AnnouncementDetail extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             announcement.title,
-            style: const TextStyle(
-              color: AppColors.white,
+            style: TextStyle(
+              color: context.appColors.textPrimary,
               fontWeight: FontWeight.bold,
               fontSize: 20,
             ),
@@ -245,8 +247,8 @@ class _AnnouncementDetail extends StatelessWidget {
           const Divider(height: 24, color: AppColors.glassBorder),
           Text(
             announcement.content,
-            style: const TextStyle(
-              color: AppColors.white,
+            style: TextStyle(
+              color: context.appColors.textPrimary,
               fontSize: 15,
               height: 1.6,
             ),

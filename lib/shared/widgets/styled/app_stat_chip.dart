@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_dimensions.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_colors.dart';
 
 class AppStatChip extends StatelessWidget {
   final String label;
@@ -20,6 +21,7 @@ class AppStatChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final ac = context.appColors;
     final color = accentColor ?? AppColors.primary;
 
     return Column(
@@ -38,7 +40,7 @@ class AppStatChip extends StatelessWidget {
         Text(
           value,
           style: theme.textTheme.headlineMedium?.copyWith(
-            color: AppColors.textPrimary,
+            color: ac.textPrimary,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -46,7 +48,7 @@ class AppStatChip extends StatelessWidget {
         Text(
           label,
           style: theme.textTheme.labelSmall?.copyWith(
-            color: AppColors.textSecondary,
+            color: ac.textSecondary,
             letterSpacing: 0.8,
           ),
         ),

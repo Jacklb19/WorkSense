@@ -7,6 +7,7 @@ class HoursFormatters {
   }
 
   static String formatDuration(Duration duration) {
+    if (duration.inMinutes < 1) return '${duration.inSeconds}s';
     final hours = duration.inHours;
     final minutes = duration.inMinutes.remainder(60);
     if (hours <= 0) return '${duration.inMinutes}m';

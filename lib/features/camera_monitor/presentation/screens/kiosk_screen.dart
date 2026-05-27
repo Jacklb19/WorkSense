@@ -151,7 +151,7 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
                 title: '¿FINALIZAR?',
                 subtitle: 'Confirmar cierre de jornada',
                 icon: Icons.logout,
-                color: Colors.orange,
+                color: AppColors.warning,
                 actionLabel: 'CERRAR SESIÓN',
                 onConfirm: ref.read(kioskProvider.notifier).approveExit,
                 onCancel: ref.read(kioskProvider.notifier).cancelApproval,
@@ -178,8 +178,15 @@ class _KioskScreenState extends ConsumerState<KioskScreen> with WidgetsBindingOb
                   ),
                 ),
             ] else if (kioskState.workstationStatus == 'ACTIVE' && kioskState.isEmployeeScanned) ...[
-               Positioned(top: 64, left: 0, right: 0,
+               Positioned(
+                 top: 64,
+                 left: 0,
+                 right: 0,
                  child: _IdentifyingHUD(isProcessing: kioskState.isProcessing),
+               ),
+               // Guide frame to help employee center their face
+               const Positioned.fill(
+                 child: IgnorePointer(child: _ScanGuideFrame()),
                ),
             ],
           ],
@@ -208,11 +215,24 @@ class _IdentifyingHUD extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (isProcessing) ...[
-               const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryLight)),
-               const SizedBox(width: 12),
-            ],
-            const Text('SCANNER ACTIVO', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+            SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: isProcessing ? AppColors.primaryLight : AppColors.textOnCamera38,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              isProcessing ? 'IDENTIFICANDO…' : 'SCANNER ACTIVO',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+              ),
+            ),
           ],
         ),
       ),
@@ -238,7 +258,11 @@ class _KioskTopHUD extends StatelessWidget {
         bottom: false,
         child: Row(
           children: [
-            IconButton(onPressed: onBack, icon: const Icon(Icons.close, color: Colors.white70)),
+            IconButton(
+            onPressed: onBack,
+            tooltip: 'Salir del monitor',
+            icon: const Icon(Icons.close, color: AppColors.textOnCamera70),
+          ),
             const SizedBox(width: 8),
             const Text('WORKSENSE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
             const Spacer(),
@@ -317,7 +341,7 @@ class _SessionActionOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black.withValues(alpha: 0.9),
+      color: AppColors.overlayDark90,
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(40.0),
@@ -332,7 +356,7 @@ class _SessionActionOverlay extends StatelessWidget {
               const SizedBox(height: 32),
               Text(title, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 2)),
               const SizedBox(height: 12),
-              Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 16)),
+              Text(subtitle, style: const TextStyle(color: AppColors.textOnCamera70, fontSize: 16)),
               const SizedBox(height: 56),
               FilledButton(
                 onPressed: onConfirm,
@@ -340,7 +364,7 @@ class _SessionActionOverlay extends StatelessWidget {
                 child: Text(actionLabel, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
               ),
               const SizedBox(height: 16),
-              TextButton(onPressed: onCancel, child: const Text('CANCELAR', style: TextStyle(color: Colors.white38))),
+              TextButton(onPressed: onCancel, child: const Text('CANCELAR', style: TextStyle(color: AppColors.textOnCamera38))),
             ],
           ),
         ),
@@ -376,7 +400,7 @@ class _NoProfileView extends StatelessWidget {
             const SizedBox(height: 32),
             Text(hasEmployee ? 'ENROLAMIENTO PENDIENTE' : 'SIN ASIGNACIÓN', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
             const SizedBox(height: 16),
-            Text(hasEmployee ? 'Se requiere una captura facial inicial para habilitar el reconocimiento en tiempo real.' : 'No hay un empleado asignado a este puesto de trabajo.', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white60, fontSize: 14)),
+            Text(hasEmployee ? 'Se requiere una captura facial inicial para habilitar el reconocimiento en tiempo real.' : 'No hay un empleado asignado a este puesto de trabajo.', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textOnCamera60, fontSize: 14)),
             const SizedBox(height: 48),
             if (hasEmployee)
               FilledButton.icon(
@@ -417,6 +441,118 @@ Future<bool> _showExitConfirmation(BuildContext context) async {
   ) ?? false;
 }
 
+/// A subtle face-guide frame overlay shown while the kiosk is scanning for the
+/// registered employee. Tells them where to position their face.
+class _ScanGuideFrame extends StatelessWidget {
+  const _ScanGuideFrame();
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final frameW = size.width * 0.60;
+    final frameH = frameW * 1.3;
+
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: frameW,
+            height: frameH,
+            child: Stack(
+              children: [
+                // corner lines only — no fill, no dots
+                _Corner(top: 0,        left: 0),
+                _Corner(top: 0,        right: 0),
+                _Corner(bottom: 0,     left: 0),
+                _Corner(bottom: 0,     right: 0),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Mira a la cámara',
+            style: TextStyle(
+              color: AppColors.textOnCamera60,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Corner extends StatelessWidget {
+  final double? top, bottom, left, right;
+  const _Corner({this.top, this.bottom, this.left, this.right});
+
+  @override
+  Widget build(BuildContext context) {
+    const len = 24.0;
+    const w = 2.5;
+    return Positioned(
+      top: top, bottom: bottom, left: left, right: right,
+      child: SizedBox(
+        width: len,
+        height: len,
+        child: CustomPaint(
+          painter: _CornerPainter(
+            isTopLeft:     top != null && left != null,
+            isTopRight:    top != null && right != null,
+            isBottomLeft:  bottom != null && left != null,
+            isBottomRight: bottom != null && right != null,
+            strokeWidth: w,
+            color: AppColors.primary.withValues(alpha: 0.7),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CornerPainter extends CustomPainter {
+  final bool isTopLeft, isTopRight, isBottomLeft, isBottomRight;
+  final double strokeWidth;
+  final Color color;
+
+  const _CornerPainter({
+    required this.isTopLeft, required this.isTopRight,
+    required this.isBottomLeft, required this.isBottomRight,
+    required this.strokeWidth, required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final w = size.width;
+    final h = size.height;
+    final path = Path();
+
+    if (isTopLeft) {
+      path.moveTo(0, h); path.lineTo(0, 0); path.lineTo(w, 0);
+    } else if (isTopRight) {
+      path.moveTo(0, 0); path.lineTo(w, 0); path.lineTo(w, h);
+    } else if (isBottomLeft) {
+      path.moveTo(0, 0); path.lineTo(0, h); path.lineTo(w, h);
+    } else {
+      path.moveTo(0, h); path.lineTo(w, h); path.lineTo(w, 0);
+    }
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_CornerPainter old) => false;
+}
+
 class _WaitingStandbyView extends StatelessWidget {
   final String status;
 
@@ -432,9 +568,9 @@ class _WaitingStandbyView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              isBreak ? Icons.free_breakfast : Icons.bedtime, 
-              size: 80, 
-              color: isBreak ? Colors.orange : AppColors.primary
+              isBreak ? Icons.free_breakfast : Icons.bedtime,
+              size: 80,
+              color: isBreak ? AppColors.warning : AppColors.primary,
             ),
             const SizedBox(height: 32),
             Text(
@@ -448,10 +584,10 @@ class _WaitingStandbyView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              isBreak 
-                ? 'El monitoreo está pausado por descanso.' 
-                : 'Esperando escaneo en el Kiosco de Entrada...',
-              style: const TextStyle(color: Colors.white70, fontSize: 16),
+              isBreak
+                  ? 'El monitoreo está pausado por descanso.'
+                  : 'Esperando escaneo en el Kiosco de Entrada...',
+              style: const TextStyle(color: AppColors.textOnCamera70, fontSize: 16),
             ),
             const SizedBox(height: 64),
             const CircularProgressIndicator(color: Colors.white24),

@@ -2,14 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/evaluation.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/features/evaluations/presentation/providers/evaluations_provider.dart';
 
 class EvaluationDetailScreen extends ConsumerWidget {
   final String evalId;
 
   const EvaluationDetailScreen({super.key, required this.evalId});
+
+  // ✅ Static final — DateFormat is expensive; instantiate once, not on every build.
+  static final _dateFmt = DateFormat('dd MMMM yyyy', 'es');
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,45 +26,46 @@ class EvaluationDetailScreen extends ConsumerWidget {
     };
 
     return evalAsync.when(
-      loading: () => const Scaffold(
-        backgroundColor: AppColors.backgroundDark,
-        body: Center(
+      loading: () => Scaffold(
+        backgroundColor: context.appColors.background,
+        body: const Center(
             child: CircularProgressIndicator(color: AppColors.primary)),
       ),
       error: (e, _) => Scaffold(
-        backgroundColor: AppColors.backgroundDark,
+        backgroundColor: context.appColors.background,
         body: Center(
           child: Text('Error: $e',
               style: const TextStyle(color: AppColors.error)),
         ),
       ),
       data: (eval) {
+        final ac = context.appColors;
         if (eval == null) {
           return Scaffold(
-            backgroundColor: AppColors.backgroundDark,
+            backgroundColor: ac.background,
             appBar: AppBar(
-              backgroundColor: AppColors.surfaceDark,
-              title: const Text('Evaluación'),
+              backgroundColor: ac.surface,
+              title: Text(context.l10n.evaluations),
             ),
-            body: const Center(
-              child: Text('Evaluación no encontrada',
-                  style: TextStyle(color: AppColors.textSecondaryDark)),
+            body: Center(
+              child: Text(context.l10n.notFound,
+                  style: TextStyle(color: ac.textSecondary)),
             ),
           );
         }
 
         final emp = empMap[eval.employeeId];
         final employeeName = emp?.displayName ?? eval.employeeId;
-        final dateFmt = DateFormat('dd MMMM yyyy', 'es');
+
 
         return Scaffold(
-          backgroundColor: AppColors.backgroundDark,
+          backgroundColor: ac.background,
           appBar: AppBar(
-            backgroundColor: AppColors.surfaceDark,
+            backgroundColor: ac.surface,
             title: Text(
               'Evaluación – ${eval.period}',
-              style: const TextStyle(
-                color: AppColors.textPrimaryDark,
+              style: TextStyle(
+                color: ac.textPrimary,
                 fontWeight: FontWeight.w700,
                 fontSize: 16,
               ),
@@ -83,7 +89,7 @@ class EvaluationDetailScreen extends ConsumerWidget {
                 _MetaRow(
                     icon: Icons.calendar_month_rounded,
                     label: 'Fecha',
-                    value: dateFmt.format(eval.createdAt)),
+                    value: _dateFmt.format(eval.createdAt)),
                 const SizedBox(height: 8),
                 _MetaRow(
                     icon: Icons.date_range_rounded,
@@ -114,14 +120,14 @@ class EvaluationDetailScreen extends ConsumerWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceDark,
+                      color: ac.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppColors.glassBorder),
                     ),
                     child: Text(
                       eval.notes!,
-                      style: const TextStyle(
-                        color: AppColors.textSecondaryDark,
+                      style: TextStyle(
+                        color: ac.textSecondary,
                         fontSize: 13,
                         height: 1.5,
                       ),
@@ -157,7 +163,7 @@ class _GradeHero extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             color.withValues(alpha: 0.15),
-            AppColors.surfaceDark,
+            context.appColors.surface,
           ],
         ),
         borderRadius: BorderRadius.circular(16),
@@ -200,8 +206,8 @@ class _GradeHero extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '${eval.percentage.toStringAsFixed(1)}% de desempeño',
-                  style: const TextStyle(
-                    color: AppColors.textSecondaryDark,
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
                     fontSize: 13,
                   ),
                 ),
@@ -218,8 +224,8 @@ class _GradeHero extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '${eval.totalScore.toStringAsFixed(0)} / ${eval.maxScore.toStringAsFixed(0)} puntos',
-                  style: const TextStyle(
-                    color: AppColors.textSecondaryDark,
+                  style: TextStyle(
+                    color: context.appColors.textSecondary,
                     fontSize: 11,
                   ),
                 ),
@@ -265,8 +271,8 @@ class _CriterionRow extends StatelessWidget {
             children: [
               Text(
                 criterion.name,
-                style: const TextStyle(
-                  color: AppColors.textPrimaryDark,
+                style: TextStyle(
+                  color: context.appColors.textPrimary,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -312,21 +318,22 @@ class _MetaRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppColors.textSecondaryDark),
+        Icon(icon, size: 16, color: ac.textSecondary),
         const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: const TextStyle(
-            color: AppColors.textSecondaryDark,
+          style: TextStyle(
+            color: ac.textSecondary,
             fontSize: 13,
           ),
         ),
         Text(
           value,
-          style: const TextStyle(
-            color: AppColors.textPrimaryDark,
+          style: TextStyle(
+            color: ac.textPrimary,
             fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
@@ -347,8 +354,8 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(
-        color: AppColors.textSecondaryDark,
+      style: TextStyle(
+        color: context.appColors.textSecondary,
         fontSize: 11,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.2,

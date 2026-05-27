@@ -86,13 +86,32 @@ class ProcessSyncQueueUseCase {
         debugPrint('[Sync PUSH] Éxito al procesar ${entry.targetTable} ID ${entry.recordId}');
       } on SyncException catch (e) {
         debugPrint('[Sync PUSH] ERROR (SyncException) en entrada ${entry.id} (${entry.targetTable}): ${e.message}');
-        if (e.message.contains('22P02') ||
+
+        // Critical business tables (leave_requests, tasks, announcements) must
+        // NOT be silently dropped on 42501 (permission-denied / RLS failure).
+        // They are kept in the queue so they can retry after an RLS fix.
+        // Fire-and-forget telemetry (activity_events, etc.) is dropped on 42501.
+        const criticalTables = {'leave_requests', 'tasks', 'announcements'};
+        final isCritical = criticalTables.contains(entry.targetTable);
+
+        // Unrecoverable: bad format, FK violation, schema errors → always drop.
+        final isUnrecoverable = e.message.contains('22P02') ||
             e.message.contains('violates foreign key constraint') ||
             e.message.contains('PGRST204') ||
-            e.message.contains('PGRST205') ||
-            e.message.contains('42501')) {
+            e.message.contains('PGRST205');
+
+        final isPermissionDenied = e.message.contains('42501');
+
+        if (isUnrecoverable || (isPermissionDenied && !isCritical)) {
           await _syncRepo.delete(entry.id);
-          debugPrint('[Sync PUSH] Entrada omitida y removida de la cola por error de restricciones de BD.');
+          debugPrint('[Sync PUSH] Entrada omitida y removida de la cola '
+              'por error de restricciones de BD.');
+        } else if (isPermissionDenied && isCritical) {
+          // Log loudly but keep in queue for retry.
+          debugPrint('[Sync PUSH] ⚠️  PERMISO DENEGADO (42501) para '
+              '${entry.targetTable} (entrada ${entry.id}). '
+              'Verifica las políticas RLS en el dashboard de Supabase. '
+              'La entrada SE CONSERVA en la cola para reintentar.');
         }
         errors.add('Entry ${entry.id} (${entry.targetTable}): ${e.message}');
       } catch (e) {

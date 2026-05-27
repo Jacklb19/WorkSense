@@ -3,6 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/constants/app_routes.dart';
+import '../../../../core/l10n/app_localizations.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_theme_colors.dart';
+import '../../../../shared/widgets/loading_widget.dart';
+import '../../../../shared/widgets/styled/app_empty_state.dart';
+import '../providers/employees_provider.dart';
+import '../../../../shared/providers/sync_state_provider.dart';
+
 class EmployeesListScreen extends ConsumerStatefulWidget {
   const EmployeesListScreen({super.key});
 
@@ -14,6 +24,8 @@ class EmployeesListScreen extends ConsumerStatefulWidget {
 class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
   final _searchCtrl = TextEditingController();
   String _query = '';
+  // ✅ Instance field on State — created once per lifecycle, not on every build.
+  final _registeredFmt = DateFormat('dd/MM/yyyy');
 
   @override
   void dispose() {
@@ -23,11 +35,12 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final employeesAsync = ref.watch(adminEmployeesProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppStrings.employees),
+        title: Text(l10n.employees),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(56),
           child: Padding(
@@ -37,7 +50,7 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
               onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
               style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'Buscar por nombre o email…',
+                hintText: l10n.searchByNameEmail,
                 prefixIcon: const Icon(Icons.search, size: 20),
                 suffixIcon: _query.isNotEmpty
                     ? IconButton(
@@ -67,7 +80,7 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
                       const BorderSide(color: AppColors.primary),
                 ),
                 filled: true,
-                fillColor: AppColors.cardDark,
+                fillColor: context.appColors.card,
               ),
             ),
           ),
@@ -92,10 +105,10 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
                   .toList();
 
           if (employees.isEmpty) {
-            return const AppEmptyState(
+            return AppEmptyState(
               icon: Icons.people_outline,
-              title: AppStrings.noEmployees,
-              subtitle: AppStrings.addEmployeeHint,
+              title: l10n.noEmployees,
+              subtitle: l10n.addEmployeeHint,
             );
           }
 
@@ -108,7 +121,7 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
                       size: 48, color: AppColors.grey300),
                   const SizedBox(height: 12),
                   Text(
-                    'Sin resultados para "$_query"',
+                    '${l10n.noResultsPrefix} "$_query"',
                     style: const TextStyle(
                         color: AppColors.grey500, fontSize: 14),
                   ),
@@ -140,10 +153,10 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
                 subtitle: Text(
                   employee.email.isNotEmpty
                       ? employee.email
-                      : 'Registrado el ${DateFormat('dd/MM/yyyy').format(employee.createdAt)}',
-                  style: const TextStyle(
+                      : 'Registrado el ${_registeredFmt.format(employee.createdAt)}',
+                  style: TextStyle(
                     fontSize: AppDimensions.fontCaption,
-                    color: AppColors.textSecondary,
+                    color: context.appColors.textSecondary,
                   ),
                 ),
                 onTap: () => _navigateToEdit(context, ref, employee.id),
@@ -160,27 +173,27 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
                     }
                   },
                   itemBuilder: (_) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'edit',
                       child: Row(
                         children: [
-                          Icon(Icons.edit_outlined,
+                          const Icon(Icons.edit_outlined,
                               color: AppColors.primary, size: 18),
-                          SizedBox(width: AppDimensions.spacingMd),
-                          Text('Editar'),
+                          const SizedBox(width: AppDimensions.spacingMd),
+                          Text(l10n.edit),
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete_outline,
+                          const Icon(Icons.delete_outline,
                               color: AppColors.error, size: 18),
-                          SizedBox(width: AppDimensions.spacingMd),
+                          const SizedBox(width: AppDimensions.spacingMd),
                           Text(
-                            AppStrings.delete,
-                            style: TextStyle(color: AppColors.error),
+                            l10n.delete,
+                            style: const TextStyle(color: AppColors.error),
                           ),
                         ],
                       ),
@@ -197,7 +210,7 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
           await context.push(AppRoutes.employeeNew);
           ref.invalidate(adminEmployeesProvider);
         },
-        tooltip: AppStrings.addEmployee,
+        tooltip: l10n.addEmployee,
         child: const Icon(Icons.person_add_outlined),
       ),
     );
@@ -213,22 +226,23 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
 
   Future<void> _confirmAndDelete(
       BuildContext context, WidgetRef ref, String id, String name) async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text(AppStrings.deleteEmployee),
+            title: Text(ctx.l10n.deleteEmployee),
             content: Text(
-                'Eliminar a "$name"? Esta accion no se puede deshacer.'),
+                '${ctx.l10n.delete} "$name"? ${ctx.l10n.somethingWentWrong}.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text(AppStrings.cancel),
+                child: Text(ctx.l10n.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 style: FilledButton.styleFrom(
                     backgroundColor: AppColors.error),
-                child: const Text(AppStrings.delete),
+                child: Text(ctx.l10n.delete),
               ),
             ],
           ),
@@ -259,7 +273,7 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al eliminar: $e'),
+            content: Text('${context.l10n.errorDeleting}: $e'),
             backgroundColor: AppColors.error,
           ),
         );

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:worksense_app/features/chat/data/chat_repository.dart';
 import 'package:worksense_app/features/chat/domain/entities/chat_message.dart';
 import 'package:worksense_app/features/notifications/data/notification_repository.dart';
@@ -22,10 +23,28 @@ class ConversationNotifier
     final myId = ref.read(currentUserProvider).valueOrNull?.user?.id;
     if (myId == null) return [];
 
-    // Auto-refresh cada 10 s cuando la conversación está abierta
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 10), (_) => _load());
-    ref.onDispose(() => _timer?.cancel());
+    // Supabase Realtime — reload messages instantly on INSERT
+    try {
+      final client = Supabase.instance.client;
+      final channel = client
+          .channel('worksense_chat_${myId}_$otherId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'messages',
+            callback: (_) => _load(),
+          )
+          .subscribe();
+      ref.onDispose(() {
+        client.removeChannel(channel);
+        _timer?.cancel();
+      });
+    } catch (_) {
+      // Fallback to polling if realtime setup fails
+      _timer?.cancel();
+      _timer = Timer.periodic(const Duration(seconds: 10), (_) => _load());
+      ref.onDispose(() => _timer?.cancel());
+    }
 
     return _fetchAndMark(myId, otherId);
   }
@@ -48,7 +67,9 @@ class ConversationNotifier
   Future<void> _load() async {
     final myId = ref.read(currentUserProvider).valueOrNull?.user?.id;
     if (myId == null) return;
-    state = AsyncData(await _fetchAndMark(myId, arg));
+    // Use AsyncValue.guard so any Supabase / RLS error is surfaced as
+    // AsyncError instead of crashing silently or hiding missing messages.
+    state = await AsyncValue.guard(() => _fetchAndMark(myId, arg));
   }
 
   Future<void> sendMessage({
@@ -74,18 +95,20 @@ class ConversationNotifier
       content: content.trim(),
     );
 
-    // Enviar notificación al destinatario
-    await NotificationRepository.instance.pushToUser(
-      recipientId: arg,
-      companyId: companyId,
-      type: 'message',
-      title: '💬 Mensaje de $senderName',
-      body: content.trim().length > 80
-          ? '${content.trim().substring(0, 80)}…'
-          : content.trim(),
-      senderId: senderId,
-      route: '/chat-list',
-    );
+    // Notification failure must not block message delivery
+    try {
+      await NotificationRepository.instance.pushToUser(
+        recipientId: arg,
+        companyId: companyId,
+        type: 'message',
+        title: '💬 Mensaje de $senderName',
+        body: content.trim().length > 80
+            ? '${content.trim().substring(0, 80)}…'
+            : content.trim(),
+        senderId: senderId,
+        route: '/chat-list',
+      );
+    } catch (_) {}
 
     await _load();
   }

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/features/chat/data/chat_repository.dart';
 import 'package:worksense_app/features/chat/domain/entities/chat_message.dart';
@@ -17,17 +19,18 @@ class AdminChatListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final ac = context.appColors;
     final partnersAsync = ref.watch(chatPartnersProvider);
     final employeesAsync = ref.watch(adminEmployeesProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: ac.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text(
-          'Conversaciones',
+        backgroundColor: ac.surface,
+        title: Text(
+          context.l10n.conversations,
           style: TextStyle(
-            color: AppColors.textPrimaryDark,
+            color: ac.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),
@@ -63,9 +66,9 @@ class AdminChatListScreen extends ConsumerWidget {
           child: CircularProgressIndicator(
               color: AppColors.primary, strokeWidth: 2),
         ),
-        error: (_, __) => const Center(
-          child: Text('Error cargando conversaciones',
-              style: TextStyle(color: AppColors.textSecondaryDark)),
+        error: (_, __) => Center(
+          child: Text(context.l10n.errorLoadingConversations,
+              style: TextStyle(color: ac.textSecondary)),
         ),
         data: (partnerIds) {
           if (partnerIds.isEmpty) {
@@ -77,7 +80,7 @@ class AdminChatListScreen extends ConsumerWidget {
 
           return RefreshIndicator(
             color: AppColors.primary,
-            backgroundColor: AppColors.surfaceDark,
+            backgroundColor: ac.surface,
             onRefresh: () async {
               ref.invalidate(chatPartnersProvider);
               ref.invalidate(adminEmployeesProvider);
@@ -122,27 +125,28 @@ class EmployeeChatScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final ac = context.appColors;
     final cu = ref.watch(currentUserProvider).valueOrNull;
     final companyId = cu?.companyId ?? '';
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: ac.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text(
-          'Mensajes',
+        backgroundColor: ac.surface,
+        title: Text(
+          context.l10n.messages,
           style: TextStyle(
-            color: AppColors.textPrimaryDark,
+            color: ac.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),
         ),
       ),
       body: companyId.isEmpty
-          ? const Center(
+          ? Center(
               child: Text('Cargando…',
                   style:
-                      TextStyle(color: AppColors.textSecondaryDark)),
+                      TextStyle(color: ac.textSecondary)),
             )
           : _EmployeeChatBody(companyId: companyId),
     );
@@ -182,13 +186,13 @@ class _EmployeeChatBodyState extends State<_EmployeeChatBody> {
     }
 
     if (_adminId == null) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(32),
+          padding: const EdgeInsets.all(32),
           child: Text(
-            'No se encontró un administrador.\nContacta a soporte.',
+            context.l10n.adminNotFound,
             style: TextStyle(
-                color: AppColors.textSecondaryDark, fontSize: 14),
+                color: context.appColors.textSecondary, fontSize: 14),
             textAlign: TextAlign.center,
           ),
         ),
@@ -232,7 +236,7 @@ class _AdminConversationCard extends StatelessWidget {
         padding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
+          color: context.appColors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.glassBorder),
         ),
@@ -253,31 +257,31 @@ class _AdminConversationCard extends StatelessWidget {
                   color: Colors.white, size: 24),
             ),
             const SizedBox(width: 14),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Administrador',
+                    context.l10n.administrator,
                     style: TextStyle(
-                      color: AppColors.textPrimaryDark,
+                      color: context.appColors.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  SizedBox(height: 3),
+                  const SizedBox(height: 3),
                   Text(
-                    'Envía un mensaje a tu empresa',
+                    context.l10n.sendMessageToCompany,
                     style: TextStyle(
-                      color: AppColors.textSecondaryDark,
+                      color: context.appColors.textSecondary,
                       fontSize: 12,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded,
-                color: AppColors.textSecondaryDark, size: 20),
+            Icon(Icons.chevron_right_rounded,
+                color: context.appColors.textSecondary, size: 20),
           ],
         ),
       ),
@@ -320,6 +324,7 @@ class _ConversationTileState extends State<_ConversationTile> {
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     final name = widget.employee?.displayName ?? 'Empleado';
     final initial =
         name.isNotEmpty ? name[0].toUpperCase() : 'E';
@@ -389,7 +394,7 @@ class _ConversationTileState extends State<_ConversationTile> {
                         child: Text(
                           name,
                           style: TextStyle(
-                            color: AppColors.textPrimaryDark,
+                            color: ac.textPrimary,
                             fontSize: 14,
                             fontWeight: _unread > 0
                                 ? FontWeight.w700
@@ -413,9 +418,9 @@ class _ConversationTileState extends State<_ConversationTile> {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    widget.employee?.email ?? 'Ver conversación →',
-                    style: const TextStyle(
-                      color: AppColors.textSecondaryDark,
+                    widget.employee?.email ?? context.l10n.viewConversation,
+                    style: TextStyle(
+                      color: ac.textSecondary,
                       fontSize: 12,
                     ),
                     maxLines: 1,
@@ -452,6 +457,7 @@ class _EmptyChatList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -472,19 +478,19 @@ class _EmptyChatList extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Sin conversaciones',
+            Text(
+              context.l10n.noConversations,
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
+                color: ac.textPrimary,
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Los mensajes con empleados\naparecerán aquí.',
+            Text(
+              context.l10n.noConversationsDesc,
               style: TextStyle(
-                color: AppColors.textSecondaryDark,
+                color: ac.textSecondary,
                 fontSize: 13,
               ),
               textAlign: TextAlign.center,

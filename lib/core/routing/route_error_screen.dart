@@ -3,7 +3,9 @@ import 'package:go_router/go_router.dart';
 
 import '../constants/app_dimensions.dart';
 import '../constants/app_routes.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_theme_colors.dart';
 
 class RouteErrorScreen extends StatelessWidget {
   final String error;
@@ -13,9 +15,10 @@ class RouteErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final ac = context.appColors;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Pagina no encontrada')),
+      appBar: AppBar(title: Text(context.l10n.pageNotFound)),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(AppDimensions.spacing32),
@@ -42,7 +45,7 @@ class RouteErrorScreen extends StatelessWidget {
               Text(
                 error,
                 style: theme.textTheme.titleMedium?.copyWith(
-                  color: AppColors.textPrimary,
+                  color: ac.textPrimary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -50,7 +53,7 @@ class RouteErrorScreen extends StatelessWidget {
               FilledButton.icon(
                 onPressed: () => context.go(AppRoutes.dashboard),
                 icon: const Icon(Icons.home_outlined),
-                label: const Text('Ir al dashboard'),
+                label: Text(context.l10n.goToDashboard),
               ),
             ],
           ),

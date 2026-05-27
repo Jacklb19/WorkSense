@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../core/constants/app_dimensions.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_theme_colors.dart';
 
 class AppLoadingWidget extends StatefulWidget {
   final String? message;
@@ -77,8 +78,8 @@ class _AppLoadingWidgetState extends State<AppLoadingWidget>
             const SizedBox(height: 16),
             Text(
               widget.message!,
-              style: const TextStyle(
-                color: AppColors.textSecondaryDark,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),

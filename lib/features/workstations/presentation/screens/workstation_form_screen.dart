@@ -4,7 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import 'package:worksense_app/core/constants/app_constants.dart';
-import 'package:worksense_app/core/constants/app_strings.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/domain/entities/workstation.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
@@ -142,8 +142,8 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(AppStrings.locationSuccess),
+          SnackBar(
+            content: Text(context.l10n.locationSuccess),
             backgroundColor: AppColors.success,
           ),
         );
@@ -201,8 +201,8 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(_isEditing
-              ? 'Estación actualizada correctamente'
-              : AppStrings.workstationSaved),
+              ? context.l10n.updateWorkstation
+              : context.l10n.workstationSaved),
           backgroundColor: AppColors.success,
         ),
       );
@@ -210,7 +210,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Error al guardar: $e'),
+          content: Text('${context.l10n.errorSaving}: $e'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -225,11 +225,11 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
     return employeesAsync.when(
       data: (employees) {
         if (employees.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.0),
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
-              AppStrings.noEmployeesRegistered,
-              style: TextStyle(
+              context.l10n.noEmployees,
+              style: const TextStyle(
                 color: AppColors.orangeWarning,
                 fontWeight: FontWeight.bold,
               ),
@@ -258,7 +258,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
         );
       },
       loading: () => const LinearProgressIndicator(),
-      error: (err, stack) => Text('Error al cargar empleados: $err'),
+      error: (err, stack) => Text('${context.l10n.errorLoadingData}: $err'),
     );
   }
 
@@ -266,14 +266,14 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
   Widget build(BuildContext context) {
     if (_isLoadingData) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Cargando...')),
+        appBar: AppBar(title: Text(context.l10n.loading)),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Editar estación' : AppStrings.newWorkstation),
+        title: Text(_isEditing ? context.l10n.editWorkstation : context.l10n.newWorkstation),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
@@ -288,31 +288,31 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: AppStrings.workstationNameLabel,
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: context.l10n.workstationNameLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (value) => value == null || value.trim().isEmpty
-                    ? AppStrings.workstationNameRequired
+                    ? context.l10n.workstationNameRequired
                     : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _deviceIdController,
-                decoration: const InputDecoration(
-                  labelText: AppStrings.deviceIdLabel,
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: context.l10n.deviceIdLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (value) => value == null || value.trim().isEmpty
-                    ? AppStrings.deviceIdRequired
+                    ? context.l10n.deviceIdRequired
                     : null,
               ),
               const SizedBox(height: 16),
               _buildEmployeeSelector(),
               const SizedBox(height: 24),
-              const Text(
-                AppStrings.geolocation,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              Text(
+                context.l10n.geolocation,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
@@ -324,7 +324,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.location_on),
-                label: const Text(AppStrings.useCurrentLocation),
+                label: Text(context.l10n.useCurrentLocation),
               ),
               if (_latitude != null && _longitude != null) ...[
                 const SizedBox(height: 8),
@@ -409,7 +409,7 @@ class _WorkstationFormScreenState extends ConsumerState<WorkstationFormScreen> {
                         child: CircularProgressIndicator(color: AppColors.white),
                       )
                     : Text(
-                        _isEditing ? 'Actualizar estación' : AppStrings.saveWorkstation,
+                        _isEditing ? context.l10n.updateWorkstation : context.l10n.saveWorkstation,
                         style: const TextStyle(fontSize: 16),
                       ),
               ),

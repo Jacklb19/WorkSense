@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/domain/entities/payroll.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/features/payroll/data/payroll_repository.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/features/payroll/presentation/providers/payroll_provider.dart';
 
 class PayrollPeriodDetailScreen extends ConsumerStatefulWidget {
@@ -45,25 +47,26 @@ class _PayrollPeriodDetailScreenState
     final isDraft = period.status == PayrollStatus.draft;
     final isApproved = period.status == PayrollStatus.approved;
 
+    final ac = context.appColors;
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: ac.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: ac.surface,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               period.name,
-              style: const TextStyle(
-                color: AppColors.textPrimaryDark,
+              style: TextStyle(
+                color: ac.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
             ),
             Text(
               '${_dateFmt.format(period.startDate)} – ${_dateFmt.format(period.endDate)}',
-              style: const TextStyle(
-                color: AppColors.textSecondaryDark,
+              style: TextStyle(
+                color: ac.textSecondary,
                 fontSize: 11,
               ),
             ),
@@ -126,10 +129,10 @@ class _PayrollPeriodDetailScreenState
               // ── Entries list ───────────────────────────────────────
               Expanded(
                 child: entries.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Text(
                           'Sin entradas en este período',
-                          style: TextStyle(color: AppColors.textSecondaryDark),
+                          style: TextStyle(color: ac.textSecondary),
                         ),
                       )
                     : ListView.separated(
@@ -170,19 +173,19 @@ class _PayrollPeriodDetailScreenState
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: ctx.appColors.surface,
         title: Text(title,
-            style: const TextStyle(color: AppColors.textPrimaryDark)),
+            style: TextStyle(color: ctx.appColors.textPrimary)),
         content: Text(message,
-            style: const TextStyle(color: AppColors.textSecondaryDark)),
+            style: TextStyle(color: ctx.appColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
+            child: Text(ctx.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Confirmar'),
+            child: Text(ctx.l10n.confirm),
           ),
         ],
       ),
@@ -202,15 +205,15 @@ class _PayrollPeriodDetailScreenState
     final ok = await showDialog<bool>(
       context: ctx,
       builder: (dlgCtx) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text(
+        backgroundColor: dlgCtx.appColors.surface,
+        title: Text(
           'Editar deducciones',
-          style: TextStyle(color: AppColors.textPrimaryDark),
+          style: TextStyle(color: dlgCtx.appColors.textPrimary),
         ),
         content: TextField(
           controller: ctrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: false),
-          style: const TextStyle(color: AppColors.textPrimaryDark),
+          style: TextStyle(color: dlgCtx.appColors.textPrimary),
           decoration: const InputDecoration(
             labelText: 'Deducción (COP)',
             prefixText: '\$ ',
@@ -219,11 +222,11 @@ class _PayrollPeriodDetailScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dlgCtx, false),
-            child: const Text('Cancelar'),
+            child: Text(dlgCtx.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dlgCtx, true),
-            child: const Text('Guardar'),
+            child: Text(dlgCtx.l10n.save),
           ),
         ],
       ),
@@ -261,8 +264,8 @@ class _SummaryBanner extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceDark,
+      decoration: BoxDecoration(
+        color: context.appColors.surface,
         border: Border(
             bottom: BorderSide(color: AppColors.glassBorder, width: 0.5)),
       ),
@@ -397,7 +400,7 @@ class _EntryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: context.appColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.glassBorder),
       ),
@@ -431,8 +434,8 @@ class _EntryCard extends StatelessWidget {
               children: [
                 Text(
                   name,
-                  style: const TextStyle(
-                    color: AppColors.textPrimaryDark,
+                  style: TextStyle(
+                    color: context.appColors.textPrimary,
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
@@ -478,10 +481,11 @@ class _EntryCard extends StatelessWidget {
                   ),
                 ),
               if (isDraft)
-                GestureDetector(
+                InkWell(
                   onTap: onEditDeductions,
+                  borderRadius: BorderRadius.circular(4),
                   child: const Padding(
-                    padding: EdgeInsets.only(top: 4),
+                    padding: EdgeInsets.fromLTRB(4, 4, 4, 0),
                     child: Text(
                       'Editar ded.',
                       style: TextStyle(
@@ -520,8 +524,8 @@ class _MiniStat extends StatelessWidget {
         const SizedBox(width: 3),
         Text(
           label,
-          style: const TextStyle(
-            color: AppColors.textSecondaryDark,
+          style: TextStyle(
+            color: context.appColors.textSecondary,
             fontSize: 11,
           ),
         ),

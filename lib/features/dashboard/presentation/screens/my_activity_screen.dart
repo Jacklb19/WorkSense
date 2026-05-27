@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
 import 'package:worksense_app/features/dashboard/presentation/widgets/activity_event_tile.dart';
 import 'package:worksense_app/shared/widgets/error_widget.dart';
 import 'package:worksense_app/shared/widgets/loading_widget.dart';
+import 'package:worksense_app/shared/widgets/styled/app_empty_state.dart';
 
 class MyActivityScreen extends ConsumerWidget {
   const MyActivityScreen({super.key});
@@ -30,11 +33,11 @@ class MyActivityScreen extends ConsumerWidget {
         ),
         data: (events) {
           if (events.isEmpty) {
-            return const AppEmptyState(
+            return AppEmptyState(
               icon: Icons.history_toggle_off,
               title: 'SIN REGISTROS',
               subtitle: 'La actividad reciente aparecera en este log.',
-              iconColor: AppColors.textDisabled,
+              iconColor: context.appColors.textDisabled,
             );
           }
 
@@ -68,17 +71,17 @@ class _EmptyActivityView extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.05),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.history_toggle_off,
                 size: 40,
-                color: Colors.white24,
+                color: context.appColors.textDisabled,
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'SIN REGISTROS AÚN',
               style: TextStyle(
-                color: Colors.white30,
+                color: context.appColors.textDisabled,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 2,
                 fontSize: 14,
@@ -86,9 +89,9 @@ class _EmptyActivityView extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Tu actividad reciente aparecerá aquí\ncuando comiences a trabajar.',
-              style: TextStyle(color: Colors.white24, fontSize: 13, height: 1.5),
+              style: TextStyle(color: context.appColors.textDisabled, fontSize: 13, height: 1.5),
               textAlign: TextAlign.center,
             ),
           ],

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/activity_event.dart';
 
 class ActivityEventTile extends StatelessWidget {
@@ -13,16 +15,21 @@ class ActivityEventTile extends StatelessWidget {
     super.key,
   });
 
+  // ✅ Static final — DateFormat instantiated once, not on every _formatTimestamp call.
+  static final _timeFmt = DateFormat('HH:mm');
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final ac = context.appColors;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppDimensions.spacingMd),
       child: Container(
         padding: const EdgeInsets.all(AppDimensions.spacingXxl),
         decoration: BoxDecoration(
-          color: AppColors.cardDark,
+          color: ac.card,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.02)),
+          border: Border.all(color: ac.divider),
         ),
         child: Row(
           children: [
@@ -61,7 +68,7 @@ class ActivityEventTile extends StatelessWidget {
                             vertical: AppDimensions.spacingXxs / 2,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.1),
+                            color: AppColors.warning.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
@@ -71,7 +78,7 @@ class ActivityEventTile extends StatelessWidget {
                   Text(
                     'CONFIANZA: ${(event.confidence * 100).round()}%',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.textDisabled,
+                      color: ac.textDisabled,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -84,7 +91,7 @@ class ActivityEventTile extends StatelessWidget {
                 Text(
                   _formatTimestamp(event.timestamp),
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: AppColors.textDisabled,
+                    color: ac.textDisabled,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -92,7 +99,7 @@ class ActivityEventTile extends StatelessWidget {
                   Text(
                     'PUESTO ${event.workstationId.split('-').last.toUpperCase()}',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.textDisabled.withAlpha(40),
+                      color: ac.textDisabled.withAlpha(40),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -109,6 +116,6 @@ class ActivityEventTile extends StatelessWidget {
     final diff = now.difference(dt);
     if (diff.inMinutes < 1) return 'AHORA';
     if (diff.inMinutes < 60) return '${diff.inMinutes}M';
-    return DateFormat('HH:mm').format(dt);
+    return _timeFmt.format(dt);
   }
 }

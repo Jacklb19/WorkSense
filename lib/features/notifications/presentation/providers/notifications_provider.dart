@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:worksense_app/features/chat/data/chat_repository.dart';
 import 'package:worksense_app/features/notifications/data/notification_repository.dart';
 import 'package:worksense_app/features/notifications/domain/entities/app_notification.dart';
@@ -26,11 +27,38 @@ class NotificationsNotifier extends AsyncNotifier<List<AppNotification>> {
     });
     ref.onDispose(() => _timer?.cancel());
 
+    // Supabase Realtime — instant notification delivery
+    try {
+      final currentUser = ref.read(currentUserProvider).valueOrNull;
+      final companyId = currentUser?.companyId;
+      if (companyId != null && companyId.isNotEmpty) {
+        final client = Supabase.instance.client;
+        final channel = client
+            .channel('worksense_notifications_${currentUser!.user?.id}')
+            .onPostgresChanges(
+              event: PostgresChangeEvent.insert,
+              schema: 'public',
+              table: 'notifications',
+              callback: (_) => refresh(),
+            )
+            .subscribe();
+        ref.onDispose(() => client.removeChannel(channel));
+      }
+    } catch (_) {}
+
     return _fetch();
   }
 
-  Future<List<AppNotification>> _fetch() =>
-      NotificationRepository.instance.fetchMine();
+  Future<List<AppNotification>> _fetch() async {
+    final user = ref.read(currentUserProvider).valueOrNull;
+    final userId = user?.user?.id;
+    if (userId == null) return [];
+    return NotificationRepository.instance.fetchMine(
+      userId: userId,
+      userRole: user!.role.metadataValue,
+      companyId: user.companyId ?? '',
+    );
+  }
 
   Future<void> refresh() async {
     state = const AsyncLoading();
@@ -61,7 +89,13 @@ class NotificationsNotifier extends AsyncNotifier<List<AppNotification>> {
   }
 
   Future<void> markAllRead(String companyId) async {
-    await NotificationRepository.instance.markAllRead(companyId);
+    final user = ref.read(currentUserProvider).valueOrNull;
+    if (user == null) return;
+    await NotificationRepository.instance.markAllRead(
+      userId: user.user?.id ?? '',
+      userRole: user.role.metadataValue,
+      companyId: companyId,
+    );
     await refresh();
   }
 }

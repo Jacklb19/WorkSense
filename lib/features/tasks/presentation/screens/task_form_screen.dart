@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/employee.dart';
 import 'package:worksense_app/domain/entities/task_item.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 // adminEmployeesProvider hace merge local + remoto Supabase, por lo que
 // incluye empleados recién creados aunque aún no hayan sincronizado a Drift.
 import 'package:worksense_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
 class TaskFormScreen extends ConsumerStatefulWidget {
@@ -31,6 +33,8 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   DateTime? _dueDate;
   TaskStatus _status = TaskStatus.pending;
   bool _loading = false;
+  // ✅ Instance field on State — created once per lifecycle, not on every build.
+  final _dueDateFmt = DateFormat('dd/MM/yyyy');
 
   TaskItem? _original;
 
@@ -73,21 +77,22 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     final employeesAsync = ref.watch(adminEmployeesProvider);
     final isEdit = widget.taskId != null;
 
+    final ac = context.appColors;
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: ac.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: ac.surface,
         title: Text(
           isEdit ? 'EDITAR TAREA' : 'NUEVA TAREA',
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: ac.textPrimary,
             fontSize: 15,
             fontWeight: FontWeight.w900,
             letterSpacing: 0.8,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
+          icon: Icon(Icons.close, color: ac.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -109,18 +114,18 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                 const Icon(Icons.group_off_outlined,
                     color: AppColors.error, size: 40),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'No se pudo cargar la lista de empleados.',
                   style: TextStyle(
-                      color: Colors.white,
+                      color: ac.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w600),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Verifica tu conexión e intenta de nuevo.',
-                  style: TextStyle(color: Colors.white54, fontSize: 13),
+                  style: TextStyle(color: ac.textSecondary, fontSize: 13),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
@@ -141,6 +146,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   }
 
   Widget _buildForm(BuildContext context, List<Employee> employees) {
+    final ac = context.appColors;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Form(
@@ -153,7 +159,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
             const SizedBox(height: 8),
             TextFormField(
               controller: _titleController,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: ac.textPrimary),
               decoration: _inputDecoration('¿Qué debe hacerse?'),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Ingresa un título' : null,
@@ -167,7 +173,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
             const SizedBox(height: 8),
             TextFormField(
               controller: _descController,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: ac.textPrimary),
               decoration: _inputDecoration('Detalles adicionales…'),
               maxLines: 3,
               maxLength: 400,
@@ -180,8 +186,8 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               initialValue: _assignedToId,
-              dropdownColor: AppColors.surfaceDark,
-              style: const TextStyle(color: Colors.white),
+              dropdownColor: context.appColors.surface,
+              style: TextStyle(color: ac.textPrimary),
               decoration: _inputDecoration('Selecciona un empleado'),
               items: employees.map((e) {
                 return DropdownMenuItem(
@@ -221,25 +227,28 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.event_outlined,
-                        color: Colors.white54, size: 18),
+                    Icon(Icons.event_outlined,
+                        color: ac.textSecondary, size: 18),
                     const SizedBox(width: 10),
                     Text(
                       _dueDate != null
-                          ? DateFormat('dd/MM/yyyy').format(_dueDate!)
+                          ? _dueDateFmt.format(_dueDate!)
                           : 'Sin fecha límite',
                       style: TextStyle(
                         color:
-                            _dueDate != null ? Colors.white : Colors.white38,
+                            _dueDate != null ? ac.textPrimary : ac.textDisabled,
                         fontSize: 14,
                       ),
                     ),
                     const Spacer(),
                     if (_dueDate != null)
-                      GestureDetector(
-                        onTap: () => setState(() => _dueDate = null),
-                        child: const Icon(Icons.close,
-                            color: Colors.white38, size: 16),
+                      IconButton(
+                        onPressed: () => setState(() => _dueDate = null),
+                        icon: Icon(Icons.close,
+                            color: ac.textDisabled, size: 16),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        visualDensity: VisualDensity.compact,
                       ),
                   ],
                 ),
@@ -356,20 +365,20 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text('Eliminar tarea',
-            style: TextStyle(color: Colors.white)),
-        content: const Text('¿Seguro que quieres eliminar esta tarea?',
-            style: TextStyle(color: Colors.white70)),
+        backgroundColor: context.appColors.surface,
+        title: Text('Eliminar tarea',
+            style: TextStyle(color: context.appColors.textPrimary)),
+        content: Text('¿Seguro que quieres eliminar esta tarea?',
+            style: TextStyle(color: context.appColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar',
-                style: TextStyle(color: AppColors.error)),
+            child: Text(context.l10n.delete,
+                style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -384,11 +393,13 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
     }
   }
 
-  InputDecoration _inputDecoration(String hint) => InputDecoration(
+  InputDecoration _inputDecoration(String hint) {
+    final ac = context.appColors;
+    return InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white38),
+        hintStyle: TextStyle(color: ac.textDisabled),
         filled: true,
-        fillColor: AppColors.surfaceDark,
+        fillColor: ac.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.glassBorder),
@@ -402,11 +413,12 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
           borderSide:
               const BorderSide(color: AppColors.primary, width: 1.5),
         ),
-        counterStyle: const TextStyle(color: Colors.white38),
+        counterStyle: TextStyle(color: ac.textDisabled),
       );
+  }
 }
 
-// ── Sub-widgets ───────────────────────────────────────────────────────────────
+// ── Sub-widgets ──────────────────────────────────────────────────────────────
 
 class _SectionLabel extends StatelessWidget {
   final String label;
@@ -416,8 +428,8 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: const TextStyle(
-        color: Colors.white70,
+      style: TextStyle(
+        color: context.appColors.textSecondary,
         fontSize: 12,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.4,
@@ -439,38 +451,40 @@ class _PrioritySelector extends StatelessWidget {
       children: TaskPriority.values.map((p) {
         final isSelected = p == selected;
         return Expanded(
-          child: GestureDetector(
-            onTap: () => onChanged(p),
-            child: Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? p.color.withValues(alpha: 0.2)
-                    : AppColors.surfaceDark,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: isSelected
-                      ? p.color
-                      : AppColors.glassBorder,
-                  width: isSelected ? 1.5 : 1,
-                ),
-              ),
-              child: Column(
-                children: [
-                  Icon(p.icon,
-                      size: 16,
-                      color: isSelected ? p.color : Colors.white38),
-                  const SizedBox(height: 4),
-                  Text(
-                    p.label,
-                    style: TextStyle(
-                      color: isSelected ? p.color : Colors.white38,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
+          child: Material(
+            color: isSelected
+                ? p.color.withValues(alpha: 0.2)
+                : context.appColors.surface,
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              onTap: () => onChanged(p),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isSelected ? p.color : AppColors.glassBorder,
+                    width: isSelected ? 1.5 : 1,
                   ),
-                ],
+                ),
+                child: Column(
+                  children: [
+                    Icon(p.icon,
+                        size: 16,
+                        color: isSelected ? p.color : context.appColors.textDisabled),
+                    const SizedBox(height: 4),
+                    Text(
+                      p.label,
+                      style: TextStyle(
+                        color: isSelected ? p.color : context.appColors.textDisabled,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -500,26 +514,30 @@ class _StatusSelector extends StatelessWidget {
       runSpacing: 8,
       children: statuses.map((s) {
         final isSelected = s == selected;
-        return GestureDetector(
-          onTap: () => onChanged(s),
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? s.color.withValues(alpha: 0.2)
-                  : AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isSelected ? s.color : AppColors.glassBorder,
+        return Material(
+          color: isSelected
+              ? s.color.withValues(alpha: 0.2)
+              : context.appColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          child: InkWell(
+            onTap: () => onChanged(s),
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected ? s.color : AppColors.glassBorder,
+                ),
               ),
-            ),
-            child: Text(
-              s.label,
-              style: TextStyle(
-                color: isSelected ? s.color : Colors.white38,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+              child: Text(
+                s.label,
+                style: TextStyle(
+                  color: isSelected ? s.color : context.appColors.textDisabled,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),

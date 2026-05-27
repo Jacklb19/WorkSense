@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/leave_request.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/features/leaves/presentation/providers/leaves_provider.dart';
 import 'package:worksense_app/features/leaves/presentation/widgets/leave_request_card.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/providers/sync_state_provider.dart';
 
 class LeavesListScreen extends ConsumerStatefulWidget {
   const LeavesListScreen({super.key});
@@ -25,6 +28,15 @@ class _LeavesListScreenState extends ConsumerState<LeavesListScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Run a full sync first (flushes employee sync queues → puts data in
+      // Supabase), then pull leave_requests so the admin sees the latest.
+      ref.read(syncNotifierProvider.notifier).sync().then((_) {
+        if (mounted) {
+          ref.read(leavesRefreshNotifierProvider.notifier).refresh();
+        }
+      });
+    });
   }
 
   @override
@@ -39,32 +51,40 @@ class _LeavesListScreenState extends ConsumerState<LeavesListScreen>
     final isAdmin = userState?.role == AppRole.admin ||
         userState?.role == AppRole.superAdmin;
 
+    final l10n = context.l10n;
+    final ac = context.appColors;
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: ac.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text(
-          'PERMISOS',
+        backgroundColor: ac.surface,
+        title: Text(
+          l10n.leaves.toUpperCase(),
           style: TextStyle(
-            color: Colors.white,
+            color: ac.textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w900,
             letterSpacing: 1,
           ),
         ),
+        actions: isAdmin
+            ? [
+                // Manual sync button — lets admin pull the latest requests immediately
+                const _SyncButton(),
+              ]
+            : null,
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
           indicatorColor: AppColors.primary,
           labelColor: AppColors.primary,
-          unselectedLabelColor: Colors.white38,
+          unselectedLabelColor: ac.textDisabled,
           labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          tabs: const [
-            Tab(text: 'Todos'),
-            Tab(text: 'Pendientes'),
-            Tab(text: 'Aprobados'),
-            Tab(text: 'Rechazados'),
+          tabs: [
+            Tab(text: l10n.all),
+            Tab(text: l10n.leavePendingPlural),
+            Tab(text: l10n.leaveApprovedPlural),
+            Tab(text: l10n.leaveRejectedPlural),
           ],
           onTap: (i) {
             setState(() {
@@ -86,7 +106,7 @@ class _LeavesListScreenState extends ConsumerState<LeavesListScreen>
               onPressed: () => context.push(AppRoutes.leaveNew),
               backgroundColor: AppColors.primary,
               icon: const Icon(Icons.add),
-              label: const Text('Solicitar permiso'),
+              label: Text(l10n.leaveRequestLabel),
             )
           : null,
     );
@@ -102,16 +122,29 @@ class _AdminLeavesList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Activate Supabase Realtime — updates admin panel instantly when employees
+    // submit or when the admin approves/rejects on another device.
+    ref.watch(leavesRealtimeProvider);
+
     final leavesAsync = ref.watch(companyLeavesProvider);
     final employeesAsync = ref.watch(employeesProvider);
     final user = ref.watch(currentUserProvider).valueOrNull;
 
     return leavesAsync.when(
+      // Keep previous data visible while refreshing — prevents empty-list flash
+      skipLoadingOnRefresh: true,
+      skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(
         child: Text('$e', style: const TextStyle(color: AppColors.error)),
       ),
       data: (leaves) {
+        // ── Debug: verify admin is receiving data ──────────────────────────
+        debugPrint('[LeavesAdmin] ${leaves.length} leaves in SQLite for this company'
+            ' | pending: ${leaves.where((l) => l.status == LeaveStatus.pending).length}'
+            ' | approved: ${leaves.where((l) => l.status == LeaveStatus.approved).length}'
+            ' | rejected: ${leaves.where((l) => l.status == LeaveStatus.rejected).length}');
+
         final filtered = filterStatus != null
             ? leaves.where((l) => l.status == filterStatus).toList()
             : leaves;
@@ -133,43 +166,51 @@ class _AdminLeavesList extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 child: Row(
                   children: [
-                    _StatChip(label: 'Total', count: totalAll, color: AppColors.primary),
+                    _StatChip(label: context.l10n.total, count: totalAll, color: AppColors.primary),
                     const SizedBox(width: 8),
-                    _StatChip(label: 'Aprobados', count: approvedCount, color: AppColors.success),
+                    _StatChip(label: context.l10n.leaveApprovedPlural, count: approvedCount, color: AppColors.success),
                     const SizedBox(width: 8),
-                    _StatChip(label: 'Rechazados', count: rejectedCount, color: AppColors.error),
+                    _StatChip(label: context.l10n.leaveRejectedPlural, count: rejectedCount, color: AppColors.error),
                     const SizedBox(width: 8),
-                    _StatChip(label: 'Pendientes', count: pendingCount, color: AppColors.warning),
+                    _StatChip(label: context.l10n.leavePendingPlural, count: pendingCount, color: AppColors.warning),
                   ],
                 ),
               ),
 
             // ── List ─────────────────────────────────────────────────
             Expanded(
-              child: filtered.isEmpty
-                  ? _EmptyState(filterStatus: filterStatus, isAdmin: true)
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: filtered.length,
-                      itemBuilder: (context, i) {
-                        final req = filtered[i];
-                        final emp = empMap[req.employeeId];
-                        return LeaveRequestCard(
-                          request: req,
-                          employeeName: emp?.displayName,
-                          isAdmin: true,
-                          onApprove: () => _review(
-                            context, ref, req,
-                            LeaveStatus.approved,
-                            user?.user?.id ?? '',
-                          ),
-                          onReject: () => _showRejectDialog(
-                            context, ref, req,
-                            user?.user?.id ?? '',
-                          ),
-                        );
-                      },
-                    ),
+              child: RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: () async {
+                  await ref
+                      .read(leavesRefreshNotifierProvider.notifier)
+                      .refresh();
+                },
+                child: filtered.isEmpty
+                    ? _EmptyState(filterStatus: filterStatus, isAdmin: true)
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filtered.length,
+                        itemBuilder: (context, i) {
+                          final req = filtered[i];
+                          final emp = empMap[req.employeeId];
+                          return LeaveRequestCard(
+                            request: req,
+                            employeeName: emp?.displayName,
+                            isAdmin: true,
+                            onApprove: () => _review(
+                              context, ref, req,
+                              LeaveStatus.approved,
+                              user?.user?.id ?? '',
+                            ),
+                            onReject: () => _showRejectDialog(
+                              context, ref, req,
+                              user?.user?.id ?? '',
+                            ),
+                          );
+                        },
+                      ),
+              ),
             ),
           ],
         );
@@ -184,26 +225,38 @@ class _AdminLeavesList extends ConsumerWidget {
     LeaveStatus status,
     String reviewerId,
   ) async {
-    await ref.read(leavesNotifierProvider.notifier).reviewRequest(
-          requestId: req.id,
-          status: status,
-          reviewedById: reviewerId,
-          employeeId: req.employeeId,
-          companyId: req.companyId,
-          startDate: req.startDate,
-          endDate: req.endDate,
+    try {
+      await ref.read(leavesNotifierProvider.notifier).reviewRequest(
+            requestId: req.id,
+            status: status,
+            reviewedById: reviewerId,
+            employeeId: req.employeeId,
+            companyId: req.companyId,
+            startDate: req.startDate,
+            endDate: req.endDate,
+          );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(status == LeaveStatus.approved
+                ? context.l10n.leaveApprovedMsg
+                : context.l10n.leaveRejectedMsg),
+            backgroundColor:
+                status == LeaveStatus.approved ? AppColors.success : AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(status == LeaveStatus.approved
-              ? 'Permiso aprobado'
-              : 'Permiso rechazado'),
-          backgroundColor:
-              status == LeaveStatus.approved ? AppColors.success : AppColors.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${context.l10n.error}: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -214,27 +267,29 @@ class _AdminLeavesList extends ConsumerWidget {
     String reviewerId,
   ) async {
     final noteCtrl = TextEditingController();
+    // ⚠️  Use dlgCtx (the dialog's own context) for Navigator.pop so we close
+    //     the dialog instead of the root navigator's shell route.
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text('Rechazar permiso',
-            style: TextStyle(color: Colors.white)),
+      builder: (dlgCtx) => AlertDialog(
+        backgroundColor: context.appColors.surface,
+        title: Text(context.l10n.rejectLeaveTitle,
+            style: TextStyle(color: context.appColors.textPrimary)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Motivo del rechazo (opcional)',
-                style: TextStyle(color: Colors.white70, fontSize: 13)),
+            Text(context.l10n.rejectReason,
+                style: TextStyle(color: context.appColors.textSecondary, fontSize: 13)),
             const SizedBox(height: 8),
             TextField(
               controller: noteCtrl,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: context.appColors.textPrimary),
               maxLines: 2,
               decoration: InputDecoration(
-                hintText: 'Escribe una nota…',
-                hintStyle: const TextStyle(color: Colors.white38),
+                hintText: context.l10n.writeNote,
+                hintStyle: TextStyle(color: context.appColors.textDisabled),
                 filled: true,
-                fillColor: AppColors.backgroundDark,
+                fillColor: context.appColors.background,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(color: AppColors.glassBorder),
@@ -245,18 +300,20 @@ class _AdminLeavesList extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            onPressed: () => Navigator.pop(dlgCtx, false),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Rechazar',
-                style: TextStyle(color: AppColors.error)),
+            onPressed: () => Navigator.pop(dlgCtx, true),
+            child: Text(context.l10n.reject,
+                style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),
     );
-    if (ok == true && context.mounted) {
+    if (ok != true) return;
+    if (!context.mounted) return;
+    try {
       await ref.read(leavesNotifierProvider.notifier).reviewRequest(
             requestId: req.id,
             status: LeaveStatus.rejected,
@@ -269,14 +326,61 @@ class _AdminLeavesList extends ConsumerWidget {
           );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Permiso rechazado'),
+          SnackBar(
+            content: Text(context.l10n.leaveRejectedMsg),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${context.l10n.error}: $e'),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
     }
+  }
+}
+
+// ── Sync button ───────────────────────────────────────────────────────────────
+
+/// AppBar action that triggers an immediate sync and shows a spinner while running.
+class _SyncButton extends ConsumerWidget {
+  const _SyncButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final syncState = ref.watch(syncNotifierProvider);
+    final isSyncing = syncState.isLoading;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: IconButton(
+        tooltip: context.l10n.syncNow,
+        icon: isSyncing
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primary,
+                ),
+              )
+            : const Icon(Icons.sync, color: AppColors.primary),
+        onPressed: isSyncing
+            ? null
+            : () async {
+                // Full sync first (flushes employee queues), then pull leaves.
+                await ref.read(syncNotifierProvider.notifier).sync();
+                await ref.read(leavesRefreshNotifierProvider.notifier).refresh();
+              },
+      ),
+    );
   }
 }
 
@@ -324,13 +428,22 @@ class _StatChip extends StatelessWidget {
 
 // ── Employee view ──────────────────────────────────────────────────────────────
 
-class _EmployeeLeavesList extends ConsumerWidget {
+/// Using StatefulConsumerWidget so `mounted` is reliable across the async gap
+/// between the dialog close and the delete operation completing.
+class _EmployeeLeavesList extends ConsumerStatefulWidget {
   final LeaveStatus? filterStatus;
 
   const _EmployeeLeavesList({this.filterStatus});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_EmployeeLeavesList> createState() => _EmployeeLeavesListState();
+}
+
+class _EmployeeLeavesListState extends ConsumerState<_EmployeeLeavesList> {
+  bool _deleting = false;
+
+  @override
+  Widget build(BuildContext context) {
     final leavesAsync = ref.watch(myLeavesProvider);
 
     return leavesAsync.when(
@@ -339,55 +452,104 @@ class _EmployeeLeavesList extends ConsumerWidget {
         child: Text('$e', style: const TextStyle(color: AppColors.error)),
       ),
       data: (leaves) {
-        final filtered = filterStatus != null
-            ? leaves.where((l) => l.status == filterStatus).toList()
+        final filtered = widget.filterStatus != null
+            ? leaves.where((l) => l.status == widget.filterStatus).toList()
             : leaves;
 
         if (filtered.isEmpty) {
-          return _EmptyState(filterStatus: filterStatus, isAdmin: false);
+          return _EmptyState(filterStatus: widget.filterStatus, isAdmin: false);
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-          itemCount: filtered.length,
-          itemBuilder: (context, i) {
-            final req = filtered[i];
-            return LeaveRequestCard(
-              request: req,
-              isAdmin: false,
-              onDelete: () => _delete(context, ref, req.id),
-            );
-          },
+        return Stack(
+          children: [
+            ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+              itemCount: filtered.length,
+              itemBuilder: (context, i) {
+                final req = filtered[i];
+                return LeaveRequestCard(
+                  request: req,
+                  isAdmin: false,
+                  // Disable button while a delete is already in-flight
+                  onDelete: _deleting ? null : () => _delete(req.id),
+                );
+              },
+            ),
+            // Lightweight overlay while deleting — prevents double-tap crash
+            if (_deleting)
+              const Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.transparent,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+          ],
         );
       },
     );
   }
 
-  Future<void> _delete(
-      BuildContext context, WidgetRef ref, String requestId) async {
+  Future<void> _delete(String requestId) async {
+    // ⚠️  Use dlgCtx (the dialog's own context) for Navigator.pop.
+    //     showDialog() uses the ROOT navigator (useRootNavigator: true by default).
+    //     Calling Navigator.pop(context, value) with the SHELL/TAB context would
+    //     pop the wrong navigator entry → black screen.
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
-        title:
-            const Text('Cancelar solicitud', style: TextStyle(color: Colors.white)),
-        content: const Text('¿Seguro que quieres cancelar esta solicitud?',
-            style: TextStyle(color: Colors.white70)),
+      builder: (dlgCtx) => AlertDialog(
+        backgroundColor: context.appColors.surface,
+        title: Text(
+          context.l10n.cancelRequest,
+          style: TextStyle(color: context.appColors.textPrimary),
+        ),
+        content: Text(
+          context.l10n.confirmCancelRequest,
+          style: TextStyle(color: context.appColors.textSecondary),
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('No'),
+            onPressed: () => Navigator.pop(dlgCtx, false),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Sí, cancelar',
-                style: TextStyle(color: AppColors.error)),
+            onPressed: () => Navigator.pop(dlgCtx, true),
+            child: Text(
+              context.l10n.cancelRequest,
+              style: const TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),
     );
-    if (ok == true && context.mounted) {
+
+    if (ok != true) return;       // user cancelled
+    if (!mounted) return;         // widget disposed while dialog was open
+
+    setState(() => _deleting = true);
+    try {
       await ref.read(leavesNotifierProvider.notifier).deleteRequest(requestId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.l10n.requestCancelledOk),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('[Leaves] Delete failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${context.l10n.errorDeleting}: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _deleting = false);
     }
   }
 }
@@ -402,37 +564,44 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final message = filterStatus != null
-        ? 'No hay permisos ${filterStatus!.label.toLowerCase()}'
+        ? '${l10n.noLeavesFiltered} ${filterStatus!.label.toLowerCase()}'
         : isAdmin
-            ? 'No hay solicitudes de permiso'
-            : 'No has enviado solicitudes de permiso';
+            ? l10n.noLeaveRequests
+            : l10n.noLeaveRequestsEmployee;
 
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.beach_access_outlined,
-            size: 64,
-            color: Colors.white.withValues(alpha: 0.2),
-          ),
+          Builder(builder: (context) {
+            final ac = context.appColors;
+            return Icon(
+              Icons.beach_access_outlined,
+              size: 64,
+              color: ac.textDisabled.withValues(alpha: 0.3),
+            );
+          }),
           const SizedBox(height: 16),
-          Text(
-            message,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.4),
-              fontSize: 14,
-            ),
-          ),
+          Builder(builder: (context) {
+            final ac = context.appColors;
+            return Text(
+              message,
+              style: TextStyle(
+                color: ac.textDisabled,
+                fontSize: 14,
+              ),
+            );
+          }),
           if (!isAdmin && filterStatus == null) ...[
             const SizedBox(height: 12),
             TextButton.icon(
               onPressed: () => context.push(AppRoutes.leaveNew),
               icon: const Icon(Icons.add, color: AppColors.primary),
-              label: const Text(
-                'Solicitar permiso',
-                style: TextStyle(color: AppColors.primary),
+              label: Text(
+                l10n.leaveRequestLabel,
+                style: const TextStyle(color: AppColors.primary),
               ),
             ),
           ],

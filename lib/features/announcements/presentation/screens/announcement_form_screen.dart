@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/announcement.dart';
 import 'package:worksense_app/features/announcements/presentation/providers/announcements_provider.dart';
 
@@ -82,16 +83,17 @@ class _AnnouncementFormScreenState
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: ac.background,
       appBar: AppBar(
-        backgroundColor: AppColors.backgroundDark,
-        title: const Text(
+        backgroundColor: ac.background,
+        title: Text(
           'Nuevo comunicado',
-          style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: ac.textPrimary, fontWeight: FontWeight.bold),
         ),
         leading: BackButton(
-          color: AppColors.white,
+          color: ac.textPrimary,
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -108,6 +110,7 @@ class _AnnouncementFormScreenState
   }
 
   Widget _buildForm() {
+    final ac = context.appColors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -117,8 +120,8 @@ class _AnnouncementFormScreenState
         TextFormField(
           controller: _titleCtrl,
           maxLength: 100,
-          style: const TextStyle(color: AppColors.white),
-          decoration: _inputDecoration('Ej: Reunión obligatoria mañana'),
+          style: TextStyle(color: ac.textPrimary),
+          decoration: _inputDecoration('Ej: Reunión obligatoria mañana', ac: ac),
           validator: (v) =>
               (v == null || v.trim().isEmpty) ? 'Requerido' : null,
         ),
@@ -131,8 +134,8 @@ class _AnnouncementFormScreenState
           controller: _contentCtrl,
           maxLines: 5,
           maxLength: 1000,
-          style: const TextStyle(color: AppColors.white),
-          decoration: _inputDecoration('Detalle del comunicado...'),
+          style: TextStyle(color: ac.textPrimary),
+          decoration: _inputDecoration('Detalle del comunicado...', ac: ac),
           validator: (v) =>
               (v == null || v.trim().isEmpty) ? 'Requerido' : null,
         ),
@@ -157,7 +160,7 @@ class _AnnouncementFormScreenState
             padding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             decoration: BoxDecoration(
-              color: AppColors.surfaceDark,
+              color: ac.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.glassBorder),
             ),
@@ -176,15 +179,18 @@ class _AnnouncementFormScreenState
                     style: TextStyle(
                       color: _expiresAt == null
                           ? AppColors.grey400
-                          : AppColors.white,
+                          : ac.textPrimary,
                     ),
                   ),
                 ),
                 if (_expiresAt != null)
-                  GestureDetector(
-                    onTap: () => setState(() => _expiresAt = null),
-                    child: const Icon(Icons.clear,
+                  IconButton(
+                    onPressed: () => setState(() => _expiresAt = null),
+                    icon: const Icon(Icons.clear,
                         color: AppColors.grey400, size: 18),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    visualDensity: VisualDensity.compact,
                   ),
               ],
             ),
@@ -227,11 +233,11 @@ class _AnnouncementFormScreenState
     );
   }
 
-  InputDecoration _inputDecoration(String hint) => InputDecoration(
+  InputDecoration _inputDecoration(String hint, {required AppThemeColors ac}) => InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: AppColors.grey400),
         filled: true,
-        fillColor: AppColors.surfaceDark,
+        fillColor: ac.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.glassBorder),
@@ -262,45 +268,50 @@ class _PrioritySelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: AnnouncementPriority.values.map((p) {
         final isSelected = p == selected;
-        return GestureDetector(
-          onTap: () => onChanged(p),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? p.color.withValues(alpha: 0.2)
-                  : AppColors.surfaceDark,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isSelected ? p.color : AppColors.glassBorder,
-                width: isSelected ? 1.5 : 1,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(p.icon,
-                    color: isSelected ? p.color : AppColors.grey400,
-                    size: 16),
-                const SizedBox(width: 6),
-                Text(
-                  p.label,
-                  style: TextStyle(
-                    color: isSelected ? p.color : AppColors.grey400,
-                    fontWeight: isSelected
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                    fontSize: 13,
-                  ),
+        return Material(
+          color: isSelected
+              ? p.color.withValues(alpha: 0.2)
+              : ac.surface,
+          borderRadius: BorderRadius.circular(20),
+          child: InkWell(
+            onTap: () => onChanged(p),
+            borderRadius: BorderRadius.circular(20),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected ? p.color : AppColors.glassBorder,
+                  width: isSelected ? 1.5 : 1,
                 ),
-              ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(p.icon,
+                      color: isSelected ? p.color : AppColors.grey400,
+                      size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    p.label,
+                    style: TextStyle(
+                      color: isSelected ? p.color : AppColors.grey400,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -319,8 +330,8 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
-        color: AppColors.white,
+      style: TextStyle(
+        color: context.appColors.textPrimary,
         fontWeight: FontWeight.w600,
         fontSize: 14,
       ),

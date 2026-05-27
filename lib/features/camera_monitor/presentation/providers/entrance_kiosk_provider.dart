@@ -647,6 +647,12 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   }
 
   Future<void> _triggerEntrance(String employeeId) async {
+    // ── Immediately clear per-person state before anything else ──
+    // This prevents any lingering frame from the current person being processed
+    // as the next person if the stream is not fully stopped.
+    _hasBlinked = false;
+    _resetEvidence();
+
     // Immediately transition to welcome phase to stop all further processing
     final employeeName = _employeeNames[employeeId] ?? 'Empleado';
     final workstationName =
@@ -752,17 +758,30 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
         statusMessage: 'Preparando escáner...',
       );
 
-      // Restart camera stream
+      // ── CRITICAL: Reset per-person blink flag BEFORE restarting stream ──
+      // Without this, the NEXT person skips the anti-spoof blink challenge
+      // because _hasBlinked=true was left over from the previous match.
+      // This was the root cause of dania being recognized as stalejo.
+      _hasBlinked = false;
+      _resetEvidence();
+
+      // Restart camera stream only after resetting state
       _startImageStream();
 
-      // After 2 seconds of cooldown, return to scanning
-      _phaseTimer = Timer(const Duration(seconds: 2), () {
+      // After 3 seconds of cooldown (extra second so the person walks away),
+      // return to scanning. _hasBlinked is already false — next person must blink.
+      _phaseTimer = Timer(const Duration(seconds: 3), () {
         if (_disposed) return;
+        // Double-check blink flag is clear before allowing scanning
+        _hasBlinked = false;
+        _resetEvidence();
         state = const EntranceKioskState(
           isReady: true,
           phase: KioskPhase.scanning,
           statusMessage: 'Recepción Activa',
         );
+        // Reload registry in background so next scan uses the latest biometrics
+        _loadRegistry();
       });
     });
   }

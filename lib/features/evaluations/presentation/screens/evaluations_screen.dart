@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/evaluation.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/features/evaluations/presentation/providers/evaluations_provider.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 
 class EvaluationsScreen extends ConsumerWidget {
@@ -31,6 +33,7 @@ class _AdminEvaluationsView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final ac = context.appColors;
     final evalsAsync = ref.watch(companyEvaluationsProvider);
     final employeesAsync = ref.watch(adminEmployeesProvider);
 
@@ -39,19 +42,19 @@ class _AdminEvaluationsView extends ConsumerWidget {
     };
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: ac.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text(
-          'Evaluaciones',
+        backgroundColor: ac.surface,
+        title: Text(
+          context.l10n.evaluations,
           style: TextStyle(
-            color: AppColors.textPrimaryDark,
+            color: ac.textPrimary,
             fontWeight: FontWeight.w700,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textSecondaryDark),
+            icon: Icon(Icons.refresh_rounded, color: ac.textSecondary),
             onPressed: () => ref.read(companyEvaluationsProvider.notifier).refresh(),
           ),
         ],
@@ -60,7 +63,7 @@ class _AdminEvaluationsView extends ConsumerWidget {
         onPressed: () => context.push(AppRoutes.evaluationNew),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Nueva evaluación'),
+        label: Text(context.l10n.newEvaluation),
       ),
       body: evalsAsync.when(
         loading: () => const Center(
@@ -107,24 +110,24 @@ class _AdminEvaluationsView extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text(
+        backgroundColor: ctx.appColors.surface,
+        title: Text(
           '¿Eliminar evaluación?',
-          style: TextStyle(color: AppColors.textPrimaryDark),
+          style: TextStyle(color: ctx.appColors.textPrimary),
         ),
-        content: const Text(
+        content: Text(
           'Esta acción no se puede deshacer.',
-          style: TextStyle(color: AppColors.textSecondaryDark),
+          style: TextStyle(color: ctx.appColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
+            child: Text(ctx.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Eliminar'),
+            child: Text(ctx.l10n.delete),
           ),
         ],
       ),
@@ -142,16 +145,17 @@ class _EmployeeEvaluationsView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final ac = context.appColors;
     final evalsAsync = ref.watch(myEvaluationsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: ac.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
-        title: const Text(
+        backgroundColor: ac.surface,
+        title: Text(
           'Mis Evaluaciones',
           style: TextStyle(
-            color: AppColors.textPrimaryDark,
+            color: ac.textPrimary,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -201,6 +205,9 @@ class _EvalCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback? onDelete;
 
+  // ✅ DateFormat como static final — se crea UNA sola vez, no en cada build().
+  static final _dateFmt = DateFormat('dd MMM yyyy', 'es');
+
   const _EvalCard({
     required this.eval,
     required this.employeeName,
@@ -211,117 +218,138 @@ class _EvalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateFmt = DateFormat('dd MMM yyyy', 'es');
     final color = eval.gradeColor;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
+    // ✅ Material + InkWell en lugar de GestureDetector:
+    //    - Ripple visual al tocar (feedback táctil)
+    //    - Semantics de botón propagados automáticamente por InkWell
+    final ac = context.appColors;
+    return Semantics(
+      label: isAdmin && employeeName != null
+          ? 'Evaluación de $employeeName, período ${eval.period}, calificación ${eval.gradeLabel}'
+          : 'Evaluación del período ${eval.period}, calificación ${eval.gradeLabel}',
+      button: true,
+      child: Material(
+        color: ac.surface,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.glassBorder),
-        ),
-        child: Row(
-          children: [
-            // Grade badge
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: color.withValues(alpha: 0.3)),
-              ),
-              child: Center(
-                child: Text(
-                  eval.grade,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
+          splashColor: AppColors.primary.withValues(alpha: 0.08),
+          highlightColor: AppColors.primary.withValues(alpha: 0.04),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.glassBorder),
+            ),
+            child: Row(
+              children: [
+                // Grade badge
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: color.withValues(alpha: 0.3)),
+                  ),
+                  child: Center(
+                    child: Text(
+                      eval.grade,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (isAdmin && employeeName != null)
-                    Text(
-                      employeeName!,
-                      style: const TextStyle(
-                        color: AppColors.textPrimaryDark,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  Text(
-                    eval.period,
-                    style: TextStyle(
-                      color: isAdmin
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textPrimaryDark,
-                      fontSize: isAdmin ? 12 : 14,
-                      fontWeight:
-                          isAdmin ? FontWeight.w400 : FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
+                const SizedBox(width: 12),
+                // Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (isAdmin && employeeName != null)
+                        Text(
+                          employeeName!,
+                          style: TextStyle(
+                            color: ac.textPrimary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       Text(
-                        eval.gradeLabel,
+                        eval.period,
                         style: TextStyle(
-                          color: color,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          color: isAdmin
+                              ? ac.textSecondary
+                              : ac.textPrimary,
+                          fontSize: isAdmin ? 12 : 14,
+                          fontWeight:
+                              isAdmin ? FontWeight.w400 : FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${eval.percentage.toStringAsFixed(0)}%',
-                        style: const TextStyle(
-                          color: AppColors.textSecondaryDark,
-                          fontSize: 11,
-                        ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text(
+                            eval.gradeLabel,
+                            style: TextStyle(
+                              color: color,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${eval.percentage.toStringAsFixed(0)}%',
+                            style: TextStyle(
+                              color: ac.textSecondary,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-            // Right side
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  dateFmt.format(eval.createdAt),
-                  style: const TextStyle(
-                    color: AppColors.textSecondaryDark,
-                    fontSize: 11,
-                  ),
                 ),
-                if (isAdmin && onDelete != null)
-                  GestureDetector(
-                    onTap: onDelete,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Icon(
-                        Icons.delete_outline_rounded,
-                        size: 18,
-                        color: AppColors.error.withValues(alpha: 0.7),
+                // Right side
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      _dateFmt.format(eval.createdAt),
+                      style: TextStyle(
+                        color: ac.textSecondary,
+                        fontSize: 11,
                       ),
                     ),
-                  ),
+                    if (isAdmin && onDelete != null)
+                      // ✅ IconButton en lugar de GestureDetector:
+                      //    zona táctil de 48x48 automática + Semantics + tooltip
+                      Semantics(
+                        label: 'Eliminar evaluación',
+                        button: true,
+                        child: IconButton(
+                          onPressed: onDelete,
+                          padding: const EdgeInsets.only(top: 4),
+                          constraints: const BoxConstraints(),
+                          icon: Icon(
+                            Icons.delete_outline_rounded,
+                            size: 18,
+                            color: AppColors.error.withValues(alpha: 0.7),
+                          ),
+                          tooltip: 'Eliminar evaluación',
+                        ),
+                      ),
+                  ],
+                ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -361,8 +389,8 @@ class _EmptyEvals extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               message,
-              style: const TextStyle(
-                color: AppColors.textSecondaryDark,
+              style: TextStyle(
+                color: context.appColors.textSecondary,
                 fontSize: 14,
               ),
               textAlign: TextAlign.center,

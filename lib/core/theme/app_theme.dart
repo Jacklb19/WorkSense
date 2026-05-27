@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'app_colors.dart';
 import 'app_text_styles.dart';
+import 'app_theme_colors.dart';
 
 abstract final class AppTheme {
   // ─────────────────────────────────────────────────────────
@@ -32,6 +33,7 @@ abstract final class AppTheme {
     ),
     splashColor: AppColors.primary.withValues(alpha: 0.08),
     highlightColor: AppColors.primary.withValues(alpha: 0.05),
+    extensions: const [AppThemeColors.light],
   );
 
   // ─────────────────────────────────────────────────────────
@@ -62,6 +64,7 @@ abstract final class AppTheme {
     ),
     splashColor: AppColors.primary.withValues(alpha: 0.08),
     highlightColor: AppColors.primary.withValues(alpha: 0.04),
+    extensions: const [AppThemeColors.dark],
   );
 
   static const ColorScheme _lightColorScheme = ColorScheme(
@@ -335,7 +338,7 @@ abstract final class AppTheme {
       borderRadius: BorderRadius.all(Radius.circular(14)),
     ),
     elevation: 0,
-    backgroundColor: Color(0xFF1E293B),
+    backgroundColor: AppColors.snackBarBg,
     contentTextStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
   );
 

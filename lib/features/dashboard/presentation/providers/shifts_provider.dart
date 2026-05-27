@@ -1,8 +1,12 @@
+import 'package:drift/drift.dart' show Value;
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:worksense_app/data/datasources/local/database.dart' as local_db;
 import 'package:worksense_app/domain/entities/shift.dart';
 import 'package:worksense_app/domain/repositories/shift_repository.dart';
-import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart' show appDatabaseProvider;
+import 'package:worksense_app/features/camera_monitor/presentation/providers/kiosk_provider.dart'
+    show appDatabaseProvider;
 import 'package:worksense_app/data/repositories/shift_repository_impl.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/shared/providers/sync_state_provider.dart';
@@ -34,16 +38,64 @@ final deleteShiftUseCaseProvider = Provider<DeleteShiftUseCase>((ref) {
 final shiftsProvider = FutureProvider<List<Shift>>((ref) async {
   final userState = ref.watch(currentUserProvider);
   final repo = ref.watch(shiftRepositoryProvider);
-  
+
   final companyId = userState.valueOrNull?.companyId;
-  if (companyId == null || companyId.isEmpty) {
-    return [];
-  }
-  
+  if (companyId == null || companyId.isEmpty) return [];
+
   // Depend on sync trigger for refresh
   ref.watch(syncNotifierProvider);
-  
-  return repo.getShifts(companyId);
+
+  // 1. Try local DB first
+  var shifts = await repo.getShifts(companyId);
+
+  // 2. If local DB is empty, pull from Supabase and seed the local DB
+  if (shifts.isEmpty) {
+    final remote = ref.read(supabaseDataSourceProvider);
+    final db = ref.read(appDatabaseProvider);
+
+    try {
+      final remoteShifts = await remote.fetchAllShifts(companyId);
+      for (final s in remoteShifts) {
+        final startParts = (s['start_time'] as String).split(':');
+        final endParts = (s['end_time'] as String).split(':');
+        final breakStartParts = (s['break_time_start'] as String?)?.split(':');
+        final breakEndParts = (s['break_time_end'] as String?)?.split(':');
+
+        await db.insertShiftRecord(
+          local_db.ShiftRecordsCompanion(
+            id: Value(s['id'] as String),
+            companyId: Value(s['company_id'] as String),
+            name: Value(s['name'] as String? ?? 'Turno'),
+            startHour: Value(int.parse(startParts[0])),
+            startMinute: Value(int.parse(startParts[1])),
+            endHour: Value(int.parse(endParts[0])),
+            endMinute: Value(int.parse(endParts[1])),
+            breakStartHour:
+                Value(breakStartParts != null ? int.parse(breakStartParts[0]) : null),
+            breakStartMinute:
+                Value(breakStartParts != null ? int.parse(breakStartParts[1]) : null),
+            breakEndHour:
+                Value(breakEndParts != null ? int.parse(breakEndParts[0]) : null),
+            breakEndMinute:
+                Value(breakEndParts != null ? int.parse(breakEndParts[1]) : null),
+            createdAt: Value(
+              s['created_at'] != null
+                  ? DateTime.parse(s['created_at'] as String)
+                  : DateTime.now(),
+            ),
+          ),
+        );
+      }
+
+      // Re-read from local DB after seeding
+      shifts = await repo.getShifts(companyId);
+      debugPrint('[shiftsProvider] Seeded ${shifts.length} shifts from Supabase.');
+    } catch (e) {
+      debugPrint('[shiftsProvider] Supabase fallback failed: $e');
+    }
+  }
+
+  return shifts;
 });
 
 // ── Shift Form State ────────────────────────────────────────────────────────

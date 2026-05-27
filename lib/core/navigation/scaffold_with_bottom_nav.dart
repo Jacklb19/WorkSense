@@ -17,6 +17,69 @@ class ScaffoldWithBottomNav extends ConsumerWidget {
     required this.navigationShell,
   });
 
+  // ── Branch ↔ UI index mapping ──────────────────────────────────────────────
+  // Shell branches:
+  //   0: Dashboard        (all roles)
+  //   1: Employees        (admin)
+  //   2: Workstations     (admin)
+  //   3: History          (employee)
+  //   4: Settings         (all roles)
+  //   5: Shifts           (admin)
+  //   6: Tasks            (all roles)
+  //   7: Leaves           (all roles)
+  //
+  // Admin UI:    0→0, 1→1, 2→2, 3→6(Tasks), 4→7(Leaves), 5→5(Shifts), 6→4(Settings)
+  // Employee UI: 0→0, 1→6(Tasks), 2→7(Leaves), 3→3(History), 4→4(Settings)
+
+  // ✅ Métodos estáticos fuera de build() — no se recrean en cada rebuild.
+  static int _uiIndex(bool admin, int branchIndex) {
+    if (admin) {
+      switch (branchIndex) {
+        case 0: return 0;
+        case 1: return 1;
+        case 2: return 2;
+        case 6: return 3; // Tasks
+        case 7: return 4; // Leaves
+        case 5: return 5; // Shifts
+        case 4: return 6; // Settings
+        default: return 0;
+      }
+    } else {
+      switch (branchIndex) {
+        case 0: return 0;
+        case 6: return 1; // Tasks
+        case 7: return 2; // Leaves
+        case 3: return 3; // History
+        case 4: return 4; // Settings
+        default: return 0;
+      }
+    }
+  }
+
+  static int _branchIndex(bool admin, int uiIndex) {
+    if (admin) {
+      switch (uiIndex) {
+        case 0: return 0;
+        case 1: return 1;
+        case 2: return 2;
+        case 3: return 6; // Tasks
+        case 4: return 7; // Leaves
+        case 5: return 5; // Shifts
+        case 6: return 4; // Settings
+        default: return 0;
+      }
+    } else {
+      switch (uiIndex) {
+        case 0: return 0;
+        case 1: return 6; // Tasks
+        case 2: return 7; // Leaves
+        case 3: return 3; // History
+        case 4: return 4; // Settings
+        default: return 0;
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userState = ref.watch(currentUserProvider);
@@ -32,7 +95,6 @@ class ScaffoldWithBottomNav extends ConsumerWidget {
       final pendingTasks = ref.watch(companyPendingTasksCountProvider);
       final pendingLeaves = ref.watch(pendingLeavesCountProvider);
       final base = adminDestinations(l10n);
-      // Admin UI: 0=Dashboard, 1=Employees, 2=Workstations, 3=Tasks, 4=Permisos, 5=Shifts, 6=Settings
       destinations = [
         base[0], base[1], base[2],
         base[3].withBadge(pendingTasks),
@@ -43,7 +105,6 @@ class ScaffoldWithBottomNav extends ConsumerWidget {
       final pendingTasks = ref.watch(myPendingTasksCountProvider);
       final pendingLeaves = ref.watch(myPendingLeavesCountProvider);
       final base = employeeDestinations(l10n);
-      // Employee UI: 0=Home, 1=Tasks, 2=Leaves, 3=Activity, 4=Settings
       destinations = [
         base[0],
         base[1].withBadge(pendingTasks),
@@ -52,70 +113,7 @@ class ScaffoldWithBottomNav extends ConsumerWidget {
       ];
     }
 
-    // ── Branch ↔ UI index mapping ──────────────────────────────────────────
-    // Shell branches:
-    //   0: Dashboard        (all roles)
-    //   1: Employees        (admin)
-    //   2: Workstations     (admin)
-    //   3: History          (employee)
-    //   4: Settings         (all roles)
-    //   5: Shifts           (admin)
-    //   6: Tasks            (all roles)
-    //   7: Leaves           (all roles)
-    //
-    // Admin UI:    0→0, 1→1, 2→2, 3→6(Tasks), 4→7(Leaves), 5→5(Shifts), 6→4(Settings)
-    // Employee UI: 0→0, 1→6(Tasks), 2→7(Leaves), 3→3(History), 4→4(Settings)
-
-    int getUIIndex(bool admin, int branchIndex) {
-      if (admin) {
-        switch (branchIndex) {
-          case 0: return 0;
-          case 1: return 1;
-          case 2: return 2;
-          case 6: return 3; // Tasks
-          case 7: return 4; // Leaves
-          case 5: return 5; // Shifts
-          case 4: return 6; // Settings
-          default: return 0;
-        }
-      } else {
-        switch (branchIndex) {
-          case 0: return 0;
-          case 6: return 1; // Tasks
-          case 7: return 2; // Leaves
-          case 3: return 3; // History
-          case 4: return 4; // Settings
-          default: return 0;
-        }
-      }
-    }
-
-    int getBranchIndex(bool admin, int uiIndex) {
-      if (admin) {
-        switch (uiIndex) {
-          case 0: return 0;
-          case 1: return 1;
-          case 2: return 2;
-          case 3: return 6; // Tasks
-          case 4: return 7; // Leaves
-          case 5: return 5; // Shifts
-          case 6: return 4; // Settings
-          default: return 0;
-        }
-      } else {
-        switch (uiIndex) {
-          case 0: return 0;
-          case 1: return 6; // Tasks
-          case 2: return 7; // Leaves
-          case 3: return 3; // History
-          case 4: return 4; // Settings
-          default: return 0;
-        }
-      }
-    }
-
-    final uiCurrentIndex =
-        getUIIndex(isAdmin, navigationShell.currentIndex);
+    final uiCurrentIndex = _uiIndex(isAdmin, navigationShell.currentIndex);
 
     return PopScope(
       canPop: uiCurrentIndex == 0,
@@ -131,7 +129,7 @@ class ScaffoldWithBottomNav extends ConsumerWidget {
           destinations: destinations,
           currentIndex: uiCurrentIndex,
           onDestinationSelected: (int tabIndex) {
-            final targetBranch = getBranchIndex(isAdmin, tabIndex);
+            final targetBranch = _branchIndex(isAdmin, tabIndex);
             navigationShell.goBranch(
               targetBranch,
               initialLocation: targetBranch == navigationShell.currentIndex,

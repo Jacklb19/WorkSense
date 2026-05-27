@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/features/chat/domain/entities/chat_message.dart';
 import 'package:worksense_app/features/chat/presentation/providers/chat_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
+import 'package:worksense_app/shared/widgets/styled/app_empty_state.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String otherId;
@@ -58,10 +61,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (nextLen > prevLen) _scrollToBottom(animate: true);
     });
 
+    final ac = context.appColors;
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: ac.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: ac.surface,
         elevation: 0,
         titleSpacing: 0,
         title: Row(
@@ -86,8 +90,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               children: [
                 Text(
                   widget.otherName,
-                  style: const TextStyle(
-                    color: AppColors.textPrimaryDark,
+                  style: TextStyle(
+                    color: ac.textPrimary,
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
@@ -103,9 +107,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Text(
-                      'En línea',
-                      style: TextStyle(
+                    Text(
+                      context.l10n.online,
+                      style: const TextStyle(
                         color: AppColors.success,
                         fontSize: 11,
                       ),
@@ -126,14 +130,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 child: CircularProgressIndicator(
                     color: AppColors.primary, strokeWidth: 2),
               ),
-              error: (_, __) => const Center(
+              error: (_, __) => Center(
                 child: Text(
-                  'Error cargando mensajes',
-                  style: TextStyle(color: AppColors.textSecondaryDark),
+                  context.l10n.errorLoadingMessages,
+                  style: TextStyle(color: ac.textSecondary),
                 ),
               ),
               data: (msgs) {
-                if (msgs.isEmpty) return const _EmptyChat();
+                if (msgs.isEmpty) return AppEmptyState(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  title: context.l10n.noMessages,
+                  subtitle: context.l10n.startConversation,
+                );
                 _scrollToBottom();
                 return ListView.builder(
                   controller: _scrollCtrl,
@@ -178,14 +186,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _ctrl.clear();
     FocusScope.of(context).unfocus();
 
-    await ref.read(conversationProvider(widget.otherId).notifier).send(
-          content: text,
-          companyId: cu.companyId ?? '',
-          senderId: cu.user?.id ?? '',
-          senderName: cu.user?.email ?? 'Usuario',
+    try {
+      await ref.read(conversationProvider(widget.otherId).notifier).send(
+            content: text,
+            companyId: cu.companyId ?? '',
+            senderId: cu.user?.id ?? '',
+            senderName: cu.user?.email ?? 'Usuario',
+          );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${context.l10n.errorSendingMessage}: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
-
-    if (mounted) setState(() => _sending = false);
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
   }
 
   bool _sameDay(DateTime a, DateTime b) =>
@@ -200,6 +219,7 @@ class _DateDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     final now = DateTime.now();
     final isToday = date.year == now.year &&
         date.month == now.month &&
@@ -226,8 +246,8 @@ class _DateDivider extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
               label,
-              style: const TextStyle(
-                color: AppColors.textSecondaryDark,
+              style: TextStyle(
+                color: ac.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
               ),
@@ -250,11 +270,12 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.72,
+          maxWidth: MediaQuery.sizeOf(context).width * 0.72,
         ),
         margin: EdgeInsets.only(
           top: 3,
@@ -265,7 +286,7 @@ class _MessageBubble extends StatelessWidget {
         padding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isMe ? AppColors.primary : AppColors.surfaceDark,
+          color: isMe ? AppColors.primary : ac.surface,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(18),
             topRight: const Radius.circular(18),
@@ -293,7 +314,7 @@ class _MessageBubble extends StatelessWidget {
               message.content,
               style: TextStyle(
                 color:
-                    isMe ? Colors.white : AppColors.textPrimaryDark,
+                    isMe ? Colors.white : ac.textPrimary,
                 fontSize: 14,
                 height: 1.4,
               ),
@@ -307,7 +328,7 @@ class _MessageBubble extends StatelessWidget {
                   style: TextStyle(
                     color: isMe
                         ? Colors.white.withValues(alpha: 0.6)
-                        : AppColors.textSecondaryDark,
+                        : ac.textSecondary,
                     fontSize: 10,
                   ),
                 ),
@@ -351,7 +372,8 @@ class _ChatInputBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final ac = context.appColors;
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
     return AnimatedPadding(
       duration: const Duration(milliseconds: 150),
       padding: EdgeInsets.fromLTRB(12, 10, 12, bottom > 0 ? bottom + 10 : 12),
@@ -361,66 +383,71 @@ class _ChatInputBar extends StatelessWidget {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.surfaceDark,
+                color: ac.surface,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: AppColors.glassBorder),
               ),
               child: TextField(
                 controller: controller,
-                style: const TextStyle(
-                    color: AppColors.textPrimaryDark, fontSize: 14),
+                style: TextStyle(
+                    color: ac.textPrimary, fontSize: 14),
                 maxLines: 5,
                 minLines: 1,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  hintText: 'Escribe un mensaje…',
+                decoration: InputDecoration(
+                  hintText: context.l10n.typeMessage,
                   hintStyle: TextStyle(
-                      color: AppColors.textSecondaryDark, fontSize: 14),
+                      color: ac.textSecondary, fontSize: 14),
                   border: InputBorder.none,
                   contentPadding:
-                      EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
               ),
             ),
           ),
           const SizedBox(width: 8),
-          GestureDetector(
-            onTap: sending ? null : onSend,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                gradient: sending
-                    ? null
-                    : const LinearGradient(
-                        colors: AppColors.primaryGradient,
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                color: sending ? AppColors.glassBorder : null,
-                shape: BoxShape.circle,
-                boxShadow: sending
-                    ? null
-                    : [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
+          Material(
+            color: Colors.transparent,
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: sending ? null : onSend,
+              customBorder: const CircleBorder(),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  gradient: sending
+                      ? null
+                      : const LinearGradient(
+                          colors: AppColors.primaryGradient,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                      ],
+                  color: sending ? AppColors.glassBorder : null,
+                  shape: BoxShape.circle,
+                  boxShadow: sending
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                ),
+                child: sending
+                    ? const Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              color: AppColors.primary, strokeWidth: 2),
+                        ),
+                      )
+                    : const Icon(Icons.send_rounded,
+                        color: Colors.white, size: 20),
               ),
-              child: sending
-                  ? const Center(
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                            color: AppColors.primary, strokeWidth: 2),
-                      ),
-                    )
-                  : const Icon(Icons.send_rounded,
-                      color: Colors.white, size: 20),
             ),
           ),
         ],
@@ -429,49 +456,3 @@ class _ChatInputBar extends StatelessWidget {
   }
 }
 
-// ── Empty state ────────────────────────────────────────────────────────────────
-
-class _EmptyChat extends StatelessWidget {
-  const _EmptyChat();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.chat_bubble_outline_rounded,
-              size: 36,
-              color: AppColors.primary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Sin mensajes aún',
-            style: TextStyle(
-              color: AppColors.textPrimaryDark,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Empieza la conversación 👋',
-            style: TextStyle(
-              color: AppColors.textSecondaryDark,
-              fontSize: 13,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

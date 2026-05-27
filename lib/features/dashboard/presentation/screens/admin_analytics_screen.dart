@@ -5,10 +5,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_dimensions.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_theme_colors.dart';
 import '../../../../domain/entities/activity_state.dart';
 import '../../../../shared/widgets/loading_widget.dart';
 import '../../../../shared/widgets/styled/app_empty_state.dart';
 import '../../domain/entities/employee_analytics.dart';
+import '../helpers/hours_formatters.dart';
 import '../providers/admin_analytics_provider.dart';
 
 class AdminAnalyticsScreen extends ConsumerWidget {
@@ -92,7 +94,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                       const SizedBox(height: AppDimensions.spacingXxl),
                       Text(
                         'Error: $e',
-                        style: const TextStyle(color: AppColors.textSecondary),
+                        style: TextStyle(color: context.appColors.textSecondary),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -209,7 +211,7 @@ class _DateChip extends StatelessWidget {
       onSelected: (_) => onTap(),
       selectedColor: AppColors.primary.withAlpha(38),
       labelStyle: TextStyle(
-        color: selected ? AppColors.primary : AppColors.textSecondary,
+        color: selected ? AppColors.primary : context.appColors.textSecondary,
         fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
       ),
       side: BorderSide(
@@ -279,18 +281,18 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
                         const SizedBox(height: AppDimensions.spacingXxs),
                         Text(
                           analytics.hasData
-                              ? '${analytics.totalEvents} eventos - ${_formatDuration(analytics.totalTrackedTime)}'
+                              ? '${analytics.totalEvents} eventos - ${HoursFormatters.formatDuration(analytics.totalTrackedTime)}'
                               : 'Sin datos registrados',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.appColors.textSecondary,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.chevron_right,
-                    color: AppColors.textDisabled,
+                    color: context.appColors.textDisabled,
                   ),
                 ],
               ),
@@ -300,7 +302,7 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
                 children: [
                   _MiniStat(
                     label: 'Tiempo total',
-                    value: _formatDuration(analytics.totalTrackedTime),
+                    value: HoursFormatters.formatDuration(analytics.totalTrackedTime),
                   ),
                   _MiniStat(
                     label: 'Eventos',
@@ -319,12 +321,6 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
     );
   }
 
-  String _formatDuration(Duration d) {
-    if (d.inHours > 0) {
-      return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
-    }
-    return '${d.inMinutes}m';
-  }
 }
 
 class _MiniStat extends StatelessWidget {
@@ -341,14 +337,14 @@ class _MiniStat extends StatelessWidget {
           value,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: context.appColors.textPrimary,
               ),
         ),
         const SizedBox(height: AppDimensions.spacingXxs),
         Text(
           label,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: AppColors.textSecondary,
+                color: context.appColors.textSecondary,
               ),
         ),
       ],

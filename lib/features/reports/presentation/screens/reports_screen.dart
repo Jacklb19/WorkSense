@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/data/datasources/local/database.dart';
 import 'package:worksense_app/domain/entities/alert_log.dart';
 import 'package:worksense_app/domain/entities/announcement.dart';
@@ -8,6 +9,7 @@ import 'package:worksense_app/domain/entities/leave_request.dart';
 import 'package:worksense_app/domain/entities/task_item.dart';
 import 'package:worksense_app/features/alerts/presentation/providers/alerts_provider.dart';
 import 'package:worksense_app/features/announcements/presentation/providers/announcements_provider.dart';
+import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
 import 'package:worksense_app/features/leaves/presentation/providers/leaves_provider.dart';
 import 'package:worksense_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
@@ -25,14 +27,21 @@ class ReportsScreen extends ConsumerWidget {
     final alertsAsync = ref.watch(alertLogsProvider);
     final announcementsAsync = ref.watch(companyAnnouncementsProvider);
 
+    // Build an employee name lookup map for use in report tables.
+    final employeeNames = <String, String>{
+      for (final e in ref.watch(employeesProvider).valueOrNull ?? [])
+        e.id: e.displayName,
+    };
+
+    final ac = context.appColors;
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: ac.background,
       appBar: AppBar(
-        backgroundColor: AppColors.backgroundDark,
-        title: const Text(
+        backgroundColor: ac.background,
+        title: Text(
           'Reportes',
           style: TextStyle(
-              color: AppColors.white, fontWeight: FontWeight.bold),
+              color: ac.textPrimary, fontWeight: FontWeight.bold),
         ),
       ),
       body: ListView(
@@ -51,6 +60,7 @@ class ReportsScreen extends ConsumerWidget {
                       ref,
                       tasks: tasksAsync.value!,
                       companyName: companyName,
+                      employeeNames: employeeNames,
                     ),
           ),
           const SizedBox(height: 12),
@@ -68,6 +78,7 @@ class ReportsScreen extends ConsumerWidget {
                       ref,
                       leaves: leavesAsync.value!,
                       companyName: companyName,
+                      employeeNames: employeeNames,
                     ),
           ),
           const SizedBox(height: 12),
@@ -108,7 +119,7 @@ class ReportsScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.surfaceDark,
+              color: ac.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.glassBorder),
             ),
@@ -141,11 +152,13 @@ class ReportsScreen extends ConsumerWidget {
     WidgetRef ref, {
     required List<TaskItem> tasks,
     required String companyName,
+    Map<String, String>? employeeNames,
   }) async {
     await _runWithLoading(context, () async {
       await ReportService.instance.previewTasksReport(
         tasks: tasks,
         companyName: companyName,
+        employeeNames: employeeNames,
       );
     });
   }
@@ -155,11 +168,13 @@ class ReportsScreen extends ConsumerWidget {
     WidgetRef ref, {
     required List<LeaveRequest> leaves,
     required String companyName,
+    Map<String, String>? employeeNames,
   }) async {
     await _runWithLoading(context, () async {
       await ReportService.instance.previewLeavesReport(
         leaves: leaves,
         companyName: companyName,
+        employeeNames: employeeNames,
       );
     });
   }
@@ -245,8 +260,9 @@ class _ReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     return Card(
-      color: AppColors.cardDark,
+      color: ac.card,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: const BorderSide(color: AppColors.glassBorder),
@@ -274,8 +290,8 @@ class _ReportCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           title,
-                          style: const TextStyle(
-                            color: AppColors.white,
+                          style: TextStyle(
+                            color: context.appColors.textPrimary,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),

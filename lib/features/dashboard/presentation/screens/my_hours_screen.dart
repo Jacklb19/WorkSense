@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
 import 'package:worksense_app/features/dashboard/domain/entities/daily_work_summary.dart';
 import 'package:worksense_app/features/dashboard/domain/entities/employee_analytics.dart';
@@ -95,13 +97,13 @@ class MyHoursScreen extends ConsumerWidget {
             ),
           ),
         if (analytics != null && analytics.hasData) ...[
-          const SliverPadding(
-            padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
             sliver: SliverToBoxAdapter(
               child: Text(
                 _activitySectionTitle,
                 style: TextStyle(
-                  color: Colors.white54,
+                  color: context.appColors.textSecondary,
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.2,
@@ -119,19 +121,19 @@ class MyHoursScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
             sliver: SliverList(
               delegate: SliverChildListDelegate(
-                _buildStateBreakdown(analytics),
+                _buildStateBreakdown(context, analytics),
               ),
             ),
           ),
         ],
         if (summaries.isNotEmpty) ...[
-          const SliverPadding(
-            padding: EdgeInsets.fromLTRB(20, 10, 20, 8),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
             sliver: SliverToBoxAdapter(
               child: Text(
                 _historySectionTitle,
                 style: TextStyle(
-                  color: Colors.white54,
+                  color: context.appColors.textSecondary,
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.2,
@@ -156,7 +158,8 @@ class MyHoursScreen extends ConsumerWidget {
     );
   }
 
-  List<Widget> _buildStateBreakdown(EmployeeAnalytics analytics) {
+  List<Widget> _buildStateBreakdown(BuildContext context, EmployeeAnalytics analytics) {
+    final ac = context.appColors;
     final sorted = ActivityState.values.toList()
       ..sort(
         (a, b) => (analytics.stateDurations[b] ?? Duration.zero)
@@ -173,9 +176,9 @@ class MyHoursScreen extends ConsumerWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.cardDark,
+            color: ac.card,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            border: Border.all(color: AppColors.glassBorder),
           ),
           child: Column(
             children: [
@@ -193,15 +196,15 @@ class MyHoursScreen extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       state.label,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: ac.textPrimary,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
                   Text(
                     _fmtDur(dur),
-                    style: const TextStyle(color: Colors.white70),
+                    style: TextStyle(color: ac.textSecondary),
                   ),
                 ],
               ),
@@ -211,7 +214,7 @@ class MyHoursScreen extends ConsumerWidget {
                 child: LinearProgressIndicator(
                   value: pct,
                   minHeight: 8,
-                  backgroundColor: Colors.white.withValues(alpha: 0.05),
+                  backgroundColor: AppColors.glassBorder,
                   color: state.color,
                 ),
               ),
@@ -233,6 +236,7 @@ class _EmptyHoursView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppDimensions.spacing40),
@@ -243,21 +247,21 @@ class _EmptyHoursView extends StatelessWidget {
               width: 92,
               height: 92,
               decoration: BoxDecoration(
-                color: AppColors.cardDark,
+                color: ac.card,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                border: Border.all(color: ac.divider),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.access_time_rounded,
                 size: 40,
-                color: Colors.white24,
+                color: ac.textDisabled,
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'AÚN NO HAY HORAS CONSOLIDADAS',
               style: TextStyle(
-                color: Colors.white30,
+                color: ac.textDisabled,
                 fontSize: 15,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1.4,
@@ -265,10 +269,10 @@ class _EmptyHoursView extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Tu resumen aparecerá automáticamente cuando\nse registren sesiones durante la jornada.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white38, fontSize: 13, height: 1.5),
+              style: TextStyle(color: ac.textDisabled, fontSize: 13, height: 1.5),
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 28),
@@ -277,8 +281,8 @@ class _EmptyHoursView extends StatelessWidget {
                 icon: const Icon(Icons.refresh, size: 16),
                 label: const Text('Actualizar'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white54,
-                  side: const BorderSide(color: Colors.white12),
+                  foregroundColor: ac.textSecondary,
+                  side: BorderSide(color: ac.divider),
                 ),
               ),
             ],
@@ -328,7 +332,7 @@ class _SummaryHeroCard extends StatelessWidget {
           const Text(
             'RESUMEN DE LA JORNADA',
             style: TextStyle(
-              color: Colors.white70,
+              color: AppColors.onDark70,
               fontSize: 11,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.2,
@@ -338,7 +342,7 @@ class _SummaryHeroCard extends StatelessWidget {
           Text(
             '${HoursFormatters.formatMinutes(worked)} trabajados',
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.white,
               fontSize: 28,
               fontWeight: FontWeight.w900,
             ),
@@ -348,7 +352,7 @@ class _SummaryHeroCard extends StatelessWidget {
             expected > 0
                 ? 'Meta del día: ${HoursFormatters.formatMinutes(expected)}'
                 : 'Aún no hay una meta de turno configurada',
-            style: const TextStyle(color: Colors.white70, height: 1.35),
+            style: const TextStyle(color: AppColors.onDark70, height: 1.35),
           ),
           const SizedBox(height: 18),
           ClipRRect(
@@ -356,8 +360,8 @@ class _SummaryHeroCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: ratio,
               minHeight: 10,
-              backgroundColor: Colors.white.withValues(alpha: 0.18),
-              color: Colors.white,
+              backgroundColor: AppColors.onDark24,
+              color: AppColors.white,
             ),
           ),
           const SizedBox(height: 12),
@@ -391,7 +395,7 @@ class _HeroChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
+        color: AppColors.onDark12,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -400,7 +404,7 @@ class _HeroChip extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              color: Colors.white70,
+              color: AppColors.onDark70,
               fontSize: 10,
               fontWeight: FontWeight.w700,
             ),
@@ -409,7 +413,7 @@ class _HeroChip extends StatelessWidget {
           Text(
             value,
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.white,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -428,6 +432,7 @@ class _MetricsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     final tiles = [
       _MetricData('Esperado', HoursFormatters.formatMinutes(summary.expectedMinutes), Icons.schedule),
       _MetricData('Descanso', HoursFormatters.formatMinutes(summary.breakMinutes), Icons.free_breakfast),
@@ -437,44 +442,46 @@ class _MetricsGrid extends StatelessWidget {
       _MetricData('Sesiones', '${summary.sessionCount}', Icons.login),
     ];
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 1.45,
-      ),
-      itemCount: tiles.length,
-      itemBuilder: (context, index) {
-        final item = tiles[index];
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.cardDark,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(item.icon, color: AppColors.primaryLight, size: 20),
-              Text(
-                item.value,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = 12.0;
+        final tileWidth = (constraints.maxWidth - spacing) / 2;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: tiles.map((item) => SizedBox(
+            width: tileWidth,
+            child: AspectRatio(
+              aspectRatio: 1.45,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: ac.card,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: ac.divider),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Icon(item.icon, color: AppColors.primaryLight, size: 20),
+                    Text(
+                      item.value,
+                      style: TextStyle(
+                        color: ac.textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      item.label,
+                      style: TextStyle(color: ac.textSecondary, fontSize: 12),
+                    ),
+                  ],
                 ),
               ),
-              Text(
-                item.label,
-                style: const TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-            ],
-          ),
+            ),
+          )).toList(),
         );
       },
     );
@@ -508,14 +515,14 @@ class _AnomaliesCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: AppColors.warning),
-              SizedBox(width: 10),
+              const Icon(Icons.warning_amber_rounded, color: AppColors.warning),
+              const SizedBox(width: 10),
               Text(
                 'Aspectos para revisar',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: context.appColors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
@@ -528,7 +535,7 @@ class _AnomaliesCard extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 '• ${HoursFormatters.formatAnomalyLabel(anomaly)}',
-                style: const TextStyle(color: Colors.white70, height: 1.35),
+                style: TextStyle(color: context.appColors.textSecondary, height: 1.35),
               ),
             ),
           ),
@@ -547,12 +554,13 @@ class _ActivityOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: ac.card,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: AppColors.glassBorder),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -588,6 +596,7 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     final date = summary.workDate;
     final dateLabel =
         '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
@@ -595,9 +604,9 @@ class _HistoryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: ac.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: AppColors.glassBorder),
       ),
       child: Row(
         children: [
@@ -617,8 +626,8 @@ class _HistoryCard extends StatelessWidget {
               children: [
                 Text(
                   dateLabel,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: ac.textPrimary,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -626,7 +635,7 @@ class _HistoryCard extends StatelessWidget {
                 Text(
                   '${HoursFormatters.formatMinutes(summary.workedMinutes)} trabajados'
                   ' de ${HoursFormatters.formatMinutes(summary.expectedMinutes)} esperados',
-                  style: const TextStyle(color: Colors.white60, fontSize: 12),
+                  style: TextStyle(color: ac.textSecondary, fontSize: 12),
                 ),
               ],
             ),
@@ -636,8 +645,8 @@ class _HistoryCard extends StatelessWidget {
             children: [
               Text(
                 '${(summary.completionRatio * 100).round()}%',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: ac.textPrimary,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -679,8 +688,8 @@ class _ActivityPill extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: context.appColors.textPrimary,
             fontSize: 17,
             fontWeight: FontWeight.w900,
           ),
@@ -688,8 +697,8 @@ class _ActivityPill extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white54,
+          style: TextStyle(
+            color: context.appColors.textSecondary,
             fontSize: 10,
             fontWeight: FontWeight.w800,
           ),

@@ -1,10 +1,11 @@
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:worksense_app/core/constants/app_dimensions.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
+import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/features/auth/presentation/providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -83,8 +84,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       });
     });
 
+    final ac = context.appColors;
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: ac.background,
       body: Stack(
         children: [
           // ── Animated background blobs ─────────────────────────────────
@@ -120,10 +122,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             ),
                           ),
                           const SizedBox(height: 48),
-                          const Text(
+                          Text(
                             'WORKSENSE SYSTEM v2.0',
                             style: TextStyle(
-                              color: AppColors.textDisabledDark,
+                              color: ac.textDisabled,
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 2,
@@ -196,7 +198,7 @@ class _AnimatedBackground extends StatelessWidget {
             ),
             // Blob 3 — cyan sutil
             Positioned(
-              top: MediaQuery.of(context).size.height * 0.45,
+              top: MediaQuery.sizeOf(context).height * 0.45,
               right: -40 + 20 * math.sin(t * 2 * math.pi + 2),
               child: Container(
                 width: 180,
@@ -224,6 +226,7 @@ class _AnimatedBackground extends StatelessWidget {
 class _BrandSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     return Column(
       children: [
         // Logo con glow
@@ -274,7 +277,7 @@ class _BrandSection extends StatelessWidget {
         Text(
           'BIOMETRIC CONTROL INTERFACE',
           style: TextStyle(
-            color: AppColors.textDisabledDark.withValues(alpha: 0.8),
+            color: ac.textDisabled.withValues(alpha: 0.8),
             fontSize: 10,
             fontWeight: FontWeight.w700,
             letterSpacing: 2.5,
@@ -282,123 +285,6 @@ class _BrandSection extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  Widget _buildLoginForm(ThemeData theme, LoginState loginState) {
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextFormField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              labelText: 'CORREO DE ACCESO',
-              prefixIcon: Icon(Icons.alternate_email, size: 20),
-            ),
-            validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
-          ).animate().fadeIn(
-                delay: AppDimensions.animSlow,
-                duration: AppDimensions.animEntrance,
-              ),
-          const SizedBox(height: AppDimensions.spacing20),
-          TextFormField(
-            controller: _passwordController,
-            obscureText: _obscurePassword,
-            decoration: InputDecoration(
-              labelText: 'CONTRASENNA',
-              prefixIcon: const Icon(Icons.lock_outline, size: 20),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword
-                      ? Icons.visibility
-                      : Icons.visibility_off,
-                  size: 18,
-                ),
-                onPressed: () =>
-                    setState(() => _obscurePassword = !_obscurePassword),
-              ),
-            ),
-            validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
-          ).animate().fadeIn(
-                delay: AppDimensions.animEntrance,
-                duration: AppDimensions.animEntrance,
-              ),
-          if (loginState.errorMessage != null) ...[
-            const SizedBox(height: AppDimensions.spacingXxl),
-            Text(
-              loginState.errorMessage!,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.error,
-              ),
-            ),
-          ],
-          const SizedBox(height: AppDimensions.spacing40),
-          _buildLoginButton(loginState),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoginButton(LoginState loginState) {
-    return Container(
-      width: double.infinity,
-      height: AppDimensions.buttonMinHeightLg,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: AppColors.gradientButton),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withAlpha(60),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
-        child: InkWell(
-          onTap: loginState.isLoading ? null : _handleLogin,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
-          child: Center(
-            child: AnimatedSwitcher(
-              duration: AppDimensions.animNormal,
-              child: loginState.isLoading
-                  ? const SizedBox(
-                      key: ValueKey('loading'),
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.white,
-                      ),
-                    )
-                  : const Text(
-                      key: ValueKey('text'),
-                      'INICIAR SESION',
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.2,
-                        fontSize: 16,
-                      ),
-                    ),
-            ),
-          ),
-        ),
-      ),
-    ).animate().fadeIn(
-          delay: AppDimensions.animEntrance + AppDimensions.animNormal,
-          duration: AppDimensions.animEntrance,
-        ).moveY(
-          begin: 10,
-          delay: AppDimensions.animEntrance + AppDimensions.animNormal,
-          duration: AppDimensions.animEntrance,
-          curve: Curves.easeOutCubic,
-        );
   }
 }
 
@@ -410,13 +296,14 @@ class _GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: Container(
           decoration: BoxDecoration(
-            color: AppColors.surfaceDark.withValues(alpha: 0.75),
+            color: ac.surface.withValues(alpha: 0.75),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: AppColors.glassBorderBright,
@@ -454,16 +341,17 @@ class _LoginForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     return Form(
       key: formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Título del form
-          const Text(
+          Text(
             'Iniciar sesión',
             style: TextStyle(
-              color: AppColors.textPrimaryDark,
+              color: ac.textPrimary,
               fontSize: 22,
               fontWeight: FontWeight.w800,
             ),
@@ -472,7 +360,7 @@ class _LoginForm extends StatelessWidget {
           Text(
             'Ingresa tus credenciales de acceso',
             style: TextStyle(
-              color: AppColors.textSecondaryDark.withValues(alpha: 0.8),
+              color: ac.textSecondary.withValues(alpha: 0.8),
               fontSize: 13,
             ),
           ),
@@ -482,11 +370,12 @@ class _LoginForm extends StatelessWidget {
           TextFormField(
             controller: emailController,
             keyboardType: TextInputType.emailAddress,
-            style: const TextStyle(color: AppColors.textPrimaryDark, fontSize: 15),
+            style: TextStyle(color: ac.textPrimary, fontSize: 15),
             decoration: _inputDecoration(
               hint: 'correo@empresa.com',
               label: 'Correo de acceso',
               prefixIcon: Icons.alternate_email_rounded,
+              ac: ac,
             ),
             validator: (v) =>
                 (v == null || v.isEmpty) ? 'Ingresa tu correo' : null,
@@ -498,18 +387,19 @@ class _LoginForm extends StatelessWidget {
           TextFormField(
             controller: passwordController,
             obscureText: obscurePassword,
-            style: const TextStyle(color: AppColors.textPrimaryDark, fontSize: 15),
+            style: TextStyle(color: ac.textPrimary, fontSize: 15),
             decoration: _inputDecoration(
               hint: '••••••••',
               label: 'Contraseña',
               prefixIcon: Icons.lock_outline_rounded,
+              ac: ac,
             ).copyWith(
               suffixIcon: IconButton(
                 icon: Icon(
                   obscurePassword
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
-                  color: AppColors.textSecondaryDark,
+                  color: ac.textSecondary,
                   size: 20,
                 ),
                 onPressed: onTogglePassword,
@@ -574,26 +464,25 @@ class _LoginForm extends StatelessWidget {
     required String hint,
     required String label,
     required IconData prefixIcon,
+    required AppThemeColors ac,
   }) {
     return InputDecoration(
       hintText: hint,
       labelText: label,
       prefixIcon: Padding(
         padding: const EdgeInsets.only(left: 14, right: 10),
-        child: Icon(prefixIcon, size: 20, color: AppColors.textSecondaryDark),
+        child: Icon(prefixIcon, size: 20, color: ac.textSecondary),
       ),
       prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
       filled: true,
-      fillColor: AppColors.backgroundDark.withValues(alpha: 0.5),
-      hintStyle: const TextStyle(
-          color: AppColors.textDisabledDark, fontSize: 14),
-      labelStyle: const TextStyle(
-          color: AppColors.textSecondaryDark, fontSize: 13),
+      fillColor: ac.background.withValues(alpha: 0.5),
+      hintStyle: TextStyle(color: ac.textDisabled, fontSize: 14),
+      labelStyle: TextStyle(color: ac.textSecondary, fontSize: 13),
       floatingLabelStyle: const TextStyle(
           color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.dividerDark, width: 1),
+        borderSide: BorderSide(color: ac.divider, width: 1),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -628,6 +517,7 @@ class _GradientButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ac = context.appColors;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       height: 54,
@@ -639,7 +529,7 @@ class _GradientButton extends StatelessWidget {
                 colors: AppColors.primaryGradient,
               )
             : null,
-        color: onPressed == null ? AppColors.dividerDark : null,
+        color: onPressed == null ? ac.divider : null,
         borderRadius: BorderRadius.circular(14),
         boxShadow: onPressed != null
             ? [

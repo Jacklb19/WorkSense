@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme_colors.dart';
 
 class AppGlassCard extends StatelessWidget {
   final Widget child;
@@ -32,12 +33,14 @@ class AppGlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final card = Container(
+    // ✅ La decoración exterior (sombra, borde) vive en Container.
+    // ✅ ClipRRect recorta tanto el BackdropFilter como el InkWell,
+    //    así el ripple queda confinado a las esquinas redondeadas.
+    return Container(
       width: width,
       height: height,
       margin: margin,
       decoration: BoxDecoration(
-        color: backgroundColor ?? AppColors.card,
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
           color: borderColor ?? AppColors.glassBorder,
@@ -56,22 +59,22 @@ class AppGlassCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Padding(
-            padding: padding ?? const EdgeInsets.all(20.0),
-            child: child,
+          child: Builder(
+            builder: (context) => Material(
+              // El color va aquí, dentro del ClipRRect, para que el ripple lo respete.
+              color: backgroundColor ?? context.appColors.card,
+              child: InkWell(
+                onTap: onTap, // null → InkWell sin respuesta, ningún impacto de perf
+                borderRadius: BorderRadius.circular(borderRadius),
+                child: Padding(
+                  padding: padding ?? const EdgeInsets.all(20.0),
+                  child: child,
+                ),
+              ),
+            ),
           ),
         ),
       ),
     );
-
-    if (onTap != null) {
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: card,
-      );
-    }
-
-    return card;
   }
 }
