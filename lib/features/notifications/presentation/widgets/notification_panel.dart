@@ -31,23 +31,14 @@ class NotificationBellButton extends ConsumerWidget {
             : _ContainerBtn(onTap: () => _openPanel(context)),
         if (total > 0)
           Positioned(
-            top: isIconButton ? 6 : 2,
-            right: isIconButton ? 6 : 2,
+            top: isIconButton ? 8 : 4,
+            right: isIconButton ? 8 : 4,
             child: Container(
-              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-              padding: const EdgeInsets.symmetric(horizontal: 3),
+              width: 8,
+              height: 8,
               decoration: const BoxDecoration(
                 color: AppColors.error,
                 shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                total > 99 ? '99+' : '$total',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                ),
               ),
             ),
           ),
@@ -95,14 +86,29 @@ class _ContainerBtn extends StatelessWidget {
 
 // ── Bottom sheet ──────────────────────────────────────────────────────────────
 
-class _NotificationSheet extends ConsumerWidget {
+class _NotificationSheet extends ConsumerStatefulWidget {
   const _NotificationSheet();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_NotificationSheet> createState() => _NotificationSheetState();
+}
+
+class _NotificationSheetState extends ConsumerState<_NotificationSheet> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final companyId =
+          ref.read(currentUserProvider).valueOrNull?.companyId ?? '';
+      if (companyId.isNotEmpty) {
+        ref.read(notificationsProvider.notifier).markAllRead(companyId);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final notifsAsync = ref.watch(notificationsProvider);
-    final companyId =
-        ref.watch(currentUserProvider).valueOrNull?.companyId ?? '';
 
     return DraggableScrollableSheet(
       initialChildSize: 0.72,
@@ -149,20 +155,6 @@ class _NotificationSheet extends ConsumerWidget {
                       ),
                     ),
                     const Spacer(),
-                    TextButton(
-                      onPressed: () {
-                        ref
-                            .read(notificationsProvider.notifier)
-                            .markAllRead(companyId);
-                      },
-                      child: Text(
-                        l10n.markAllRead,
-                        style: const TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ),
                   ],
                 ),
               ),

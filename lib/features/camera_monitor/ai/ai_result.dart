@@ -16,23 +16,17 @@ class AiResult {
 
 class PoseAnalysisResult {
   final bool personDetected;
-  final bool handsMoving;
-  final bool handNearFace;
   final double shoulderAngle;
   final double poseConfidence;
 
   const PoseAnalysisResult({
     required this.personDetected,
-    required this.handsMoving,
-    required this.handNearFace,
     required this.shoulderAngle,
     required this.poseConfidence,
   });
 
   static const PoseAnalysisResult empty = PoseAnalysisResult(
     personDetected: false,
-    handsMoving: false,
-    handNearFace: false,
     shoulderAngle: 0.0,
     poseConfidence: 0.0,
   );

@@ -709,23 +709,27 @@ class _StatusCard extends StatelessWidget {
                 )
               else
                 Icon(_icon, color: phaseColor, size: 24),
-              const SizedBox(width: 14),
-              Expanded(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: Text(
-                    state.statusMessage,
-                    key: ValueKey(state.statusMessage),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      height: 1.3,
+              // Solo mostrar texto si hay mensaje Y la fase no es verifying
+              if (state.phase != KioskPhase.verifying &&
+                  state.statusMessage.isNotEmpty) ...[
+                const SizedBox(width: 14),
+                Expanded(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: Text(
+                      state.statusMessage,
+                      key: ValueKey(state.statusMessage),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        height: 1.3,
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

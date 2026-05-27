@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme_colors.dart';
 import 'nav_destination.dart';
@@ -432,7 +433,7 @@ class _MenuTrigger extends StatelessWidget {
                     : AppColors.grey500,
                 letterSpacing: 0.2,
               ),
-              child: const Text('Menú', maxLines: 1),
+              child: Text(context.l10n.navMenu, maxLines: 1),
             ),
           ],
         ),
@@ -546,9 +547,9 @@ class _PopupHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          const Text(
-            'SECCIONES',
-            style: TextStyle(
+          Text(
+            context.l10n.navSections,
+            style: const TextStyle(
               color: AppColors.primaryLight,
               fontSize: 10,
               fontWeight: FontWeight.w800,

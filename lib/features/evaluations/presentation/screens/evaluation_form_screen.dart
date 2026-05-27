@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/core/theme/app_theme_colors.dart';
@@ -20,12 +21,11 @@ class EvaluationFormScreen extends ConsumerStatefulWidget {
 class _EvaluationFormScreenState
     extends ConsumerState<EvaluationFormScreen> {
   final _periodCtrl = TextEditingController();
-  final _notesCtrl = TextEditingController();
+  final _notesCtrl  = TextEditingController();
   String? _selectedEmployeeId;
   final Map<String, double> _scores = {};
   bool _saving = false;
 
-  // Use default criteria as template
   final List<EvaluationCriterion> _criteria = List.from(defaultCriteria);
 
   @override
@@ -48,6 +48,9 @@ class _EvaluationFormScreenState
   double get _maxScore =>
       _criteria.fold(0.0, (sum, c) => sum + c.maxScore);
 
+  bool get _canSave =>
+      _selectedEmployeeId != null && _periodCtrl.text.trim().isNotEmpty;
+
   @override
   Widget build(BuildContext context) {
     final employeesAsync = ref.watch(adminEmployeesProvider);
@@ -60,6 +63,13 @@ class _EvaluationFormScreenState
       backgroundColor: ac.background,
       appBar: AppBar(
         backgroundColor: ac.surface,
+        // ✅ Explicit leading button — uses context.pop() (go_router aware)
+        //    so the navigation state never desyncs.
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new, color: ac.textPrimary, size: 20),
+          tooltip: 'Volver',
+          onPressed: () => context.pop(),
+        ),
         title: Text(
           'Nueva Evaluación',
           style: TextStyle(
@@ -101,43 +111,48 @@ class _EvaluationFormScreenState
               dropdownColor: ac.surface,
               decoration: _inputDeco('Seleccionar empleado', ac),
               style: TextStyle(color: ac.textPrimary),
+              hint: Text(
+                'Seleccionar empleado',
+                style: TextStyle(color: ac.textSecondary),
+              ),
               items: employees.map((e) {
                 return DropdownMenuItem(
                   value: e.id,
-                  child: Text(e.displayName),
+                  child: Text(
+                    e.displayName,
+                    style: TextStyle(color: ac.textPrimary),
+                  ),
                 );
               }).toList(),
               onChanged: (v) => setState(() => _selectedEmployeeId = v),
             ),
             const SizedBox(height: 20),
+
             // ── Period ───────────────────────────────────────────
             const _SectionHeader(title: 'Período'),
             const SizedBox(height: 8),
             TextField(
               controller: _periodCtrl,
               style: TextStyle(color: ac.textPrimary),
-              decoration:
-                  _inputDeco('Ej: Enero 2026, Q1 2026…', ac),
+              decoration: _inputDeco('Ej: Enero 2026, Q1 2026…', ac),
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 24),
-            // ── Criteria ─────────────────────────────────────────
+
+            // ── Score preview ────────────────────────────────────
             const _SectionHeader(title: 'Criterios de evaluación'),
-            const SizedBox(height: 4),
-            // Score header
-            _ScorePreview(
-              total: _totalScore,
-              max: _maxScore,
-            ),
+            const SizedBox(height: 8),
+            _ScorePreview(total: _totalScore, max: _maxScore),
             const SizedBox(height: 12),
+
+            // ── Criteria sliders ─────────────────────────────────
             ..._criteria.map((c) => _CriterionSlider(
                   criterion: c,
                   value: _scores[c.name] ?? 0,
-                  onChanged: (v) {
-                    setState(() => _scores[c.name] = v);
-                  },
+                  onChanged: (v) => setState(() => _scores[c.name] = v),
                 )),
             const SizedBox(height: 20),
+
             // ── Notes ────────────────────────────────────────────
             const _SectionHeader(title: 'Notas (opcional)'),
             const SizedBox(height: 8),
@@ -146,6 +161,7 @@ class _EvaluationFormScreenState
               style: TextStyle(color: ac.textPrimary),
               decoration: _inputDeco('Observaciones, recomendaciones…', ac),
               maxLines: 3,
+              maxLength: 500,
             ),
           ],
         ),
@@ -153,29 +169,35 @@ class _EvaluationFormScreenState
     );
   }
 
-  bool get _canSave =>
-      _selectedEmployeeId != null && _periodCtrl.text.trim().isNotEmpty;
-
   Future<void> _save() async {
+    final period = _periodCtrl.text.trim();
+    if (_selectedEmployeeId == null || period.isEmpty) return;
+
     final currentUser = ref.read(currentUserProvider).valueOrNull;
-    final companyId = currentUser?.companyId ?? '';
-    final reviewerId = currentUser?.user?.id ?? '';
-    if (companyId.isEmpty) return;
+    final companyId  = currentUser?.companyId ?? '';
+    final reviewerId = currentUser?.user?.id   ?? '';
+
+    if (companyId.isEmpty) {
+      _showError('No se pudo determinar tu empresa. Cierra sesión e intenta de nuevo.');
+      return;
+    }
 
     setState(() => _saving = true);
 
     final eval = Evaluation(
-      id: const Uuid().v4(),
-      companyId: companyId,
+      id:         const Uuid().v4(),
+      companyId:  companyId,
       employeeId: _selectedEmployeeId!,
       reviewerId: reviewerId,
-      period: _periodCtrl.text.trim(),
-      criteria: _criteria,
-      scores: Map.from(_scores),
+      period:     period,
+      criteria:   List.from(_criteria),
+      scores:     Map.from(_scores),
       totalScore: _totalScore,
-      maxScore: _maxScore,
-      notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
-      createdAt: DateTime.now(),
+      maxScore:   _maxScore,
+      notes:      _notesCtrl.text.trim().isEmpty
+                      ? null
+                      : _notesCtrl.text.trim(),
+      createdAt:  DateTime.now(),
     );
 
     final error =
@@ -185,21 +207,35 @@ class _EvaluationFormScreenState
     setState(() => _saving = false);
 
     if (error != null) {
+      _showError('Error al guardar: $error');
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $error'),
-          backgroundColor: AppColors.error,
+        const SnackBar(
+          content: Text('✅ Evaluación guardada correctamente.'),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
         ),
       );
-    } else {
-      Navigator.pop(context);
+      // ✅ context.pop() — go_router aware; keeps navigation state in sync.
+      context.pop();
     }
   }
 
-  InputDecoration _inputDeco(String hint, AppThemeColors ac) => InputDecoration(
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  InputDecoration _inputDeco(String hint, AppThemeColors ac) =>
+      InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(
-            color: ac.textSecondary.withValues(alpha: 0.5)),
+        hintStyle:
+            TextStyle(color: ac.textSecondary.withValues(alpha: 0.5)),
         filled: true,
         fillColor: ac.surface,
         border: OutlineInputBorder(
@@ -279,13 +315,12 @@ class _CriterionSlider extends StatelessWidget {
           ),
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
-              activeTrackColor: color,
-              thumbColor: color,
+              activeTrackColor:   color,
+              thumbColor:         color,
               inactiveTrackColor: color.withValues(alpha: 0.15),
-              overlayColor: color.withValues(alpha: 0.1),
-              trackHeight: 4,
-              thumbShape:
-                  const RoundSliderThumbShape(enabledThumbRadius: 8),
+              overlayColor:       color.withValues(alpha: 0.1),
+              trackHeight:        4,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
             ),
             child: Slider(
               value: value,
@@ -365,7 +400,6 @@ class _ScorePreview extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
-
   const _SectionHeader({required this.title});
 
   @override

@@ -4,6 +4,7 @@ import 'dart:ui' show Size;
 import 'package:camera/camera.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter/services.dart' show DeviceOrientation;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
@@ -484,7 +485,7 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
           _hasBlinked = true;
           _resetEvidence();
           state = state.copyWith(
-            statusMessage: 'Verificado âœ“ Identificando...',
+            statusMessage: '',
             phase: KioskPhase.verifying,
           );
         } else {
@@ -586,15 +587,8 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
       }
 
       // Update status during verification
-      if (frameBestSim >= AiThresholds.entranceMatchThreshold) {
-        state = state.copyWith(statusMessage: 'Confirmando acceso...');
-      } else if (frameBestSim >=
-          AiThresholds.entranceMatchThreshold -
-              AiThresholds.entranceNearMatchMargin) {
-        state = state.copyWith(statusMessage: 'Verificando identidad...');
-      } else {
-        state = state.copyWith(statusMessage: 'Identificando...');
-      }
+      // During verifying phase the _PhaseChip already shows "VERIFICANDO IDENTIDAD"
+      // + spinner, so we keep statusMessage empty to avoid redundant/garbled text.
 
       // Check if evidence window exhausted
       if (_evidenceFrameCount >= AiThresholds.entranceEvidenceWindowSize) {
@@ -822,12 +816,33 @@ class EntranceKioskNotifier extends StateNotifier<EntranceKioskState> {
   }
 
   void stopCamera() {
-    _disposed = true;
     _phaseTimer?.cancel();
     final controller = _cameraController;
     _cameraController = null;
-    controller?.stopImageStream().catchError((_) {});
-    controller?.dispose().catchError((_) {});
+
+    // ── Update state BEFORE setting _disposed=true ──────────────────────────
+    // This lets Flutter rebuild and remove CameraPreview from the tree before
+    // controller.dispose() fires notifyListeners(). Without this order the
+    // ValueListenableBuilder inside CameraPreview gets one last callback on an
+    // already-disposed controller and throws:
+    //   CameraException(Disposed CameraController, buildPreview() was called …)
+    if (!_disposed) {
+      try {
+        state = const EntranceKioskState(
+          isReady: false,
+          phase: KioskPhase.initializing,
+        );
+      } catch (_) {}
+    }
+    _disposed = true;
+
+    // Defer actual disposal to after the next frame so Flutter has already
+    // rebuilt (CameraPreview is gone) before the controller notifies listeners.
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      controller?.stopImageStream().catchError((_) {});
+      controller?.dispose().catchError((_) {});
+    });
+
     _faceDetector.close();
   }
 

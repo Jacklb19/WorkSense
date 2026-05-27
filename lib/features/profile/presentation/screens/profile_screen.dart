@@ -3,10 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/core/theme/app_theme_colors.dart';
-import 'package:worksense_app/domain/entities/leave_request.dart';
 import 'package:worksense_app/domain/entities/task_item.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/shifts_provider.dart';
-import 'package:worksense_app/features/leaves/presentation/providers/leaves_provider.dart';
 import 'package:worksense_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
@@ -19,7 +17,6 @@ class ProfileScreen extends ConsumerWidget {
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
     final userId = currentUser?.user?.id;
     final myTasks = ref.watch(myTasksProvider).value ?? [];
-    final myLeaves = ref.watch(myLeavesProvider).value ?? [];
     final shifts = ref.watch(shiftsProvider).value ?? [];
     final employees = ref.watch(adminEmployeesProvider).value ?? [];
 
@@ -144,43 +141,6 @@ class ProfileScreen extends ConsumerWidget {
                             .where((t) =>
                                 t.status == TaskStatus.pending ||
                                 t.status == TaskStatus.inProgress)
-                            .length
-                            .toString(),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _StatCard(
-                        icon: Icons.event_available,
-                        color: AppColors.info,
-                        label: 'Permisos solicitados',
-                        value: myLeaves.length.toString(),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _StatCard(
-                        icon: Icons.thumb_up_outlined,
-                        color: AppColors.success,
-                        label: 'Aprobados',
-                        value: myLeaves
-                            .where((l) => l.status == LeaveStatus.approved)
-                            .length
-                            .toString(),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _StatCard(
-                        icon: Icons.hourglass_empty,
-                        color: AppColors.warning,
-                        label: 'Pendientes',
-                        value: myLeaves
-                            .where((l) => l.status == LeaveStatus.pending)
                             .length
                             .toString(),
                       ),

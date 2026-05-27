@@ -87,6 +87,9 @@ class AppLocalizations {
   // ── ADMIN DASHBOARD ────────────────────────────────────────────────────────
   String get controlPanel     => _t('Comando Central',        'Command Center');
   String get startKiosk       => _t('Iniciar Kiosco',         'Start Kiosk');
+  String get kiosk            => _t('Kiosco',                 'Kiosk');
+  String get stations         => _t('Estaciones',             'Stations');
+  String get alerts           => _t('Alertas',                'Alerts');
   String get noWorkstations   => _t('Sin puestos registrados','No workstations registered');
   String get errorLoadingWorkstation =>
       _t('Error al cargar la información del puesto.',
@@ -395,6 +398,10 @@ class AppLocalizations {
       'No administrator found.\nContact support.');
   String get errorLoadingConversations => _t('Error cargando conversaciones',
                                              'Error loading conversations');
+
+  // ── NAV BAR ────────────────────────────────────────────────────────────────
+  String get navMenu          => _t('Menú',                   'Menu');
+  String get navSections      => _t('SECCIONES',              'SECTIONS');
 
   // ── ROUTER / MISC ──────────────────────────────────────────────────────────
   String get goToDashboard    => _t('Ir al dashboard',        'Go to dashboard');

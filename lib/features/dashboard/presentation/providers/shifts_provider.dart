@@ -36,10 +36,13 @@ final deleteShiftUseCaseProvider = Provider<DeleteShiftUseCase>((ref) {
 });
 
 final shiftsProvider = FutureProvider<List<Shift>>((ref) async {
-  final userState = ref.watch(currentUserProvider);
+  // ✅ Usa .future para ESPERAR a que el stream emita su primer valor.
+  //    Con .valueOrNull, si el stream aún no emitió, companyId sería null
+  //    y devolvería [] permanentemente hasta que algo invalide el provider.
+  final user = await ref.watch(currentUserProvider.future);
   final repo = ref.watch(shiftRepositoryProvider);
 
-  final companyId = userState.valueOrNull?.companyId;
+  final companyId = user.companyId;
   if (companyId == null || companyId.isEmpty) return [];
 
   // Depend on sync trigger for refresh

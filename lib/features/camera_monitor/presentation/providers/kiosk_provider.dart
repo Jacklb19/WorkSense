@@ -4,8 +4,9 @@ import 'dart:io' show Platform;
 import 'dart:ui' show Size;
 
 import 'package:camera/camera.dart';
-import 'package:flutter/services.dart' show DeviceOrientation;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart' show SchedulerBinding;
+import 'package:flutter/services.dart' show DeviceOrientation;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
@@ -240,7 +241,6 @@ class KioskNotifier extends StateNotifier<KioskState> {
   bool _isAnalyzing = false;
   bool _disposed = false;
   DateTime _lastAnalysisTime = DateTime.fromMillisecondsSinceEpoch(0);
-  DateTime _lastMovementTime = DateTime.now();
   DateTime _lastSaveTime = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _lastReidTime = DateTime.fromMillisecondsSinceEpoch(0);
   int _consecutiveAbsentFrames = 0;
@@ -467,7 +467,6 @@ class KioskNotifier extends StateNotifier<KioskState> {
     _stableEntryFrames = 0;
     _requiresFreshIdentityCheck = true;
     _absenceStart = null;
-    _lastMovementTime = DateTime.now();
     _lastReidTime = DateTime.fromMillisecondsSinceEpoch(0);
     _lastSaveTime = DateTime.fromMillisecondsSinceEpoch(0);
     _activityWindowBuffer.reset();
@@ -662,19 +661,13 @@ class KioskNotifier extends StateNotifier<KioskState> {
           }
         }
         
-        // Run activity classification (face angles, pose, hands movement)
+        // Run activity classification (face angles + pose corporal)
         final faceResult = _faceAnalyzer.analyzeSingle(largestFace);
         final poseResult = _poseAnalyzer.analyzeSingle(closestPose, imgSize.width);
-        
-        if (poseResult.handsMoving) _lastMovementTime = now;
-        final isInactive = now.difference(_lastMovementTime).inSeconds >=
-            AiThresholds.inactivityThresholdSeconds;
-        
-        // await migrator.addColumn(activityEntries, activityEntries.companyId);
+
         final aiResult = _classifier.classify(
           pose: poseResult,
           face: faceResult,
-          isInactive: isInactive,
         );
 
         final smoothedState = _activityWindowBuffer.addAndGetMajority(aiResult.state, now);
@@ -817,14 +810,9 @@ class KioskNotifier extends StateNotifier<KioskState> {
     final faceResult = _faceAnalyzer.analyzeSingle(employeeFace);
     final poseResult = _poseAnalyzer.analyzeSingle(employeePose, imgSize.width);
 
-    if (poseResult.handsMoving) _lastMovementTime = now;
-    final isInactive = now.difference(_lastMovementTime).inSeconds >=
-        AiThresholds.inactivityThresholdSeconds;
-
     final aiResult = _classifier.classify(
       pose: poseResult,
       face: faceResult,
-      isInactive: isInactive,
     );
 
     final smoothedState = _activityWindowBuffer.addAndGetMajority(aiResult.state, now);
@@ -1084,15 +1072,32 @@ class KioskNotifier extends StateNotifier<KioskState> {
     _isAnalyzing = false;
     final controller = _cameraController;
     _cameraController = null;
-    try {
-      if (controller != null && controller.value.isInitialized) {
+
+    // ── Update state FIRST so Flutter removes CameraPreview from the tree ──
+    // CameraController.dispose() calls notifyListeners() internally, which
+    // triggers the ValueListenableBuilder inside CameraPreview to rebuild and
+    // call buildPreview() on a now-disposed controller → CameraException.
+    // Setting cameraInitialized=false first marks the widget dirty; the actual
+    // controller disposal is deferred to a post-frame callback so Flutter has
+    // already rebuilt (and unmounted CameraPreview) before dispose() fires.
+    if (!_disposed) {
+      try { state = state.copyWith(cameraInitialized: false); } catch (_) {}
+    }
+
+    if (controller == null) return;
+
+    // Defer disposal to after the next rendered frame.
+    final completer = Completer<void>();
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
+      try {
         if (controller.value.isStreamingImages) {
-          await controller.stopImageStream().catchError((_) {});
+          await controller.stopImageStream();
         }
-        await controller.dispose().catchError((_) {});
-      }
-    } catch (_) {}
-    if (!_disposed) state = state.copyWith(cameraInitialized: false);
+        await controller.dispose();
+      } catch (_) {}
+      completer.complete();
+    });
+    await completer.future;
   }
 
   @override

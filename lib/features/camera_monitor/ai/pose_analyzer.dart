@@ -4,105 +4,54 @@ import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'package:worksense_app/core/constants/ai_thresholds.dart';
 import 'package:worksense_app/features/camera_monitor/ai/ai_result.dart';
 
+/// Analiza la pose corporal detectada por MLKit.
+///
+/// Responsabilidad: determinar si hay una persona presente y calcular
+/// el ángulo de hombros (postura del torso).
+/// La clasificación de actividad se delega completamente a [ActivityClassifier]
+/// usando señales del rostro — los estados ya no dependen de movimiento de manos.
 class PoseAnalyzer {
-  // Tracks previous wrist positions (normalized) to detect movement
-  double? _prevLeftWristX;
-  double? _prevLeftWristY;
-  double? _prevRightWristX;
-  double? _prevRightWristY;
-
   PoseAnalysisResult analyzeSingle(Pose? pose, double imageWidth) {
-    if (pose == null) {
-      _clearPreviousPositions();
-      return PoseAnalysisResult.empty;
-    }
+    if (pose == null) return PoseAnalysisResult.empty;
     return _analyzeOnePose(pose, imageWidth);
   }
 
   PoseAnalysisResult analyze(List<Pose> poses, double imageWidth) {
-    if (poses.isEmpty) {
-      _clearPreviousPositions();
-      return PoseAnalysisResult.empty;
-    }
-
-    final pose = poses.first;
-    return _analyzeOnePose(pose, imageWidth);
+    if (poses.isEmpty) return PoseAnalysisResult.empty;
+    return _analyzeOnePose(poses.first, imageWidth);
   }
 
   PoseAnalysisResult _analyzeOnePose(Pose pose, double imageWidth) {
     final landmarks = pose.landmarks;
 
-    // Check pose confidence via guarded reliable landmark accesses
+    // Los tres landmarks mínimos requeridos para confirmar presencia corporal
     final nose = _getLandmarkIfReliable(landmarks, PoseLandmarkType.nose);
-    final leftShoulder = _getLandmarkIfReliable(landmarks, PoseLandmarkType.leftShoulder);
-    final rightShoulder = _getLandmarkIfReliable(landmarks, PoseLandmarkType.rightShoulder);
-    final leftWrist = _getLandmarkIfReliable(landmarks, PoseLandmarkType.leftWrist);
-    final rightWrist = _getLandmarkIfReliable(landmarks, PoseLandmarkType.rightWrist);
+    final leftShoulder =
+        _getLandmarkIfReliable(landmarks, PoseLandmarkType.leftShoulder);
+    final rightShoulder =
+        _getLandmarkIfReliable(landmarks, PoseLandmarkType.rightShoulder);
 
     if (nose == null || leftShoulder == null || rightShoulder == null) {
-      _clearPreviousPositions();
       return PoseAnalysisResult.empty;
     }
 
-    // Calculate average confidence from key landmarks
-    final keyLandmarks = [
-      nose,
-      leftShoulder,
-      rightShoulder,
-      if (leftWrist != null) leftWrist,
-      if (rightWrist != null) rightWrist,
-    ];
-
+    // Confianza promedio de los landmarks clave
+    final keyLandmarks = [nose, leftShoulder, rightShoulder];
     final avgConfidence = keyLandmarks
             .map((l) => l.likelihood)
             .reduce((a, b) => a + b) /
         keyLandmarks.length;
 
     if (avgConfidence < AiThresholds.minPoseConfidence) {
-      _clearPreviousPositions();
       return PoseAnalysisResult.empty;
     }
 
-    // Calculate shoulder angle (tilt)
-    final shoulderAngle = _calculateShoulderAngle(leftShoulder, rightShoulder);
-
-    // Normalize landmark positions by image dimensions (use raw x/y as proxy)
-    final noseX = nose.x;
-    final noseY = nose.y;
-
-    // Check wrist movement
-    bool handsMoving = false;
-    if (leftWrist != null && rightWrist != null) {
-      handsMoving = _detectWristMovement(leftWrist, rightWrist, imageWidth);
-      // Update stored positions
-      _prevLeftWristX = leftWrist.x;
-      _prevLeftWristY = leftWrist.y;
-      _prevRightWristX = rightWrist.x;
-      _prevRightWristY = rightWrist.y;
-    } else {
-      _prevLeftWristX = null;
-      _prevLeftWristY = null;
-      _prevRightWristX = null;
-      _prevRightWristY = null;
-    }
-
-    // Check hand near face
-    bool handNearFace = false;
-    if (leftWrist != null || rightWrist != null) {
-      handNearFace = _isHandNearFace(
-        noseX: noseX,
-        noseY: noseY,
-        leftWrist: leftWrist,
-        rightWrist: rightWrist,
-        leftShoulder: leftShoulder,
-        rightShoulder: rightShoulder,
-      );
-    }
+    // Ángulo de inclinación del torso (hombros)
+    final shoulderAngle =
+        _calculateShoulderAngle(leftShoulder, rightShoulder);
 
     return PoseAnalysisResult(
       personDetected: true,
-      handsMoving: handsMoving,
-      handNearFace: handNearFace,
       shoulderAngle: shoulderAngle,
       poseConfidence: avgConfidence,
     );
@@ -115,75 +64,14 @@ class PoseAnalyzer {
     return math.atan2(dy, dx) * (180 / math.pi);
   }
 
-  bool _detectWristMovement(
-      PoseLandmark leftWrist, PoseLandmark rightWrist, double imageWidth) {
-    if (_prevLeftWristX == null ||
-        _prevLeftWristY == null ||
-        _prevRightWristX == null ||
-        _prevRightWristY == null) {
-      return false;
-    }
-
-    // Use a reference scale — distance between previous and current wrist
-    // We use a simple pixel-delta threshold divided by a rough body scale
-    final leftDx = (leftWrist.x - _prevLeftWristX!).abs();
-    final leftDy = (leftWrist.y - _prevLeftWristY!).abs();
-    final rightDx = (rightWrist.x - _prevRightWristX!).abs();
-    final rightDy = (rightWrist.y - _prevRightWristY!).abs();
-
-    final leftMovement = math.sqrt(leftDx * leftDx + leftDy * leftDy);
-    final rightMovement = math.sqrt(rightDx * rightDx + rightDy * rightDy);
-
-    final normalizedLeft = leftMovement / imageWidth;
-    final normalizedRight = rightMovement / imageWidth;
-
-    return normalizedLeft > AiThresholds.minWristMovement ||
-        normalizedRight > AiThresholds.minWristMovement;
-  }
-
-  bool _isHandNearFace({
-    required double noseX,
-    required double noseY,
-    required PoseLandmark? leftWrist,
-    required PoseLandmark? rightWrist,
-    required PoseLandmark leftShoulder,
-    required PoseLandmark rightShoulder,
-  }) {
-    // Use shoulder width as a normalizing reference
-    final shoulderWidth =
-        (rightShoulder.x - leftShoulder.x).abs().clamp(1.0, double.infinity);
-
-    bool checkWrist(PoseLandmark? wrist) {
-      if (wrist == null) return false;
-      final dx = (wrist.x - noseX) / shoulderWidth;
-      final dy = (wrist.y - noseY) / shoulderWidth;
-      final dist = math.sqrt(dx * dx + dy * dy);
-      return dist < AiThresholds.maxHandToFaceDistance * 2;
-    }
-
-    return checkWrist(leftWrist) || checkWrist(rightWrist);
-  }
-
-  /// Devuelve el landmark solo si existe y su fiabilidad (likelihood) es >= 0.6.
-  /// Esto previene detecciones erróneas causadas por mala iluminación o glitch del ML.
+  /// Devuelve el landmark solo si existe y su likelihood >= 0.6.
   PoseLandmark? _getLandmarkIfReliable(
       Map<PoseLandmarkType, PoseLandmark> landmarks, PoseLandmarkType type) {
     final landmark = landmarks[type];
-    if (landmark == null || landmark.likelihood < 0.6) {
-      return null;
-    }
+    if (landmark == null || landmark.likelihood < 0.6) return null;
     return landmark;
   }
 
-  void _clearPreviousPositions() {
-    _prevLeftWristX = null;
-    _prevLeftWristY = null;
-    _prevRightWristX = null;
-    _prevRightWristY = null;
-  }
-
-  /// Reset stored wrist positions (call when analysis is paused)
-  void reset() {
-    _clearPreviousPositions();
-  }
+  /// No-op: ya no hay estado previo que limpiar.
+  void reset() {}
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
@@ -12,7 +11,6 @@ import 'package:worksense_app/features/dashboard/presentation/providers/admin_an
 import 'package:worksense_app/features/notifications/presentation/widgets/notification_panel.dart';
 import 'package:worksense_app/features/dashboard/presentation/widgets/employee_dashboard_card.dart';
 import 'package:worksense_app/features/employees/presentation/providers/employees_provider.dart';
-import 'package:worksense_app/features/leaves/presentation/providers/leaves_provider.dart';
 import 'package:worksense_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:worksense_app/features/workstations/presentation/providers/workstations_provider.dart';
 import 'package:worksense_app/shared/providers/current_user_provider.dart';
@@ -238,14 +236,14 @@ class _DashboardHeader extends StatelessWidget {
           // Chat button
           _HeaderIconBtn(
             icon: Icons.forum_rounded,
-            tooltip: 'Conversaciones',
+            tooltip: l10n.conversations,
             onTap: () => context.push(AppRoutes.chatList),
           ),
           const SizedBox(width: 4),
           // Analytics button
           _HeaderIconBtn(
             icon: Icons.bar_chart_rounded,
-            tooltip: 'Analíticas',
+            tooltip: l10n.analytics,
             onTap: () => context.push(AppRoutes.analytics),
           ),
           const SizedBox(width: 4),
@@ -263,6 +261,7 @@ class _QuickActionsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
       child: Row(
@@ -270,7 +269,7 @@ class _QuickActionsRow extends StatelessWidget {
           Expanded(
             child: _ActionChip(
               icon: Icons.meeting_room_rounded,
-              label: 'KIOSCO',
+              label: l10n.kiosk.toUpperCase(),
               color: AppColors.secondary,
               onTap: () => context.push(AppRoutes.entrance),
             ),
@@ -279,7 +278,7 @@ class _QuickActionsRow extends StatelessWidget {
           Expanded(
             child: _ActionChip(
               icon: Icons.desktop_windows_rounded,
-              label: 'ESTACIONES',
+              label: l10n.stations.toUpperCase(),
               color: AppColors.primary,
               onTap: () => context.push(AppRoutes.workstations),
             ),
@@ -288,7 +287,7 @@ class _QuickActionsRow extends StatelessWidget {
           Expanded(
             child: _ActionChip(
               icon: Icons.picture_as_pdf_rounded,
-              label: 'REPORTES',
+              label: l10n.reports.toUpperCase(),
               color: AppColors.accent,
               onTap: () => context.push(AppRoutes.reports),
             ),
@@ -300,29 +299,22 @@ class _QuickActionsRow extends StatelessWidget {
 }
 
 // ── Quick actions row 2 ───────────────────────────────────────────────────────
+// Nómina oculta temporalmente (tiene errores) — el botón se reactiva cuando esté listo.
 
 class _QuickActionsRow2 extends StatelessWidget {
   const _QuickActionsRow2();
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       child: Row(
         children: [
           Expanded(
             child: _ActionChip(
-              icon: Icons.attach_money_rounded,
-              label: 'NÓMINA',
-              color: AppColors.success,
-              onTap: () => context.push(AppRoutes.payroll),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _ActionChip(
               icon: Icons.star_rounded,
-              label: 'EVALUACIONES',
+              label: l10n.evaluations.toUpperCase(),
               color: AppColors.accent,
               onTap: () => context.push(AppRoutes.evaluations),
             ),
@@ -390,6 +382,7 @@ class _KpiPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final employeeCount =
         ref.watch(adminEmployeesProvider).valueOrNull?.length ?? 0;
     final workstationCount =
@@ -401,7 +394,6 @@ class _KpiPanel extends StatelessWidget {
                 t.status.name == 'pending' || t.status.name == 'inProgress')
             .length ??
         0;
-    final pendingLeaves = ref.watch(pendingLeavesCountProvider);
     final unackAlerts = ref.watch(unacknowledgedAlertCountProvider);
 
     return Padding(
@@ -411,7 +403,7 @@ class _KpiPanel extends StatelessWidget {
           Expanded(
             child: _KpiTile(
               icon: Icons.people_rounded,
-              label: 'Empleados',
+              label: l10n.navEmployees,
               value: employeeCount,
               colors: AppColors.cyanGradient,
               onTap: () => context.push(AppRoutes.employees),
@@ -421,7 +413,7 @@ class _KpiPanel extends StatelessWidget {
           Expanded(
             child: _KpiTile(
               icon: Icons.computer_rounded,
-              label: 'Estaciones',
+              label: l10n.stations,
               value: workstationCount,
               colors: AppColors.primaryGradient,
               onTap: () => context.push(AppRoutes.workstations),
@@ -431,7 +423,7 @@ class _KpiPanel extends StatelessWidget {
           Expanded(
             child: _KpiTile(
               icon: Icons.task_alt_rounded,
-              label: 'Tareas',
+              label: l10n.navTasks,
               value: pendingTasks,
               colors: AppColors.warningGradient,
               onTap: () => context.push(AppRoutes.tasks),
@@ -440,18 +432,8 @@ class _KpiPanel extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: _KpiTile(
-              icon: Icons.event_note_rounded,
-              label: 'Permisos',
-              value: pendingLeaves,
-              colors: AppColors.successGradient,
-              onTap: () => context.push(AppRoutes.leaves),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _KpiTile(
               icon: Icons.warning_amber_rounded,
-              label: 'Alertas',
+              label: l10n.alerts,
               value: unackAlerts,
               colors: AppColors.errorGradient,
               onTap: () => context.push(AppRoutes.alertLog),

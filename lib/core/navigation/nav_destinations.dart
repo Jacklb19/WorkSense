@@ -3,7 +3,7 @@ import 'package:worksense_app/core/constants/constants.dart';
 import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/navigation/nav_destination.dart';
 
-/// Admin nav — 7 items
+/// Admin nav — 6 items (Leaves hidden)
 List<NavDestination> adminDestinations(AppLocalizations l) => [
   NavDestination(
     label: l.navDashboard,
@@ -29,12 +29,7 @@ List<NavDestination> adminDestinations(AppLocalizations l) => [
     selectedIcon: const Icon(Icons.task),
     route: AppRoutes.tasks,
   ),
-  NavDestination(
-    label: l.navLeaves,
-    icon: const Icon(Icons.beach_access_outlined),
-    selectedIcon: const Icon(Icons.beach_access),
-    route: AppRoutes.leaves,
-  ),
+  // Leaves (hidden — branch 7 exists but is not shown in nav)
   NavDestination(
     label: l.navShifts,
     icon: const Icon(Icons.schedule_outlined),
@@ -49,7 +44,7 @@ List<NavDestination> adminDestinations(AppLocalizations l) => [
   ),
 ];
 
-/// Employee nav — 5 items
+/// Employee nav — 4 items (Leaves hidden)
 List<NavDestination> employeeDestinations(AppLocalizations l) => [
   NavDestination(
     label: l.navHome,
@@ -63,12 +58,7 @@ List<NavDestination> employeeDestinations(AppLocalizations l) => [
     selectedIcon: const Icon(Icons.task),
     route: AppRoutes.tasks,
   ),
-  NavDestination(
-    label: l.navLeaves,
-    icon: const Icon(Icons.beach_access_outlined),
-    selectedIcon: const Icon(Icons.beach_access),
-    route: AppRoutes.leaves,
-  ),
+  // Leaves (hidden — branch 7 exists but is not shown in nav)
   NavDestination(
     label: l.navActivity,
     icon: const Icon(Icons.history_outlined),
