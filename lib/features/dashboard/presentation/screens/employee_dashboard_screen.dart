@@ -192,8 +192,8 @@ class _AssignedWorkstationSection extends ConsumerWidget {
 
     return workstationAsync.when(
       loading: () => AppLoadingWidget(message: context.l10n.verifyingWorkstation),
-      error: (e, _) => const ErrorBannerWidget(
-        message: 'No se pudo cargar la información del puesto de trabajo. Desliza hacia abajo para reintentar.',
+      error: (e, _) => ErrorBannerWidget(
+        message: context.l10n.errorLoadingWorkstationMsg,
       ),
       data: (workstation) {
         if (workstation == null) {
@@ -361,8 +361,8 @@ class _PersonalProductivitySection extends ConsumerWidget {
 
     return analyticsAsync.when(
       loading: () => AppLoadingWidget(message: context.l10n.calculatingTime),
-      error: (e, _) => const ErrorBannerWidget(
-        message: 'No se pudieron cargar tus métricas de productividad. Desliza hacia abajo para reintentar.',
+      error: (e, _) => ErrorBannerWidget(
+        message: context.l10n.errorLoadingProductivityMsg,
       ),
       data: (analytics) {
         if (analytics == null || !analytics.hasData) {
@@ -407,7 +407,7 @@ class _PersonalProductivitySection extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Tiempo total: ${HoursFormatters.formatDuration(totalDuration)}',
+                  context.l10n.totalTimeLabel(HoursFormatters.formatDuration(totalDuration)),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: AppDimensions.fontTitle,
@@ -518,8 +518,8 @@ class _RecentActivitySection extends ConsumerWidget {
 
     return eventsAsync.when(
       loading: () => const AppLoadingWidget(),
-      error: (e, _) => const ErrorBannerWidget(
-        message: 'No se pudo cargar la actividad reciente. Desliza hacia abajo para reintentar.',
+      error: (e, _) => ErrorBannerWidget(
+        message: context.l10n.errorLoadingRecentActivityMsg,
       ),
       data: (events) {
         if (events.isEmpty) {
@@ -632,11 +632,11 @@ class _TaskMiniWidget extends ConsumerWidget {
               ),
               child: Row(
                 children: [
-                  _TaskCountBadge(count: pending, label: 'Pendientes', color: ac.textSecondary),
+                  _TaskCountBadge(count: pending, label: context.l10n.taskPending, color: ac.textSecondary),
                   const _TaskDivider(),
-                  _TaskCountBadge(count: inProgress, label: 'En curso', color: AppColors.primary),
+                  _TaskCountBadge(count: inProgress, label: context.l10n.taskInProgress, color: AppColors.primary),
                   const _TaskDivider(),
-                  _TaskCountBadge(count: overdue, label: 'Vencidas', color: AppColors.error),
+                  _TaskCountBadge(count: overdue, label: context.l10n.taskOverdue, color: AppColors.error),
                   const Spacer(),
                   Icon(Icons.arrow_forward_ios_rounded,
                       size: 14, color: ac.textDisabled),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/activity_event.dart';
@@ -76,7 +77,7 @@ class ActivityEventTile extends StatelessWidget {
                   ),
                   const SizedBox(height: AppDimensions.spacingXs),
                   Text(
-                    'CONFIANZA: ${(event.confidence * 100).round()}%',
+                    context.l10n.confidenceLabel((event.confidence * 100).round()),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: ac.textDisabled,
                       fontWeight: FontWeight.bold,
@@ -89,7 +90,7 @@ class ActivityEventTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  _formatTimestamp(event.timestamp),
+                  _formatTimestamp(event.timestamp, context.l10n),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: ac.textDisabled,
                     fontWeight: FontWeight.bold,
@@ -97,7 +98,7 @@ class ActivityEventTile extends StatelessWidget {
                 ),
                 if (showWorkstationId)
                   Text(
-                    'PUESTO ${event.workstationId.split('-').last.toUpperCase()}',
+                    context.l10n.workstationShort(event.workstationId.split('-').last.toUpperCase()),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: ac.textDisabled.withAlpha(40),
                       fontWeight: FontWeight.bold,
@@ -111,10 +112,10 @@ class ActivityEventTile extends StatelessWidget {
     );
   }
 
-  String _formatTimestamp(DateTime dt) {
+  String _formatTimestamp(DateTime dt, AppLocalizations l10n) {
     final now = DateTime.now();
     final diff = now.difference(dt);
-    if (diff.inMinutes < 1) return 'AHORA';
+    if (diff.inMinutes < 1) return l10n.nowLabel;
     if (diff.inMinutes < 60) return '${diff.inMinutes}M';
     return _timeFmt.format(dt);
   }

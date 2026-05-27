@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/task_item.dart';
@@ -47,7 +48,7 @@ class _TasksListScreenState extends ConsumerState<TasksListScreen>
       appBar: AppBar(
         backgroundColor: ac.surface,
         title: Text(
-          'TAREAS',
+          context.l10n.navTasks.toUpperCase(),
           style: TextStyle(
             color: ac.textPrimary,
             fontSize: 16,
@@ -63,11 +64,11 @@ class _TasksListScreenState extends ConsumerState<TasksListScreen>
           labelColor: AppColors.primary,
           unselectedLabelColor: ac.textDisabled,
           labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          tabs: const [
-            Tab(text: 'Todas'),
-            Tab(text: 'Pendientes'),
-            Tab(text: 'En progreso'),
-            Tab(text: 'Completadas'),
+          tabs: [
+            Tab(text: context.l10n.taskAll),
+            Tab(text: context.l10n.taskPending),
+            Tab(text: context.l10n.taskInProgress),
+            Tab(text: context.l10n.taskDone),
           ],
           onTap: (i) {
             setState(() {
@@ -231,7 +232,7 @@ class _EmployeeTasksList extends ConsumerWidget {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Tarea marcada como "${newStatus.label}"'),
+          content: Text(context.l10n.taskMarkedAs(newStatus.label)),
           backgroundColor: newStatus.color,
           behavior: SnackBarBehavior.floating,
         ),
@@ -250,11 +251,12 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final message = filterStatus != null
-        ? 'No hay tareas ${filterStatus!.label.toLowerCase()}'
+        ? l10n.noTasksFiltered(filterStatus!.label.toLowerCase())
         : isAdmin
-            ? 'No has asignado tareas aún'
-            : 'No tienes tareas asignadas';
+            ? l10n.noTasksAssignedAdmin
+            : l10n.noTasksAssignedEmployee;
 
     return Center(
       child: Column(
@@ -284,9 +286,9 @@ class _EmptyState extends StatelessWidget {
             TextButton.icon(
               onPressed: () => context.push(AppRoutes.taskNew),
               icon: const Icon(Icons.add, color: AppColors.primary),
-              label: const Text(
-                'Crear primera tarea',
-                style: TextStyle(color: AppColors.primary),
+              label: Text(
+                context.l10n.createFirstTask,
+                style: const TextStyle(color: AppColors.primary),
               ),
             ),
           ],

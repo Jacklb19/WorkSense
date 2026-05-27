@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:worksense_app/core/constants/app_routes.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/announcement.dart';
@@ -26,14 +27,14 @@ class AnnouncementsScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: ac.background,
         title: Text(
-          'Comunicados',
+          context.l10n.announcements,
           style: TextStyle(color: ac.textPrimary, fontWeight: FontWeight.bold),
         ),
         actions: [
           if (isAdmin)
             IconButton(
               icon: const Icon(Icons.add, color: AppColors.primary),
-              tooltip: 'Nuevo comunicado',
+              tooltip: context.l10n.newAnnouncement,
               onPressed: () => context.push(AppRoutes.announcementNew),
             ),
         ],
@@ -47,10 +48,10 @@ class AnnouncementsScreen extends ConsumerWidget {
         ),
         data: (list) {
           if (list.isEmpty) {
-            return const AppEmptyState(
+            return AppEmptyState(
               icon: Icons.campaign_outlined,
-              title: 'Sin comunicados activos',
-              subtitle: 'Los nuevos comunicados aparecerán aquí',
+              title: context.l10n.noAnnouncementsTitle,
+              subtitle: context.l10n.noAnnouncementsSubtitle,
             );
           }
           return RefreshIndicator(
@@ -86,22 +87,22 @@ class AnnouncementsScreen extends ConsumerWidget {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: context.appColors.card,
-        title: Text('Eliminar comunicado',
+        title: Text(context.l10n.deleteAnnouncement,
             style: TextStyle(color: context.appColors.textPrimary)),
         content: Text(
-          '¿Eliminar "${a.title}"?',
+          context.l10n.confirmDeleteAnnouncement(a.title),
           style: const TextStyle(color: AppColors.grey400),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar',
-                style: TextStyle(color: AppColors.grey400)),
+            child: Text(context.l10n.cancel,
+                style: const TextStyle(color: AppColors.grey400)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child:
-                const Text('Eliminar', style: TextStyle(color: AppColors.error)),
+            child: Text(context.l10n.delete,
+                style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),

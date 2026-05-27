@@ -445,6 +445,175 @@ class AppLocalizations {
   String get deficient          => _t('Deficiente',           'Deficient');
   String get noEvaluations      =>
       _t('Sin evaluaciones.', 'No evaluations yet.');
+
+  // ── ACTIVITY LOG ───────────────────────────────────────────────────────────
+  String get activityLog        => _t('REGISTRO DE ACTIVIDAD', 'ACTIVITY LOG');
+  String get loadingActivity    => _t('Cargando actividad...', 'Loading activity...');
+  String get errorLoadingActivityMsg => _t(
+      'No se pudo cargar tu historial de actividad.\nVerifica tu conexión e intenta de nuevo.',
+      'Could not load your activity history.\nCheck your connection and try again.');
+  String get noRecordsTitle     => _t('SIN REGISTROS',         'NO RECORDS');
+  String get noRecordsSubtitle  => _t(
+      'La actividad reciente aparecera en este log.',
+      'Recent activity will appear in this log.');
+
+  // ── MY HOURS ───────────────────────────────────────────────────────────────
+  String get activityTodaySection  => _t('ACTIVIDAD DE HOY',    'TODAY\'S ACTIVITY');
+  String get recentSessionsSection => _t('JORNADAS RECIENTES',  'RECENT SESSIONS');
+  String get calculatingHours   => _t('Calculando tus horas...','Calculating your hours...');
+  String get errorLoadingHoursMsg  => _t(
+      'No se pudieron cargar tus horas de trabajo.\nVerifica tu conexión e intenta de nuevo.',
+      'Could not load your work hours.\nCheck your connection and try again.');
+  String get noHoursYet         => _t('AÚN NO HAY HORAS CONSOLIDADAS', 'NO HOURS CONSOLIDATED YET');
+  String get noHoursDesc        => _t(
+      'Tu resumen aparecerá automáticamente cuando\nse registren sesiones durante la jornada.',
+      'Your summary will appear automatically when\nsessions are recorded during the day.');
+  String get refresh            => _t('Actualizar',             'Refresh');
+  String get dailySummary       => _t('RESUMEN DE LA JORNADA',  'DAILY SUMMARY');
+  String workedLabel(String h)  => _en ? '$h worked'            : '$h trabajados';
+  String dailyGoalLabel(String h) => _en ? 'Daily goal: $h'    : 'Meta del día: $h';
+  String get noShiftGoal        => _t('Aún no hay una meta de turno configurada',
+                                      'No shift goal configured yet');
+  String get completion         => _t('Cumplimiento',           'Completion');
+  String get workStatus         => _t('Estado',                 'Status');
+  String get review             => _t('Revisar',                'Review');
+  String get expected           => _t('Esperado',               'Expected');
+  String get breakTime          => _t('Descanso',               'Break');
+  String get lateness           => _t('Tardanza',               'Lateness');
+  String get extra              => _t('Extra',                  'Extra');
+  String get absence            => _t('Ausencia',               'Absence');
+  String get kpiSessions        => _t('Sesiones',               'Sessions');
+  String get aspectsToReview    => _t('Aspectos para revisar',  'Aspects to review');
+  String get active             => _t('Activo',                 'Active');
+  String get kpiEvents          => _t('Eventos',                'Events');
+  String get productive         => _t('Productivo',             'Productive');
+  String workedOfExpected(String w, String e) =>
+      _en ? '$w worked of $e expected' : '$w trabajados de $e esperados';
+
+  // ── ACTIVITY HISTORY ───────────────────────────────────────────────────────
+  String get loadingHistory     => _t('Cargando historial...',  'Loading history...');
+  String get errorLoadingHistoryMsg => _t(
+      'No se pudo cargar el historial de actividad.\nVerifica tu conexión e intenta de nuevo.',
+      'Could not load the activity history.\nCheck your connection and try again.');
+  String eventsCount(int n)     => _en ? '$n events' : '$n eventos';
+  String get filterByStatus     => _t('Filtrar por estado',     'Filter by status');
+  String get allStatuses        => _t('Todos los estados',      'All statuses');
+
+  // ── EMPLOYEE DASHBOARD (error messages) ────────────────────────────────────
+  String get errorLoadingWorkstationMsg => _t(
+      'No se pudo cargar la información del puesto de trabajo. Desliza hacia abajo para reintentar.',
+      'Could not load workstation information. Pull down to retry.');
+  String get errorLoadingProductivityMsg => _t(
+      'No se pudieron cargar tus métricas de productividad. Desliza hacia abajo para reintentar.',
+      'Could not load your productivity metrics. Pull down to retry.');
+  String get errorLoadingRecentActivityMsg => _t(
+      'No se pudo cargar la actividad reciente. Desliza hacia abajo para reintentar.',
+      'Could not load recent activity. Pull down to retry.');
+  String totalTimeLabel(String t) => _en ? 'Total time: $t' : 'Tiempo total: $t';
+
+  // ── PROFILE ────────────────────────────────────────────────────────────────
+  String get profileName        => _t('Nombre',                 'Name');
+  String get profileEmail       => 'Email';
+  String get profileShift       => _t('Turno',                  'Shift');
+  String get profileCompany     => _t('Empresa',                'Company');
+  String get myStats            => _t('Mis estadísticas',       'My statistics');
+  String get totalTasksLabel    => _t('Tareas totales',         'Total tasks');
+  String get roleSuperAdmin     => 'Super Admin';
+  String get roleCameraMonitor  => _t('Monitor de Cámara',      'Camera Monitor');
+  String get roleEmployeeDisplay => _t('Empleado',              'Employee');
+
+  // ── TASKS (extra) ──────────────────────────────────────────────────────────
+  String taskMarkedAs(String s) => _en ? 'Task marked as "$s"'  : 'Tarea marcada como "$s"';
+  String noTasksFiltered(String s) => _en ? 'No $s tasks'       : 'No hay tareas $s';
+  String get noTasksAssignedAdmin    => _t('No has asignado tareas aún', 'No tasks assigned yet');
+  String get noTasksAssignedEmployee => _t('No tienes tareas asignadas', 'No tasks assigned to you');
+  String get createFirstTask    => _t('Crear primera tarea',    'Create first task');
+  String get taskOverdueTag     => _t('¡Vencida!',              'Overdue!');
+  String get taskStart          => _t('Iniciar',                'Start');
+  String get taskComplete       => _t('Completar',              'Complete');
+  String get taskAll            => _t('Todas',                  'All');
+  String get taskDone           => _t('Completadas',            'Completed');
+
+  // ── EVALUATIONS (extra) ────────────────────────────────────────────────────
+  String get noEvalsAdmin       => _t(
+      'Sin evaluaciones aún.\nCrea la primera evaluación con el botón +',
+      'No evaluations yet.\nCreate the first one with the + button');
+  String get confirmDeleteEvalTitle => _t('¿Eliminar evaluación?', 'Delete evaluation?');
+  String get cannotUndo         => _t('Esta acción no se puede deshacer.',
+                                      'This action cannot be undone.');
+  String get noEvalsEmployee    => _t(
+      'Aún no tienes evaluaciones de desempeño.\nComunícate con tu supervisor.',
+      'You don\'t have any performance evaluations yet.\nContact your supervisor.');
+  String get deleteEvaluation   => _t('Eliminar evaluación',    'Delete evaluation');
+
+  // ── ANNOUNCEMENTS (extra) ──────────────────────────────────────────────────
+  String get noAnnouncementsTitle    => _t('Sin comunicados activos',  'No active announcements');
+  String get noAnnouncementsSubtitle => _t('Los nuevos comunicados aparecerán aquí',
+                                           'New announcements will appear here');
+  String get deleteAnnouncement      => _t('Eliminar comunicado',      'Delete announcement');
+  String confirmDeleteAnnouncement(String t) =>
+      _en ? 'Delete "$t"?' : '¿Eliminar "$t"?';
+  String get announcementExpires     => _t('Vence:',                   'Expires:');
+
+  // ── WORKSTATION CARD ───────────────────────────────────────────────────────
+  String get noRecentActivity   => _t('SIN ACTIVIDAD RECIENTE', 'NO RECENT ACTIVITY');
+  String get justNow            => _t('Hace un momento',         'Just now');
+  String minutesAgo(int m)      => _en ? '$m min ago' : 'Hace $m min';
+
+  // ── ACTIVITY EVENT TILE ────────────────────────────────────────────────────
+  String confidenceLabel(int p) => _en ? 'CONFIDENCE: $p%'      : 'CONFIANZA: $p%';
+  String workstationShort(String id) => _en ? 'STATION $id'     : 'PUESTO $id';
+  String get nowLabel           => _t('AHORA',                   'NOW');
+
+  // ── CHAT ──────────────────────────────────────────────────────────────────
+  String get yesterday          => _t('Ayer',                    'Yesterday');
+
+  // ── LEAVE REQUEST ─────────────────────────────────────────────────────────
+  String durationDays(int n)    => _en
+      ? '$n day${n == 1 ? '' : 's'}'
+      : '$n día${n == 1 ? '' : 's'}';
+
+  // ── ANALYTICS ─────────────────────────────────────────────────────────────
+  String get statusLegend       => _t('Leyenda de estados',      'Status legend');
+  String get noAnalyticsData    => _t('Sin datos de analiticas', 'No analytics data');
+  String get noDataRegistered   => _t('Sin datos registrados',   'No data recorded');
+  String get noAnalyticsDataDesc => _t(
+      'Los datos apareceran cuando el sistema registre actividad de empleados.',
+      'Data will appear when the system records employee activity.');
+  String get stateDistribution  => _t('Distribución por estado', 'State distribution');
+  String get dailyAttendance    => _t('Asistencia Diaria (Horas Reales)', 'Daily Attendance (Actual Hours)');
+  String get noAttendanceRecords => _t(
+      'No hay registros de asistencia en el scanner.',
+      'No attendance records in scanner.');
+  String get totalTime          => _t('Tiempo total',             'Total time');
+  String get unknownEmployee    => _t('Empleado',                 'Employee');
+  String get details            => _t('Detalle',                  'Details');
+  String noDataForEmployee(String name) => _en ? 'No data for $name' : 'Sin datos para $name';
+  String get noEventsInPeriod   => _t(
+      'No se han registrado eventos\nen el periodo seleccionado.',
+      'No events recorded\nin the selected period.');
+  String totalHoursInOffice(String t) => _en ? 'Total office hours: $t' : 'Total horas en oficina: $t';
+  String lastActivity(String time)    => _en ? 'Last activity: $time' : 'Última actividad: $time';
+  String clockInOut(String i, String o) => _en ? 'In: $i - Out: $o' : 'Entrada: $i - Salida: $o';
+
+  // ── ANOMALY LABELS ─────────────────────────────────────────────────────────
+  String get anomalyOpenSession => _t(
+      'Hay una sesion sin cierre confirmado.',
+      'There is an open session without a confirmed close.');
+  String get anomalyTooManySegments => _t(
+      'Se detectaron demasiadas entradas o salidas en el dia.',
+      'Too many entries or exits were detected in the day.');
+  String get anomalyRepeatedAbsences => _t(
+      'Se registraron varias ausencias durante la jornada.',
+      'Several absences were recorded during the shift.');
+  String formatAnomalyLabel(String value) {
+    switch (value) {
+      case 'open_session':             return anomalyOpenSession;
+      case 'too_many_segments':        return anomalyTooManySegments;
+      case 'repeated_absence_events':  return anomalyRepeatedAbsences;
+      default: return value.replaceAll('_', ' ');
+    }
+  }
 }
 
 // ── Delegate ─────────────────────────────────────────────────────────────────

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/l10n/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_colors.dart';
 import '../../../../domain/entities/activity_state.dart';
@@ -23,12 +24,12 @@ class AdminAnalyticsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Analiticas'),
+        title: Text(context.l10n.analytics),
         centerTitle: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Actualizar',
+            tooltip: context.l10n.refresh,
             onPressed: () => ref.invalidate(employeeAnalyticsProvider),
           ),
         ],
@@ -45,7 +46,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
             child: Row(
               children: [
                 _DateChip(
-                  label: 'Hoy',
+                  label: context.l10n.today,
                   selected: dateRange == AnalyticsDateRange.today,
                   onTap: () => ref
                       .read(analyticsDateRangeProvider.notifier)
@@ -53,7 +54,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(width: AppDimensions.spacingMd),
                 _DateChip(
-                  label: 'Esta semana',
+                  label: context.l10n.thisWeek,
                   selected: dateRange == AnalyticsDateRange.thisWeek,
                   onTap: () => ref
                       .read(analyticsDateRangeProvider.notifier)
@@ -62,7 +63,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.info_outline, size: 20),
-                  tooltip: 'Leyenda de estados',
+                  tooltip: context.l10n.statusLegend,
                   onPressed: () => _showLegend(context),
                 ),
               ],
@@ -103,11 +104,10 @@ class AdminAnalyticsScreen extends ConsumerWidget {
               ),
               data: (analyticsList) {
                 if (analyticsList.isEmpty) {
-                  return const AppEmptyState(
+                  return AppEmptyState(
                     icon: Icons.analytics_outlined,
-                    title: 'Sin datos de analiticas',
-                    subtitle:
-                        'Los datos apareceran cuando el sistema registre actividad de empleados.',
+                    title: context.l10n.noAnalyticsData,
+                    subtitle: context.l10n.noAnalyticsDataDesc,
                   );
                 }
                 return RefreshIndicator(
@@ -158,7 +158,7 @@ class AdminAnalyticsScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Leyenda de estados',
+              context.l10n.statusLegend,
               style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: AppDimensions.spacingXxl),
@@ -281,8 +281,8 @@ class _EmployeeAnalyticsCard extends StatelessWidget {
                         const SizedBox(height: AppDimensions.spacingXxs),
                         Text(
                           analytics.hasData
-                              ? '${analytics.totalEvents} eventos - ${HoursFormatters.formatDuration(analytics.totalTrackedTime)}'
-                              : 'Sin datos registrados',
+                              ? '${analytics.totalEvents} ${context.l10n.kpiEvents} - ${HoursFormatters.formatDuration(analytics.totalTrackedTime)}'
+                              : context.l10n.noDataRegistered,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: context.appColors.textSecondary,
                           ),

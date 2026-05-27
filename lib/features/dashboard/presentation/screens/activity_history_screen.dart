@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
@@ -33,7 +34,7 @@ class _ActivityHistoryScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Historial de Actividad'),
+        title: Text(context.l10n.activityHistory),
         actions: [
           IconButton(
             icon: Icon(
@@ -43,15 +44,14 @@ class _ActivityHistoryScreenState
               color: _filterState != null ? AppColors.primary : null,
             ),
             onPressed: _showFilterSheet,
-            tooltip: 'Filtrar por estado',
+            tooltip: context.l10n.filterByStatus,
           ),
         ],
       ),
       body: eventsAsync.when(
-        loading: () => const AppLoadingWidget(message: 'Cargando historial...'),
+        loading: () => AppLoadingWidget(message: context.l10n.loadingHistory),
         error: (error, _) => AppErrorWidget(
-          message:
-              'No se pudo cargar el historial de actividad.\nVerifica tu conexión e intenta de nuevo.',
+          message: context.l10n.errorLoadingHistoryMsg,
           icon: Icons.history_toggle_off,
           onRetry: () {
             ref.invalidate(employeeRecentEventsProvider);
@@ -68,7 +68,7 @@ class _ActivityHistoryScreenState
               icon: hasFilter
                   ? Icons.search_off
                   : Icons.history_toggle_off,
-              title: hasFilter ? 'Sin resultados' : 'Sin eventos registrados',
+              title: hasFilter ? context.l10n.noResults : context.l10n.noEventsRegistered,
             );
           }
 
@@ -97,7 +97,7 @@ class _ActivityHistoryScreenState
                       ),
                       const SizedBox(width: AppDimensions.spacingMd),
                       Text(
-                        '${filtered.length} eventos',
+                        context.l10n.eventsCount(filtered.length),
                         style: TextStyle(
                           color: context.appColors.textSecondary,
                           fontSize: AppDimensions.fontCaption,
@@ -142,13 +142,13 @@ class _ActivityHistoryScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Filtrar por estado',
+              context.l10n.filterByStatus,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: AppDimensions.spacingXxl),
             ListTile(
               leading: const Text('🔵', style: TextStyle(fontSize: AppDimensions.fontHeadline)),
-              title: const Text('Todos los estados'),
+              title: Text(context.l10n.allStatuses),
               selected: _filterState == null,
               onTap: () {
                 setState(() => _filterState = null);

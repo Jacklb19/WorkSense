@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/features/dashboard/presentation/providers/employee_dashboard_provider.dart';
@@ -17,17 +18,16 @@ class MyActivityScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'REGISTRO DE ACTIVIDAD',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5),
+        title: Text(
+          context.l10n.activityLog,
+          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5),
         ),
         centerTitle: false,
       ),
       body: recentEventsAsync.when(
-        loading: () => const AppLoadingWidget(message: 'Cargando actividad...'),
+        loading: () => AppLoadingWidget(message: context.l10n.loadingActivity),
         error: (error, _) => AppErrorWidget(
-          message:
-              'No se pudo cargar tu historial de actividad.\nVerifica tu conexión e intenta de nuevo.',
+          message: context.l10n.errorLoadingActivityMsg,
           icon: Icons.history_toggle_off,
           onRetry: () => ref.invalidate(employeeRecentEventsProvider),
         ),
@@ -35,8 +35,8 @@ class MyActivityScreen extends ConsumerWidget {
           if (events.isEmpty) {
             return AppEmptyState(
               icon: Icons.history_toggle_off,
-              title: 'SIN REGISTROS',
-              subtitle: 'La actividad reciente aparecera en este log.',
+              title: context.l10n.noRecordsTitle,
+              subtitle: context.l10n.noRecordsSubtitle,
               iconColor: context.appColors.textDisabled,
             );
           }

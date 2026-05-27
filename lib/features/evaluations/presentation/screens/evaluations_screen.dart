@@ -75,8 +75,8 @@ class _AdminEvaluationsView extends ConsumerWidget {
         ),
         data: (evals) {
           if (evals.isEmpty) {
-            return const _EmptyEvals(
-              message: 'Sin evaluaciones aún.\nCrea la primera evaluación con el botón +',
+            return _EmptyEvals(
+              message: context.l10n.noEvalsAdmin,
             );
           }
           return ListView.separated(
@@ -112,11 +112,11 @@ class _AdminEvaluationsView extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: ctx.appColors.surface,
         title: Text(
-          '¿Eliminar evaluación?',
+          ctx.l10n.confirmDeleteEvalTitle,
           style: TextStyle(color: ctx.appColors.textPrimary),
         ),
         content: Text(
-          'Esta acción no se puede deshacer.',
+          ctx.l10n.cannotUndo,
           style: TextStyle(color: ctx.appColors.textSecondary),
         ),
         actions: [
@@ -153,7 +153,7 @@ class _EmployeeEvaluationsView extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: ac.surface,
         title: Text(
-          'Mis Evaluaciones',
+          context.l10n.myEvaluations,
           style: TextStyle(
             color: ac.textPrimary,
             fontWeight: FontWeight.w700,
@@ -170,8 +170,8 @@ class _EmployeeEvaluationsView extends ConsumerWidget {
         ),
         data: (evals) {
           if (evals.isEmpty) {
-            return const _EmptyEvals(
-              message: 'Aún no tienes evaluaciones de desempeño.\nComunícate con tu supervisor.',
+            return _EmptyEvals(
+              message: context.l10n.noEvalsEmployee,
             );
           }
           return ListView.separated(
@@ -331,7 +331,7 @@ class _EvalCard extends StatelessWidget {
                       // ✅ IconButton en lugar de GestureDetector:
                       //    zona táctil de 48x48 automática + Semantics + tooltip
                       Semantics(
-                        label: 'Eliminar evaluación',
+                        label: context.l10n.deleteEvaluation,
                         button: true,
                         child: IconButton(
                           onPressed: onDelete,
@@ -342,7 +342,7 @@ class _EvalCard extends StatelessWidget {
                             size: 18,
                             color: AppColors.error.withValues(alpha: 0.7),
                           ),
-                          tooltip: 'Eliminar evaluación',
+                          tooltip: context.l10n.deleteEvaluation,
                         ),
                       ),
                   ],

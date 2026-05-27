@@ -35,8 +35,8 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: detailAsync.whenOrNull(
           data: (EmployeeAnalytics? a) =>
-              Text(a?.employee.displayName ?? 'Empleado'),
-        ) ?? const Text('Detalle'),
+              Text(a?.employee.displayName ?? context.l10n.unknownEmployee),
+        ) ?? Text(context.l10n.details),
       ),
       body: detailAsync.when(
         loading: () => const AppLoadingWidget(),
@@ -68,7 +68,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                   child: Row(
                     children: [
                       _Chip(
-                        label: 'Hoy',
+                        label: context.l10n.today,
                         selected: dateRange == AnalyticsDateRange.today,
                         onTap: () => ref
                             .read(analyticsDateRangeProvider.notifier)
@@ -76,7 +76,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                       ),
                       const SizedBox(width: AppDimensions.spacingMd),
                       _Chip(
-                        label: 'Esta semana',
+                        label: context.l10n.thisWeek,
                         selected: dateRange == AnalyticsDateRange.thisWeek,
                         onTap: () => ref
                             .read(analyticsDateRangeProvider.notifier)
@@ -96,7 +96,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                     vertical: AppDimensions.spacingMd,
                   ),
                   child: Text(
-                    'Distribucion por estado',
+                    context.l10n.stateDistribution,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -117,7 +117,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                     AppDimensions.spacingMd,
                   ),
                   child: Text(
-                    'Asistencia Diaria (Horas Reales)',
+                    context.l10n.dailyAttendance,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -131,7 +131,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                       child: Padding(
                         padding: const EdgeInsets.all(AppDimensions.spacingXxl),
                         child: Text(
-                          'No hay registros de asistencia en el scanner.',
+                          context.l10n.noAttendanceRecords,
                           style: TextStyle(color: context.appColors.textSecondary),
                         ),
                       ),
@@ -152,7 +152,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                           vertical: AppDimensions.spacingMd,
                         ),
                         child: Text(
-                          'Total horas en oficina: ${_fmtDur(totalNetTime)}',
+                          context.l10n.totalHoursInOffice(_fmtDur(totalNetTime)),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,
@@ -164,7 +164,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                             _timeFmt.format(log.clockInTime);
                         final outStr = log.clockOutTime != null
                             ? _timeFmt.format(log.clockOutTime!)
-                            : 'En curso';
+                            : context.l10n.taskInProgress;
                         final diff = (log.clockOutTime ?? DateTime.now())
                             .difference(log.clockInTime);
                         return ListTile(
@@ -172,7 +172,7 @@ class EmployeeDetailAnalyticsScreen extends ConsumerWidget {
                             Icons.sensor_door,
                             color: context.appColors.textDisabled,
                           ),
-                          title: Text('Entrada: $inStr - Salida: $outStr'),
+                          title: Text(context.l10n.clockInOut(inStr, outStr)),
                           trailing: Text(
                             _fmtDur(diff),
                             style: const TextStyle(fontWeight: FontWeight.w600),
@@ -320,7 +320,7 @@ class _SummaryHeader extends StatelessWidget {
                         ),
                         if (analytics.lastUpdate != null)
                           Text(
-                            'Ultima actividad: ${_timeFmt.format(analytics.lastUpdate!)}',
+                            context.l10n.lastActivity(_timeFmt.format(analytics.lastUpdate!)),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: context.appColors.textSecondary,
                             ),
@@ -361,17 +361,17 @@ class _SummaryHeader extends StatelessWidget {
                 children: [
                   AppStatChip(
                     icon: Icons.timer_outlined,
-                    label: 'Tiempo total',
+                    label: context.l10n.totalTime,
                     value: _fmtDur(analytics.totalTrackedTime),
                   ),
                   AppStatChip(
                     icon: Icons.event_note_outlined,
-                    label: 'Eventos',
+                    label: context.l10n.kpiEvents,
                     value: '${analytics.totalEvents}',
                   ),
                   AppStatChip(
                     icon: Icons.trending_up,
-                    label: 'Productividad',
+                    label: context.l10n.productivity,
                     value:
                         '${(analytics.percentageFor(ActivityState.trabajando) * 100).round()}%',
                   ),
@@ -432,14 +432,14 @@ class _EmptyDetailView extends StatelessWidget {
           ),
           const SizedBox(height: AppDimensions.spacingXxl),
           Text(
-            'Sin datos para $name',
+            context.l10n.noDataForEmployee(name),
             style: theme.textTheme.titleMedium?.copyWith(
               color: context.appColors.textSecondary,
             ),
           ),
           const SizedBox(height: AppDimensions.spacingMd),
           Text(
-            'No se han registrado eventos\nen el periodo seleccionado.',
+            context.l10n.noEventsInPeriod,
             style: theme.textTheme.bodySmall?.copyWith(
               color: context.appColors.textDisabled,
             ),

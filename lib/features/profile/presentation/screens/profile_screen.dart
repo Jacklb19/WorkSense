@@ -48,7 +48,7 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
             title: Text(
-              'Mi Perfil',
+              l10n.myProfile,
               style: TextStyle(
                   color: context.appColors.textPrimary, fontWeight: FontWeight.bold),
             ),
@@ -61,21 +61,21 @@ class ProfileScreen extends ConsumerWidget {
                 _InfoCard(children: [
                   _InfoRow(
                     icon: Icons.person_outline,
-                    label: 'Nombre',
+                    label: l10n.profileName,
                     value: myEmployee?.displayName ??
                         currentUser?.user?.email?.split('@').first ??
                         '—',
                   ),
                   _InfoRow(
                     icon: Icons.email_outlined,
-                    label: 'Email',
+                    label: l10n.profileEmail,
                     value: currentUser?.user?.email ?? '—',
                   ),
                   _InfoRow(
                     icon: Icons.security_outlined,
-                    label: 'Rol',
+                    label: l10n.roleLabel,
                     value: _roleLabel(
-                        currentUser?.role.metadataValue ?? 'EMPLOYEE'),
+                        currentUser?.role.metadataValue ?? 'EMPLOYEE', l10n),
                   ),
                 ]),
                 const SizedBox(height: 14),
@@ -84,7 +84,7 @@ class ProfileScreen extends ConsumerWidget {
                 _InfoCard(children: [
                   _InfoRow(
                     icon: Icons.schedule,
-                    label: 'Turno',
+                    label: l10n.profileShift,
                     value: myShift != null
                         ? '${myShift.name} '
                             '(${myShift.startTime.hour.toString().padLeft(2, '0')}:'
@@ -96,7 +96,7 @@ class ProfileScreen extends ConsumerWidget {
                   if (myEmployee?.companyId != null)
                     _InfoRow(
                       icon: Icons.business_outlined,
-                      label: 'Empresa',
+                      label: l10n.profileCompany,
                       value: myEmployee!.companyId.substring(
                           0,
                           myEmployee.companyId.length > 8
@@ -107,7 +107,7 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 14),
 
                 // ── Stats row ──────────────────────────────────────
-                const _SectionLabel('Mis estadísticas'),
+                _SectionLabel(l10n.myStats),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -115,7 +115,7 @@ class ProfileScreen extends ConsumerWidget {
                       child: _StatCard(
                         icon: Icons.task_alt,
                         color: AppColors.primary,
-                        label: 'Tareas totales',
+                        label: l10n.totalTasksLabel,
                         value: myTasks.length.toString(),
                       ),
                     ),
@@ -124,7 +124,7 @@ class ProfileScreen extends ConsumerWidget {
                       child: _StatCard(
                         icon: Icons.check_circle_outline,
                         color: AppColors.success,
-                        label: 'Completadas',
+                        label: l10n.taskDone,
                         value: myTasks
                             .where((t) => t.status == TaskStatus.done)
                             .length
@@ -136,7 +136,7 @@ class ProfileScreen extends ConsumerWidget {
                       child: _StatCard(
                         icon: Icons.pending_actions,
                         color: AppColors.warning,
-                        label: 'Pendientes',
+                        label: l10n.taskPending,
                         value: myTasks
                             .where((t) =>
                                 t.status == TaskStatus.pending ||
@@ -156,16 +156,16 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  String _roleLabel(String raw) {
+  String _roleLabel(String raw, AppLocalizations l10n) {
     switch (raw.toUpperCase()) {
       case 'ADMIN':
-        return 'Administrador';
+        return l10n.roleAdmin;
       case 'SUPER_ADMIN':
-        return 'Super Admin';
+        return l10n.roleSuperAdmin;
       case 'CAMERA_MONITOR':
-        return 'Monitor de Cámara';
+        return l10n.roleCameraMonitor;
       default:
-        return 'Empleado';
+        return l10n.roleEmployeeDisplay;
     }
   }
 }

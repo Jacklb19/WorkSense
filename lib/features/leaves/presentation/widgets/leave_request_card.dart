@@ -110,7 +110,7 @@ class LeaveRequestCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    '${request.durationDays} día${request.durationDays == 1 ? '' : 's'}',
+                    context.l10n.durationDays(request.durationDays),
                     style: TextStyle(
                       color: ac.textSecondary,
                       fontSize: 10,
@@ -173,7 +173,7 @@ class LeaveRequestCard extends StatelessWidget {
                   TextButton.icon(
                     onPressed: onReject,
                     icon: const Icon(Icons.close, size: 14),
-                    label: const Text('Rechazar'),
+                    label: Text(context.l10n.reject),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.error,
                       textStyle: const TextStyle(fontSize: 12),
@@ -183,7 +183,7 @@ class LeaveRequestCard extends StatelessWidget {
                   FilledButton.icon(
                     onPressed: onApprove,
                     icon: const Icon(Icons.check, size: 14),
-                    label: const Text('Aprobar'),
+                    label: Text(context.l10n.approve),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.success,
                       textStyle: const TextStyle(fontSize: 12),

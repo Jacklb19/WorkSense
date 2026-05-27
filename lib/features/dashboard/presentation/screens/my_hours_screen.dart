@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:worksense_app/core/constants/app_dimensions.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/activity_state.dart';
@@ -14,10 +15,6 @@ import 'package:worksense_app/shared/widgets/loading_widget.dart';
 class MyHoursScreen extends ConsumerWidget {
   const MyHoursScreen({super.key});
 
-  static const String _screenTitle = 'MIS HORAS';
-  static const String _activitySectionTitle = 'ACTIVIDAD DE HOY';
-  static const String _historySectionTitle = 'JORNADAS RECIENTES';
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final analyticsAsync = ref.watch(employeeTodayAnalyticsProvider);
@@ -26,9 +23,9 @@ class MyHoursScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          _screenTitle,
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.6),
+        title: Text(
+          context.l10n.myHours.toUpperCase(),
+          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.6),
         ),
         centerTitle: false,
       ),
@@ -45,14 +42,13 @@ class MyHoursScreen extends ConsumerWidget {
   ) {
     // ── Cargando ──────────────────────────────────────────────
     if (analyticsAsync.isLoading || summaryAsync.isLoading || summariesAsync.isLoading) {
-      return const AppLoadingWidget(message: 'Calculando tus horas...');
+      return AppLoadingWidget(message: context.l10n.calculatingHours);
     }
 
     // ── Error ─────────────────────────────────────────────────
     if (analyticsAsync.hasError || summaryAsync.hasError || summariesAsync.hasError) {
       return AppErrorWidget(
-        message:
-            'No se pudieron cargar tus horas de trabajo.\nVerifica tu conexión e intenta de nuevo.',
+        message: context.l10n.errorLoadingHoursMsg,
         icon: Icons.schedule_outlined,
         onRetry: () {
           ref.invalidate(employeeTodayAnalyticsProvider);
@@ -101,7 +97,7 @@ class MyHoursScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
             sliver: SliverToBoxAdapter(
               child: Text(
-                _activitySectionTitle,
+                context.l10n.activityTodaySection,
                 style: TextStyle(
                   color: context.appColors.textSecondary,
                   fontSize: 11,
@@ -131,7 +127,7 @@ class MyHoursScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
             sliver: SliverToBoxAdapter(
               child: Text(
-                _historySectionTitle,
+                context.l10n.recentSessionsSection,
                 style: TextStyle(
                   color: context.appColors.textSecondary,
                   fontSize: 11,
@@ -259,7 +255,7 @@ class _EmptyHoursView extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              'AÚN NO HAY HORAS CONSOLIDADAS',
+              context.l10n.noHoursYet,
               style: TextStyle(
                 color: ac.textDisabled,
                 fontSize: 15,
@@ -270,7 +266,7 @@ class _EmptyHoursView extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Tu resumen aparecerá automáticamente cuando\nse registren sesiones durante la jornada.',
+              context.l10n.noHoursDesc,
               textAlign: TextAlign.center,
               style: TextStyle(color: ac.textDisabled, fontSize: 13, height: 1.5),
             ),
@@ -279,7 +275,7 @@ class _EmptyHoursView extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('Actualizar'),
+                label: Text(context.l10n.refresh),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: ac.textSecondary,
                   side: BorderSide(color: ac.divider),
@@ -329,9 +325,9 @@ class _SummaryHeroCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'RESUMEN DE LA JORNADA',
-            style: TextStyle(
+          Text(
+            context.l10n.dailySummary,
+            style: const TextStyle(
               color: AppColors.onDark70,
               fontSize: 11,
               fontWeight: FontWeight.w900,
@@ -340,7 +336,7 @@ class _SummaryHeroCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '${HoursFormatters.formatMinutes(worked)} trabajados',
+            context.l10n.workedLabel(HoursFormatters.formatMinutes(worked)),
             style: const TextStyle(
               color: AppColors.white,
               fontSize: 28,
@@ -350,8 +346,8 @@ class _SummaryHeroCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             expected > 0
-                ? 'Meta del día: ${HoursFormatters.formatMinutes(expected)}'
-                : 'Aún no hay una meta de turno configurada',
+                ? context.l10n.dailyGoalLabel(HoursFormatters.formatMinutes(expected))
+                : context.l10n.noShiftGoal,
             style: const TextStyle(color: AppColors.onDark70, height: 1.35),
           ),
           const SizedBox(height: 18),
@@ -368,13 +364,13 @@ class _SummaryHeroCard extends StatelessWidget {
           Row(
             children: [
               _HeroChip(
-                label: 'Cumplimiento',
+                label: context.l10n.completion,
                 value: '${(ratio * 100).round()}%',
               ),
               const SizedBox(width: 10),
               _HeroChip(
-                label: 'Estado',
-                value: (summary?.hasAnomalies ?? false) ? 'Revisar' : 'OK',
+                label: context.l10n.workStatus,
+                value: (summary?.hasAnomalies ?? false) ? context.l10n.review : 'OK',
               ),
             ],
           ),
@@ -433,13 +429,14 @@ class _MetricsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ac = context.appColors;
+    final l10n = context.l10n;
     final tiles = [
-      _MetricData('Esperado', HoursFormatters.formatMinutes(summary.expectedMinutes), Icons.schedule),
-      _MetricData('Descanso', HoursFormatters.formatMinutes(summary.breakMinutes), Icons.free_breakfast),
-      _MetricData('Tardanza', HoursFormatters.formatMinutes(summary.lateMinutes), Icons.access_time_filled),
-      _MetricData('Extra', HoursFormatters.formatMinutes(summary.extraMinutes), Icons.trending_up),
-      _MetricData('Ausencia', HoursFormatters.formatMinutes(summary.absenceMinutes), Icons.person_off),
-      _MetricData('Sesiones', '${summary.sessionCount}', Icons.login),
+      _MetricData(l10n.expected, HoursFormatters.formatMinutes(summary.expectedMinutes), Icons.schedule),
+      _MetricData(l10n.breakTime, HoursFormatters.formatMinutes(summary.breakMinutes), Icons.free_breakfast),
+      _MetricData(l10n.lateness, HoursFormatters.formatMinutes(summary.lateMinutes), Icons.access_time_filled),
+      _MetricData(l10n.extra, HoursFormatters.formatMinutes(summary.extraMinutes), Icons.trending_up),
+      _MetricData(l10n.absence, HoursFormatters.formatMinutes(summary.absenceMinutes), Icons.person_off),
+      _MetricData(l10n.kpiSessions, '${summary.sessionCount}', Icons.login),
     ];
 
     return LayoutBuilder(
@@ -520,7 +517,7 @@ class _AnomaliesCard extends StatelessWidget {
               const Icon(Icons.warning_amber_rounded, color: AppColors.warning),
               const SizedBox(width: 10),
               Text(
-                'Aspectos para revisar',
+                context.l10n.aspectsToReview,
                 style: TextStyle(
                   color: context.appColors.textPrimary,
                   fontSize: 16,
@@ -534,7 +531,7 @@ class _AnomaliesCard extends StatelessWidget {
             (anomaly) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                '• ${HoursFormatters.formatAnomalyLabel(anomaly)}',
+                '• ${context.l10n.formatAnomalyLabel(anomaly)}',
                 style: TextStyle(color: context.appColors.textSecondary, height: 1.35),
               ),
             ),
@@ -566,17 +563,17 @@ class _ActivityOverviewCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _ActivityPill(
-            label: 'Activo',
+            label: context.l10n.active,
             value: HoursFormatters.formatDuration(analytics.totalTrackedTime),
             icon: Icons.timer_outlined,
           ),
           _ActivityPill(
-            label: 'Eventos',
+            label: context.l10n.kpiEvents,
             value: '${analytics.totalEvents}',
             icon: Icons.bolt_rounded,
           ),
           _ActivityPill(
-            label: 'Productivo',
+            label: context.l10n.productive,
             value:
                 '${(analytics.percentageFor(ActivityState.trabajando) * 100).round()}%',
             icon: Icons.trending_up_rounded,
@@ -633,8 +630,10 @@ class _HistoryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${HoursFormatters.formatMinutes(summary.workedMinutes)} trabajados'
-                  ' de ${HoursFormatters.formatMinutes(summary.expectedMinutes)} esperados',
+                  context.l10n.workedOfExpected(
+                    HoursFormatters.formatMinutes(summary.workedMinutes),
+                    HoursFormatters.formatMinutes(summary.expectedMinutes),
+                  ),
                   style: TextStyle(color: ac.textSecondary, fontSize: 12),
                 ),
               ],
@@ -652,7 +651,7 @@ class _HistoryCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                summary.hasAnomalies ? 'Revisar' : 'OK',
+                summary.hasAnomalies ? context.l10n.review : 'OK',
                 style: TextStyle(
                   color: summary.hasAnomalies ? AppColors.warning : AppColors.success,
                   fontSize: 12,

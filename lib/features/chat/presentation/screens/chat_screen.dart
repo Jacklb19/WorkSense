@@ -229,10 +229,11 @@ class _DateDivider extends StatelessWidget {
         date.month == yesterday.month &&
         date.day == yesterday.day;
 
+    final l10n = context.l10n;
     final label = isToday
-        ? 'Hoy'
+        ? l10n.today
         : isYesterday
-            ? 'Ayer'
+            ? l10n.yesterday
             : '${date.day.toString().padLeft(2, '0')}/'
                 '${date.month.toString().padLeft(2, '0')}/'
                 '${date.year}';

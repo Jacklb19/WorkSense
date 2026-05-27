@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_dimensions.dart';
+import '../../../../core/l10n/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_colors.dart';
 import '../../../../data/datasources/local/database.dart';
@@ -91,7 +92,7 @@ class WorkstationCard extends ConsumerWidget {
                       ),
                       const SizedBox(width: AppDimensions.spacingXs),
                       Text(
-                        _formatTimestamp(lastEvent.timestamp),
+                        _formatTimestamp(lastEvent.timestamp, context.l10n),
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: ac.textDisabled,
                         ),
@@ -100,7 +101,7 @@ class WorkstationCard extends ConsumerWidget {
                   ),
                 ] else
                   Text(
-                    'SIN ACTIVIDAD RECIENTE',
+                    context.l10n.noRecentActivity,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: ac.textDisabled,
                       fontWeight: FontWeight.bold,
@@ -114,12 +115,12 @@ class WorkstationCard extends ConsumerWidget {
     );
   }
 
-  String _formatTimestamp(DateTime dt) {
+  String _formatTimestamp(DateTime dt, AppLocalizations l10n) {
     final now = DateTime.now();
     final diff = now.difference(dt);
 
-    if (diff.inMinutes < 1) return 'Hace un momento';
-    if (diff.inMinutes < 60) return 'Hace ${diff.inMinutes} min';
+    if (diff.inMinutes < 1) return l10n.justNow;
+    if (diff.inMinutes < 60) return l10n.minutesAgo(diff.inMinutes);
     if (diff.inHours < 24) {
       return _timeFmt.format(dt);
     }

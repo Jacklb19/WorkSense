@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/announcement.dart';
@@ -118,7 +119,7 @@ class AnnouncementCard extends ConsumerWidget {
                     const Icon(Icons.event_busy, size: 12, color: AppColors.grey400),
                     const SizedBox(width: 4),
                     Text(
-                      'Vence: ${_fmtDate(announcement.expiresAt!)}',
+                      '${context.l10n.announcementExpires} ${_fmtDate(announcement.expiresAt!)}',
                       style: const TextStyle(
                         color: AppColors.grey400,
                         fontSize: 11,

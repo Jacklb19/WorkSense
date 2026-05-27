@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:worksense_app/core/l10n/app_localizations.dart';
 import 'package:worksense_app/core/theme/app_colors.dart';
 import 'package:worksense_app/core/theme/app_theme_colors.dart';
 import 'package:worksense_app/domain/entities/task_item.dart';
@@ -123,9 +124,9 @@ class TaskCard extends StatelessWidget {
                     ),
                     if (overdue) ...[
                       const SizedBox(width: 4),
-                      const Text(
-                        '¡Vencida!',
-                        style: TextStyle(
+                      Text(
+                        context.l10n.taskOverdueTag,
+                        style: const TextStyle(
                           color: AppColors.error,
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -219,7 +220,9 @@ class _QuickStatusButton extends StatelessWidget {
     final nextStatus = task.status == TaskStatus.pending
         ? TaskStatus.inProgress
         : TaskStatus.done;
-    final label = task.status == TaskStatus.pending ? 'Iniciar' : 'Completar';
+    final label = task.status == TaskStatus.pending
+        ? context.l10n.taskStart
+        : context.l10n.taskComplete;
     final color = task.status == TaskStatus.pending ? AppColors.primary : AppColors.success;
 
     return Material(

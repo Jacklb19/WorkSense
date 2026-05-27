@@ -91,13 +91,13 @@ class EmployeeProfiler {
     ),
     ScanInstruction(
       index: 3,
-      text: 'Levanta levemente la cabeza',
-      emoji: '👆',
+      text: 'Inclina levemente la cabeza hacia abajo',
+      emoji: '👇',
     ),
     ScanInstruction(
       index: 4,
-      text: 'Inclina levemente la cabeza hacia abajo',
-      emoji: '👇',
+      text: 'Levanta levemente la cabeza',
+      emoji: '👆',
     ),
     ScanInstruction(
       index: 5,
@@ -465,9 +465,9 @@ class EmployeeProfiler {
         return yaw < -4.0 && pitch.abs() <= 18.0;
       case 2: // Derecha
         return yaw > 4.0 && pitch.abs() <= 18.0;
-      case 3: // Arriba (pitch negativo = cabeza arriba en ML Kit)
+      case 3: // Abajo: pitch negativo = cabeza inclinada hacia abajo (cámara frontal MLKit)
         return yaw.abs() <= 18.0 && pitch < -3.0;
-      case 4: // Abajo (pitch positivo = cabeza abajo)
+      case 4: // Arriba: pitch positivo = cabeza levantada hacia arriba
         return yaw.abs() <= 18.0 && pitch > 3.0;
       case 5: // Frente otra vez
         return yaw.abs() <= 12.0 && pitch.abs() <= 14.0;
